@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Core">
+      <UniqueIdentifier>{c8a8227a-ff93-4cf1-8019-777470da0b42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Windows">
+      <UniqueIdentifier>{66ce2819-2b33-4dfe-a222-5f975a056fd6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Layout">
+      <UniqueIdentifier>{e439567d-6ab7-4e6e-b157-e6aefc8e34bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Interaction">
+      <UniqueIdentifier>{760504f6-a988-4c49-97b4-1fc2c11be96f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wigets">
+      <UniqueIdentifier>{df8b15e6-f5a4-4892-90a3-a3ce8c01a1c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Internal">
+      <UniqueIdentifier>{6c6876c2-c207-4b8c-aae8-5af9e083eb3c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MyImGui.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="FloatingWindow.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="FlowLayout.h">
+      <Filter>Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="DragDropReorder.h">
+      <Filter>Interaction</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Internal</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MyImGui.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="FloatingWindow.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="FlowLayout.cpp">
+      <Filter>Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="DragDropRecoder.cpp">
+      <Filter>Interaction</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Internal</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
