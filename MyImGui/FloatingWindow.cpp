@@ -111,49 +111,7 @@ namespace MyImGui
             const ImGuiID dockId =
                 ImGui::GetWindowDockID();
 
-            if (dockId != 0)
-            {
-                ImGuiDockNode* dockNode =
-                    ImGui::DockBuilderGetNode(
-                        dockId
-                    );
-
-                if (dockNode != nullptr &&
-                    dockNode->ParentNode != nullptr &&
-                    dockNode->ParentNode->SplitAxis ==
-                    ImGuiAxis_Y)
-                {
-                    ImGuiDockNode* parentNode =
-                        dockNode->ParentNode;
-
-                    ImGuiDockNode* siblingNode =
-                        parentNode->ChildNodes[0] ==
-                        dockNode
-                        ? parentNode->ChildNodes[1]
-                        : parentNode->ChildNodes[0];
-
-                    dockNode->SizeRef.y =
-                        requiredHeight;
-
-                    if (siblingNode != nullptr)
-                    {
-                        siblingNode->SizeRef.y =
-                            std::max(
-                                1.0f,
-                                parentNode->Size.y -
-                                requiredHeight
-                            );
-                    }
-                }
-                else
-                {
-                    ImGui::DockBuilderSetNodeSize(
-                        dockId,
-                        requiredSize
-                    );
-                }
-            }
-            else
+            if (dockId == 0)
             {
                 ImGui::SetWindowSize(
                     requiredSize,
