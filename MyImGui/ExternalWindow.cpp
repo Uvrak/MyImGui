@@ -119,8 +119,12 @@ namespace MyImGui
             m_childTitle.clear();
             m_childClassName.clear();
         }
+
+
         return m_handle != nullptr;
     }
+
+
     char windowTitle[512] = {};
     char windowClass[256] = {};
 
@@ -200,7 +204,7 @@ namespace MyImGui
 
         HWND previousParent =
             SetParent(
-                m_handle,
+                m_childHandle,
                 parent
             );
 
@@ -254,6 +258,32 @@ namespace MyImGui
             return;
         }
 
+        char title[256]{};
+
+        GetWindowTextA(
+            m_handle,
+            title,
+            sizeof(title)
+        );
+
+        char className[256]{};
+
+        GetClassNameA(
+            m_handle,
+            className,
+            sizeof(className)
+        );
+
+        printf(
+            "MoveWindow handle=%p title=%s class=%s\n",
+            m_handle,
+            title,
+            className
+        );
+
+        fflush(stdout);
+
+        /*
         MoveWindow(
             m_handle,
             x,
@@ -262,6 +292,54 @@ namespace MyImGui
             height,
             TRUE
         );
+        */
+
+        SetWindowPos(
+            m_handle,
+            nullptr,
+            -1000,
+            0,
+            width,
+            height,
+            SWP_NOZORDER | SWP_SHOWWINDOW
+        );
+    }
+
+    bool ExternalWindow::focus()
+    {
+        if (m_handle == nullptr)
+        {
+            return false;
+        }
+
+        return SetForegroundWindow(
+            m_handle
+        ) != FALSE;
+    }
+
+    bool ExternalWindow::sendKey(
+        UINT virtualKey,
+        bool pressed
+    )
+    {
+        if (m_handle == nullptr)
+        {
+            return false;
+        }
+
+        UINT message =
+            pressed
+            ? WM_KEYDOWN
+            : WM_KEYUP;
+
+        return PostMessage(
+            m_handle,
+            message,
+            static_cast<WPARAM>(
+                virtualKey
+                ),
+            0
+        ) != FALSE;
     }
 
     bool ExternalWindow::updateThumbnail(

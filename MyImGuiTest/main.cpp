@@ -268,12 +268,17 @@ int main(int, char**)
 
             if (ImGui::Button("Find DOSBox"))
             {
-                if (externalWindow.findByTitle(
-                    "DOSBox"
-                ))
+                if (externalWindow.findByTitle("DOSBox"))
                 {
                     windowCapture.setWindow(
                         externalWindow.handle()
+                    );
+
+                    externalWindow.setBounds(
+                        20,
+                        20,
+                        640,
+                        400
                     );
                 }
             }
@@ -310,6 +315,13 @@ int main(int, char**)
                             ),
                         availableSize
                     );
+
+                    if (ImGui::IsItemClicked(
+                        ImGuiMouseButton_Left
+                    ))
+                    {
+                        externalWindow.focus();
+                    }
                 }
             }
             else
@@ -390,6 +402,7 @@ int main(int, char**)
                     );
                 }*/
             }
+            
             else
             {
                 ImGui::TextUnformatted(

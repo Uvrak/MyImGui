@@ -49,6 +49,12 @@ namespace MyImGui
             int height
         );
 
+        bool focus();
+        bool sendKey(
+            UINT virtualKey,
+            bool pressed
+        );
+
     private:
         HWND m_handle = nullptr;
         HWND m_childHandle = nullptr;
