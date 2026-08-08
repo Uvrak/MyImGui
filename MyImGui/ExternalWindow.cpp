@@ -187,6 +187,90 @@ namespace MyImGui
         return m_handle != nullptr;
     }
 
+    bool ExternalWindow::findProcessWindow()
+    {
+        if (m_processId == 0)
+        {
+            return false;
+        }
+
+        m_handle = nullptr;
+
+        EnumWindows(
+            [](HWND hwnd, LPARAM lParam) -> BOOL
+            {
+                auto* self =
+                    reinterpret_cast<ExternalWindow*>(
+                        lParam
+                        );
+
+                DWORD processId = 0;
+
+                GetWindowThreadProcessId(
+                    hwnd,
+                    &processId
+                );
+
+                if (processId != self->m_processId)
+                {
+                    return TRUE;
+                }
+
+                if (!IsWindowVisible(hwnd))
+                {
+                    return TRUE;
+                }
+
+                self->m_handle = hwnd;
+
+                return FALSE;
+            },
+            reinterpret_cast<LPARAM>(this)
+        );
+
+        return m_handle != nullptr;
+    }
+
+    bool ExternalWindow::sendIpcCommand(
+        const std::string& command
+    )
+    {
+        HANDLE pipe =
+            CreateFileA(
+                "\\\\.\\pipe\\GridBuilderDOSBox",
+                GENERIC_WRITE,
+                0,
+                nullptr,
+                OPEN_EXISTING,
+                0,
+                nullptr
+            );
+
+        if (pipe == INVALID_HANDLE_VALUE)
+        {
+            return false;
+        }
+
+        DWORD bytesWritten = 0;
+
+        BOOL result =
+            WriteFile(
+                pipe,
+                command.c_str(),
+                static_cast<DWORD>(
+                    command.size()
+                    ),
+                &bytesWritten,
+                nullptr
+            );
+
+        CloseHandle(
+            pipe
+        );
+
+        return result != FALSE;
+    }
+
 
     char windowTitle[512] = {};
     char windowClass[256] = {};

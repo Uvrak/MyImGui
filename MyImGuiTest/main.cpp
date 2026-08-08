@@ -15,6 +15,7 @@
 #include "ExternalWindow.h"
 #include "WindowCapture.h"
 
+
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
 static ID3D11DeviceContext*     g_pd3dDeviceContext = nullptr;
@@ -135,10 +136,58 @@ int main(int, char**)
         R"(C:\Projects\dosbox-x\bin\x64\Release SDL2\dosbox-x.exe)"
     );
 
+    Sleep(1000);
+
+    bool dosBoxFound =
+        externalWindow.findProcessWindow();
+
+    if (dosBoxFound)
+    {
+        char title[256] = {};
+        char className[256] = {};
+
+        GetWindowTextA(
+            externalWindow.handle(),
+            title,
+            sizeof(title)
+        );
+
+        GetClassNameA(
+            externalWindow.handle(),
+            className,
+            sizeof(className)
+        );
+
+        printf(
+            "HWND=%p title=%s class=%s\n",
+            externalWindow.handle(),
+            title,
+            className
+        );
+    }
+
+    printf(
+        "Own DOSBox window found: %s\n",
+        dosBoxFound ? "YES" : "NO"
+    );
+
     MyImGui::WindowCapture windowCapture(
         g_pd3dDevice,
         g_pd3dDeviceContext
     );
+
+    if (dosBoxFound)
+    {
+        windowCapture.setWindow(
+            externalWindow.handle()
+        );
+
+        windowCapture.start();
+
+        externalWindow.focus();
+    }
+
+    
     //bool dosBoxAttached = false;
 
     bool show_another_window = false;
@@ -182,7 +231,7 @@ int main(int, char**)
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
-
+            
         ImGui::DockSpaceOverViewport();
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (testWindow.begin())
@@ -279,7 +328,7 @@ int main(int, char**)
                     );
 
                     externalWindow.setBounds(
-                        -1000,
+                        -5000,
                         0,
                         640,
                         400
@@ -302,8 +351,12 @@ int main(int, char**)
                 externalWindow.sendEnter();
             }
            
+            static unsigned long long captureFrameCount = 0;
+
+           
             windowCapture.update();
 
+         
             if (ImGui::Button("Register DOSBox Preview"))
             {
                 externalWindow.registerThumbnail(
@@ -311,11 +364,47 @@ int main(int, char**)
                 );
             }
 
+            static bool dosBoxInputActive = false;
+
             ImGui::Begin("DOSBox Preview");
 
             ID3D11ShaderResourceView* texture =
                 windowCapture.textureView();
 
+            if (ImGui::IsWindowFocused(
+                ImGuiFocusedFlags_RootAndChildWindows
+            ))
+            {
+                if (ImGui::IsKeyPressed(ImGuiKey_A))
+                {
+                    externalWindow.sendIpcCommand("A");
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_Enter))
+                {
+                    externalWindow.sendIpcCommand("ENTER");
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
+                {
+                    externalWindow.sendIpcCommand("UP");
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
+                {
+                    externalWindow.sendIpcCommand("DOWN");
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
+                {
+                    externalWindow.sendIpcCommand("LEFT");
+                }
+
+                if (ImGui::IsKeyPressed(ImGuiKey_RightArrow))
+                {
+                    externalWindow.sendIpcCommand("RIGHT");
+                }
+            }
             if (texture != nullptr)
             {
                 ImVec2 availableSize =
@@ -330,12 +419,11 @@ int main(int, char**)
                             ),
                         availableSize
                     );
-
                     if (ImGui::IsItemClicked(
                         ImGuiMouseButton_Left
                     ))
                     {
-                        externalWindow.focus();
+                        dosBoxInputActive = true;
                     }
                 }
             }

@@ -24,6 +24,7 @@ namespace MyImGui
         : m_device(device),
         m_deviceContext(deviceContext)
     {
+
         if (m_device == nullptr)
         {
             return;

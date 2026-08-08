@@ -23,6 +23,12 @@ namespace MyImGui
             const std::string& title
         );
 
+        bool findProcessWindow();
+
+        bool sendIpcCommand(
+            const std::string& command
+        );
+
         HWND handle() const;
         HWND childHandle() const;
 
