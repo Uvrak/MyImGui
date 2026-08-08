@@ -131,6 +131,10 @@ int main(int, char**)
 
 	MyImGui::ExternalWindow externalWindow;
 
+    externalWindow.startProcess(
+        R"(C:\Projects\dosbox-x\bin\x64\Release SDL2\dosbox-x.exe)"
+    );
+
     MyImGui::WindowCapture windowCapture(
         g_pd3dDevice,
         g_pd3dDeviceContext

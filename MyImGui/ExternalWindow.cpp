@@ -1,12 +1,70 @@
 #include "pch.h"
 #include "ExternalWindow.h"
 
-#pragma comment(lib, "dwmapi.lib"))
+#pragma comment(lib, "dwmapi.lib")
 
 namespace MyImGui
 {
     ExternalWindow::ExternalWindow()
     {}
+    ExternalWindow::~ExternalWindow()
+    {
+        if (m_processHandle != nullptr)
+        {
+            TerminateProcess(
+                m_processHandle,
+                0
+            );
+
+            CloseHandle(
+                m_processHandle
+            );
+
+            m_processHandle = nullptr;
+            m_processId = 0;
+        }
+    }
+
+    bool ExternalWindow::startProcess(
+        const std::string& executablePath
+    )
+    {
+        STARTUPINFOA startupInfo{};
+        startupInfo.cb = sizeof(startupInfo);
+
+        PROCESS_INFORMATION processInfo{};
+
+        BOOL success = CreateProcessA(
+            executablePath.c_str(),
+            nullptr,
+            nullptr,
+            nullptr,
+            FALSE,
+            0,
+            nullptr,
+            nullptr,
+            &startupInfo,
+            &processInfo
+        );
+
+        if (!success)
+        {
+            return false;
+        }
+
+        CloseHandle(
+            processInfo.hThread
+        );
+
+        m_processHandle =
+            processInfo.hProcess;
+
+        m_processId =
+            processInfo.dwProcessId;
+
+        return true;
+    }
+    
     bool ExternalWindow::findByTitle(
         const std::string& title
     )

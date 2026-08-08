@@ -288,8 +288,6 @@ namespace MyImGui
         );
 
         return true;
-
-        return true;
     }
 
     ID3D11ShaderResourceView* WindowCapture::textureView() const

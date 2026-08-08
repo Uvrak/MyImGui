@@ -13,6 +13,11 @@ namespace MyImGui
     {
     public:
         ExternalWindow();
+        ~ExternalWindow();
+
+        bool startProcess(
+            const std::string& executablePath
+        );
 
         bool findByTitle(
             const std::string& title
@@ -64,6 +69,9 @@ namespace MyImGui
 
         std::string m_title;
         std::string m_className;
+
+        HANDLE m_processHandle = nullptr;
+        DWORD m_processId = 0;
 
         std::string m_childTitle;
         std::string m_childClassName;
