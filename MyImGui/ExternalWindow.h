@@ -50,6 +50,7 @@ namespace MyImGui
         );
 
         bool focus();
+        bool sendEnter();
         bool sendKey(
             UINT virtualKey,
             bool pressed

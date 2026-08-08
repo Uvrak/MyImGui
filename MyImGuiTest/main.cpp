@@ -275,8 +275,8 @@ int main(int, char**)
                     );
 
                     externalWindow.setBounds(
-                        20,
-                        20,
+                        -1000,
+                        0,
                         640,
                         400
                     );
@@ -285,8 +285,19 @@ int main(int, char**)
 
             if (ImGui::Button("Start Capture"))
             {
-                windowCapture.start();  
+                windowCapture.start();
             }
+
+            if (ImGui::Button("Focus DOSBox"))
+            {
+                externalWindow.focus();
+            }
+
+            if (ImGui::Button("Send Enter"))
+            {
+                externalWindow.sendEnter();
+            }
+           
             windowCapture.update();
 
             if (ImGui::Button("Register DOSBox Preview"))

@@ -65,6 +65,11 @@ namespace MyImGui
                     sizeof(windowClass)
                 );
 
+                if (std::string(windowClass) != "SDLParent")
+                {
+                    return TRUE;
+                }
+
                 data->self->m_handle = hwnd;
                 data->self->m_title =
                     currentTitle;
@@ -301,7 +306,9 @@ namespace MyImGui
             0,
             width,
             height,
-            SWP_NOZORDER | SWP_SHOWWINDOW
+            SWP_NOZORDER |
+            SWP_NOACTIVATE |
+            SWP_SHOWWINDOW
         );
     }
 
@@ -317,12 +324,43 @@ namespace MyImGui
         ) != FALSE;
     }
 
+    bool ExternalWindow::sendEnter()
+    {
+        if (m_childHandle == nullptr)
+        {
+            return false;
+        }
+
+        BOOL downResult =
+            PostMessage(
+                m_childHandle,
+                WM_KEYDOWN,
+                VK_RETURN,
+                0
+            );
+
+        BOOL upResult =
+            PostMessage(
+                m_childHandle,
+                WM_KEYUP,
+                VK_RETURN,
+                0
+            );
+
+        return downResult != FALSE &&
+            upResult != FALSE;
+    }
+
     bool ExternalWindow::sendKey(
         UINT virtualKey,
         bool pressed
     )
     {
-        if (m_handle == nullptr)
+        printf(
+            "sendKey child=%p\n",
+            m_childHandle
+        );
+        if (m_childHandle == nullptr)
         {
             return false;
         }
@@ -333,11 +371,9 @@ namespace MyImGui
             : WM_KEYUP;
 
         return PostMessage(
-            m_handle,
+            m_childHandle,
             message,
-            static_cast<WPARAM>(
-                virtualKey
-                ),
+            static_cast<WPARAM>(virtualKey),
             0
         ) != FALSE;
     }
