@@ -12,6 +12,8 @@
 #include "imgui_impl_dx11.h"
 #include <d3d11.h>
 #include <tchar.h>
+#include "ExternalWindow.h"
+#include "WindowCapture.h"
 
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
@@ -126,6 +128,15 @@ int main(int, char**)
         "Third Floating Window",
         windowOptions
     );
+
+	MyImGui::ExternalWindow externalWindow;
+
+    MyImGui::WindowCapture windowCapture(
+        g_pd3dDevice,
+        g_pd3dDeviceContext
+    );
+    //bool dosBoxAttached = false;
+
     bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -252,6 +263,139 @@ int main(int, char**)
             ImGui::Text("counter = %d", counter);
 
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Find DOSBox"))
+            {
+                if (externalWindow.findByTitle(
+                    "DOSBox"
+                ))
+                {
+                    windowCapture.setWindow(
+                        externalWindow.handle()
+                    );
+                }
+            }
+
+            if (ImGui::Button("Start Capture"))
+            {
+                windowCapture.start();  
+            }
+            windowCapture.update();
+
+            if (ImGui::Button("Register DOSBox Preview"))
+            {
+                externalWindow.registerThumbnail(
+                    hwnd
+                );
+            }
+
+            ImGui::Begin("DOSBox Preview");
+
+            ID3D11ShaderResourceView* texture =
+                windowCapture.textureView();
+
+            if (texture != nullptr)
+            {
+                ImVec2 availableSize =
+                    ImGui::GetContentRegionAvail();
+
+                if (availableSize.x > 0.0f &&
+                    availableSize.y > 0.0f)
+                {
+                    ImGui::Image(
+                        reinterpret_cast<ImTextureID>(
+                            texture
+                            ),
+                        availableSize
+                    );
+                }
+            }
+            else
+            {
+                ImGui::TextUnformatted(
+                    "No capture image."
+                );
+            }
+
+            ImGui::End();
+
+            if (externalWindow.handle() != nullptr)
+            {
+                int captureWidth = 0;
+                int captureHeight = 0;
+
+                if (windowCapture.windowSize(
+                    captureWidth,
+                    captureHeight
+                ))
+                {
+                    ImGui::Text(
+                        "Capture size: %d x %d",
+                        captureWidth,
+                        captureHeight
+                    );
+                }
+
+                ImGui::TextUnformatted(
+                    "DOSBox found"
+                );
+
+                ImGui::Text(
+                    "HWND: %p",
+                    externalWindow.handle()
+                );
+
+                ImGui::Text(
+                    "Title: %s",
+                    externalWindow.title().c_str()
+                );
+
+                ImGui::Text(
+                    "Class: %s",
+                    externalWindow.className().c_str()
+                );
+
+                ImGui::Text(
+                    "Child HWND: %p",
+                    externalWindow.childHandle()
+                );
+
+                ImGui::Text(
+                    "Child Title: %s",
+                    externalWindow.childTitle().c_str()
+                );
+
+                ImGui::Text(
+                    "Child Class: %s",
+                    externalWindow.childClassName().c_str()
+                );
+
+                /*if (ImGui::Button("Attach DOSBox"))
+                {
+                    dosBoxAttached =
+                        externalWindow.attach(
+                            hwnd
+                        );
+                }
+
+                if (dosBoxAttached)
+                {
+                    externalWindow.setBounds(
+                        20,
+                        20,
+                        640,
+                        400
+                    );
+                }*/
+            }
+            else
+            {
+                ImGui::TextUnformatted(
+                    "DOSBox not found"
+                );
+            }
             ImGui::End();
         }
 
@@ -262,6 +406,7 @@ int main(int, char**)
             ImGui::Text("Hello from another window!");
             if (ImGui::Button("Close Me"))
                 show_another_window = false;
+
             ImGui::End();
         }
 

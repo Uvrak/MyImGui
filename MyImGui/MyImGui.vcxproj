@@ -156,14 +156,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DragDropReorder.h" />
+    <ClInclude Include="ExternalWindow.h" />
     <ClInclude Include="FloatingWindow.h" />
     <ClInclude Include="FlowLayout.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="MyImGui.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="WindowCapture.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DragDropRecoder.cpp" />
+    <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
     <ClCompile Include="MyImGui.cpp" />
@@ -173,6 +176,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="WindowCapture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ImGui\ImGui.vcxproj">

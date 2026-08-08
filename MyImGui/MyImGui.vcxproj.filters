@@ -39,6 +39,12 @@
     <ClInclude Include="pch.h">
       <Filter>Internal</Filter>
     </ClInclude>
+    <ClInclude Include="ExternalWindow.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowCapture.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -55,6 +61,12 @@
     </ClCompile>
     <ClCompile Include="pch.cpp">
       <Filter>Internal</Filter>
+    </ClCompile>
+    <ClCompile Include="ExternalWindow.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowCapture.cpp">
+      <Filter>Windows</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

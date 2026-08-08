@@ -1,0 +1,310 @@
+#include "pch.h"
+#include "ExternalWindow.h"
+
+#pragma comment(lib, "dwmapi.lib"))
+
+namespace MyImGui
+{
+    ExternalWindow::ExternalWindow()
+    {}
+    bool ExternalWindow::findByTitle(
+        const std::string& title
+    )
+    {
+        m_handle = nullptr;
+        m_title.clear();
+        m_className.clear();
+
+        struct SearchData
+        {
+            ExternalWindow* self;
+            const std::string* title;
+        };
+
+        SearchData data{
+            this,
+            &title
+        };
+
+        EnumWindows(
+            [](HWND hwnd, LPARAM lParam) -> BOOL
+            {
+                if (!IsWindowVisible(hwnd))
+                {
+                    return TRUE;
+                }
+
+                char windowTitle[512] = {};
+
+                GetWindowTextA(
+                    hwnd,
+                    windowTitle,
+                    sizeof(windowTitle)
+                );
+
+                std::string currentTitle =
+                    windowTitle;
+
+                SearchData* data =
+                    reinterpret_cast<SearchData*>(
+                        lParam
+                        );
+
+                if (currentTitle.find(
+                    *data->title
+                ) == std::string::npos)
+                {
+                    return TRUE;
+                }
+
+                char windowClass[256] = {};
+
+                GetClassNameA(
+                    hwnd,
+                    windowClass,
+                    sizeof(windowClass)
+                );
+
+                data->self->m_handle = hwnd;
+                data->self->m_title =
+                    currentTitle;
+                data->self->m_className =
+                    windowClass;
+
+                return FALSE;
+            },
+            reinterpret_cast<LPARAM>(
+                &data
+                )
+        );
+        if (m_handle != nullptr)
+        {
+            m_childHandle =
+                FindWindowExA(
+                    m_handle,
+                    nullptr,
+                    nullptr,
+                    nullptr
+                );
+
+            if (m_childHandle != nullptr)
+            {
+                char childTitle[512] = {};
+                char childClass[256] = {};
+
+                GetWindowTextA(
+                    m_childHandle,
+                    childTitle,
+                    sizeof(childTitle)
+                );
+
+                GetClassNameA(
+                    m_childHandle,
+                    childClass,
+                    sizeof(childClass)
+                );
+
+                m_childTitle = childTitle;
+                m_childClassName = childClass;
+            }
+            else
+            {
+                m_childTitle.clear();
+                m_childClassName.clear();
+            }
+        }
+        else
+        {
+            m_childHandle = nullptr;
+            m_childTitle.clear();
+            m_childClassName.clear();
+        }
+        return m_handle != nullptr;
+    }
+    char windowTitle[512] = {};
+    char windowClass[256] = {};
+
+    HWND ExternalWindow::handle() const
+    {
+        return m_handle;
+    }
+
+    HWND ExternalWindow::childHandle() const
+    {
+        return m_childHandle;
+    }
+
+    const std::string&
+        ExternalWindow::title() const
+    {
+        return m_title;
+    }
+
+    const std::string&
+        ExternalWindow::className() const
+    {
+        return m_className;
+    }
+
+    const std::string&
+        ExternalWindow::childTitle() const
+    {
+        return m_childTitle;
+    }
+
+    const std::string&
+        ExternalWindow::childClassName() const
+    {
+        return m_childClassName;
+    }
+
+    bool ExternalWindow::attach(
+        HWND parent
+    )
+    {
+        if (m_handle == nullptr ||
+            parent == nullptr)
+        {
+            return false;
+        }
+
+        LONG_PTR style =
+            GetWindowLongPtr(
+                m_handle,
+                GWL_STYLE
+            );
+
+        style &= ~(
+            WS_POPUP |
+            WS_CAPTION |
+            WS_THICKFRAME |
+            WS_MINIMIZEBOX |
+            WS_MAXIMIZEBOX |
+            WS_SYSMENU
+            );
+
+        style |= WS_CHILD;
+
+        SetWindowLongPtr(
+            m_handle,
+            GWL_STYLE,
+            style
+        );
+
+        SetMenu(
+            m_handle,
+            nullptr
+        );
+
+        SetLastError(0);
+
+        HWND previousParent =
+            SetParent(
+                m_handle,
+                parent
+            );
+
+        if (previousParent == nullptr &&
+            GetLastError() != 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool ExternalWindow::registerThumbnail(
+        HWND destination
+    )
+    {
+        if (m_handle == nullptr ||
+            destination == nullptr)
+        {
+            return false;
+        }
+
+        if (m_thumbnail != nullptr)
+        {
+            DwmUnregisterThumbnail(
+                m_thumbnail
+            );
+
+            m_thumbnail = nullptr;
+        }
+
+        HRESULT result =
+            DwmRegisterThumbnail(
+                destination,
+                m_handle,
+                &m_thumbnail
+            );
+
+        return SUCCEEDED(result);
+    }
+
+    void ExternalWindow::setBounds(
+        int x,
+        int y,
+        int width,
+        int height
+    )
+    {
+        if (m_handle == nullptr)
+        {
+            return;
+        }
+
+        MoveWindow(
+            m_handle,
+            x,
+            y,
+            width,
+            height,
+            TRUE
+        );
+    }
+
+    bool ExternalWindow::updateThumbnail(
+        int x,
+        int y,
+        int width,
+        int height
+    )
+    {
+        if (m_thumbnail == nullptr)
+        {
+            return false;
+        }
+
+        DWM_THUMBNAIL_PROPERTIES properties = {};
+
+        properties.dwFlags =
+            DWM_TNP_RECTDESTINATION |
+            DWM_TNP_VISIBLE |
+            DWM_TNP_OPACITY;
+
+        properties.rcDestination.left =
+            x;
+
+        properties.rcDestination.top =
+            y;
+
+        properties.rcDestination.right =
+            x + width;
+
+        properties.rcDestination.bottom =
+            y + height;
+
+        properties.opacity = 255;
+        properties.fVisible = TRUE;
+
+        HRESULT result =
+            DwmUpdateThumbnailProperties(
+                m_thumbnail,
+                &properties
+            );
+
+        return SUCCEEDED(result);
+    }
+}
+
