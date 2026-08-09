@@ -14,6 +14,7 @@
 #include "DosBoxFrameTexture.h"
 #include <d3d11.h>
 #include <tchar.h>
+#include <algorithm>
 #include "ExternalWindow.h"
 
 // Data
@@ -388,12 +389,112 @@ int main(int, char**)
                                     )
                             )
                         );
+                        const bool dosBoxImageHovered =
+                            ImGui::IsItemHovered();
 
-                        if (ImGui::IsItemClicked(
+                        const bool dosBoxImageClicked =
+                            ImGui::IsItemClicked(
+                                ImGuiMouseButton_Left
+                            );
+
+                        ImVec2 imageMin =
+                            ImGui::GetItemRectMin();
+
+                        ImVec2 imageMax =
+                            ImGui::GetItemRectMax();
+
+                        ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        ImVec2 mouseInImage(
+                            mousePos.x - imageMin.x,
+                            mousePos.y - imageMin.y
+                        );
+                        
+                        float mouseScaleX =
+                            static_cast<float>(
+                                frameHeader->contentWidth
+                                ) / imageSize.x;
+
+                        float mouseScaleY =
+                            static_cast<float>(
+                                frameHeader->contentHeight
+                                ) / imageSize.y;
+
+                        int dosBoxMouseX =
+                            static_cast<int>(
+                                mouseInImage.x * mouseScaleX
+                                );
+
+                        int dosBoxMouseY =
+                            static_cast<int>(
+                                mouseInImage.y * mouseScaleY
+                                );
+
+                        dosBoxMouseX =
+                            std::clamp(
+                                dosBoxMouseX,
+                                0,
+                                static_cast<int>(
+                                    frameHeader->contentWidth
+                                    ) - 1
+                            );
+
+                        dosBoxMouseY =
+                            std::clamp(
+                                dosBoxMouseY,
+                                0,
+                                static_cast<int>(
+                                    frameHeader->contentHeight
+                                    ) - 1
+                            );
+                        /*
+                        if (dosBoxInputActive &&
+                            dosBoxImageHovered)
+                        {
+                            std::string command =
+                                "MOUSEMOVE:";
+
+                            command +=
+                                std::to_string(dosBoxMouseX);
+
+                            command += ":";
+
+                            command +=
+                                std::to_string(dosBoxMouseY);
+
+                            command += ":";
+
+                            command +=
+                                std::to_string(
+                                    frameHeader->contentWidth
+                                );
+
+                            command += ":";
+
+                            command +=
+                                std::to_string(
+                                    frameHeader->contentHeight
+                                );
+
+                            externalWindow.sendIpcCommand(
+                                command.c_str()
+                            );
+                        }*/
+
+                        if (dosBoxImageClicked)
+                        {
+                            dosBoxInputActive = true;
+                        }
+                        else if (ImGui::IsMouseClicked(
                             ImGuiMouseButton_Left
                         ))
                         {
-                            dosBoxInputActive = true;
+                            dosBoxInputActive = false;
+
+                            externalWindow.sendIpcCommand(
+                                "RELEASE_ALL"
+                            );
                         }
                     }
                 }
@@ -405,6 +506,13 @@ int main(int, char**)
                     "Shared frame not available"
                 );
             }
+            
+            ImGui::Text(
+                "DOSBox input: %s",
+                dosBoxInputActive
+                ? "ACTIVE"
+                : "INACTIVE"
+            );
 
             if (dosBoxInputActive)
             
