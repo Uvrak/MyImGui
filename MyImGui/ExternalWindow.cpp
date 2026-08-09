@@ -187,6 +187,41 @@ namespace MyImGui
         return m_handle != nullptr;
     }
 
+    void ExternalWindow::hideFromTaskbar()
+    {
+        if (m_handle == nullptr)
+        {
+            return;
+        }
+
+        LONG_PTR style =
+            GetWindowLongPtr(
+                m_handle,
+                GWL_EXSTYLE
+            );
+
+        style &= ~WS_EX_APPWINDOW;
+        style |= WS_EX_TOOLWINDOW;
+
+        SetWindowLongPtr(
+            m_handle,
+            GWL_EXSTYLE,
+            style
+        );
+
+        SetWindowPos(
+            m_handle,
+            nullptr,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOMOVE |
+            SWP_NOSIZE |
+            SWP_NOZORDER |
+            SWP_FRAMECHANGED
+        );
+    }
     bool ExternalWindow::findProcessWindow()
     {
         if (m_processId == 0)

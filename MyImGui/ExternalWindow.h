@@ -23,6 +23,8 @@ namespace MyImGui
             const std::string& title
         );
 
+        void hideFromTaskbar();
+
         bool findProcessWindow();
 
         bool sendIpcCommand(

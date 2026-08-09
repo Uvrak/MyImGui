@@ -143,6 +143,11 @@ int main(int, char**)
     bool dosBoxFound =
         externalWindow.findProcessWindow();
 
+    externalWindow.hideFromTaskbar();
+
+    SetForegroundWindow(hwnd);
+    SetFocus(hwnd);
+
     if (dosBoxFound)
     {
         char title[256] = {};
@@ -191,13 +196,14 @@ int main(int, char**)
         );
 
         windowCapture.start();
-
+        
         externalWindow.setBounds(
             -5000,
             0,
             640,
             400
         );
+        
     }
 
     
@@ -448,6 +454,13 @@ int main(int, char**)
                                     )
                             )
                         );
+
+                        if (ImGui::IsItemClicked(
+                            ImGuiMouseButton_Left
+                        ))
+                        {
+                            dosBoxInputActive = true;
+                        }
                     }
                 }
 
@@ -464,9 +477,6 @@ int main(int, char**)
                     "Shared frame not available"
                 );
             }
-
-            ID3D11ShaderResourceView* texture =
-                windowCapture.textureView();
 
             if (ImGui::IsWindowFocused(
                 ImGuiFocusedFlags_RootAndChildWindows
@@ -502,28 +512,7 @@ int main(int, char**)
                     externalWindow.sendIpcCommand("RIGHT");
                 }
             }
-            if (texture != nullptr)
-            {
-                ImVec2 availableSize =
-                    ImGui::GetContentRegionAvail();
-
-                if (availableSize.x > 0.0f &&
-                    availableSize.y > 0.0f)
-                {
-                    ImGui::Image(
-                        reinterpret_cast<ImTextureID>(
-                            texture
-                            ),
-                        availableSize
-                    );
-                    if (ImGui::IsItemClicked(
-                        ImGuiMouseButton_Left
-                    ))
-                    {
-                        dosBoxInputActive = true;
-                    }
-                }
-            }
+            
             else
             {
                 ImGui::TextUnformatted(
