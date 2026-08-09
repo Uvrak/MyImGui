@@ -9,6 +9,10 @@ namespace MyImGui
     {
         uint32_t width;
         uint32_t height;
+
+        uint32_t contentWidth;
+        uint32_t contentHeight;
+
         uint32_t pitch;
         uint32_t format;
         uint64_t frameCounter;

@@ -389,8 +389,9 @@ int main(int, char**)
             if (frameHeader != nullptr)
             {
                 ImGui::Text(
-                    "Shared frame width: %u",
-                    frameHeader->width
+                    "Content size: %u x %u",
+                    frameHeader->contentWidth,
+                    frameHeader->contentHeight
                 );
 
                 const uint8_t* framePixels =
@@ -421,8 +422,30 @@ int main(int, char**)
                                 sharedTexture
                                 ),
                             ImVec2(
-                                512.0f,
-                                512.0f
+                                static_cast<float>(
+                                    frameHeader->contentWidth
+                                    ),
+                                static_cast<float>(
+                                    frameHeader->contentHeight
+                                    )
+                            ),
+                            ImVec2(
+                                0.0f,
+                                0.0f
+                            ),
+                            ImVec2(
+                                static_cast<float>(
+                                    frameHeader->contentWidth
+                                    ) /
+                                static_cast<float>(
+                                    frameHeader->width
+                                    ),
+                                static_cast<float>(
+                                    frameHeader->contentHeight
+                                    ) /
+                                static_cast<float>(
+                                    frameHeader->height
+                                    )
                             )
                         );
                     }
