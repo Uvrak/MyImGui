@@ -11,6 +11,7 @@
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include "DosBoxFrameReader.h"
+#include "DosBoxFrameTexture.h"
 #include <d3d11.h>
 #include <tchar.h>
 #include "ExternalWindow.h"
@@ -178,6 +179,10 @@ int main(int, char**)
     );
 
     MyImGui::DosBoxFrameReader dosBoxFrameReader;
+
+    MyImGui::DosBoxFrameTexture dosBoxFrameTexture(
+        g_pd3dDevice
+    );
 
     if (dosBoxFound)
     {
@@ -386,6 +391,48 @@ int main(int, char**)
                 ImGui::Text(
                     "Shared frame width: %u",
                     frameHeader->width
+                );
+
+                const uint8_t* framePixels =
+                    dosBoxFrameReader.pixels();
+
+                if (framePixels != nullptr)
+                {
+                    dosBoxFrameTexture.update(
+                        framePixels,
+                        frameHeader->width,
+                        frameHeader->height,
+                        frameHeader->pitch
+                    );
+
+                    ID3D11ShaderResourceView* sharedTexture =
+                        dosBoxFrameTexture.textureView();
+
+                    if (sharedTexture != nullptr)
+                    {
+                        ImGui::TextUnformatted(
+                            "Shared texture available"
+                        );
+                    }
+                    if (sharedTexture != nullptr)
+                    {
+                        ImGui::Image(
+                            reinterpret_cast<ImTextureID>(
+                                sharedTexture
+                                ),
+                            ImVec2(
+                                512.0f,
+                                512.0f
+                            )
+                        );
+                    }
+                }
+
+                ImGui::Text(
+                    "Pixels: %s",
+                    framePixels != nullptr
+                    ? "available"
+                    : "not available"
                 );
             }
             else

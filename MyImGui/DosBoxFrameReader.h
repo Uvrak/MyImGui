@@ -21,6 +21,7 @@ namespace MyImGui
         ~DosBoxFrameReader();
 
         const DosBoxFrameHeader* header() const;
+        const uint8_t* pixels() const;
         bool tryOpen();
 
     private:

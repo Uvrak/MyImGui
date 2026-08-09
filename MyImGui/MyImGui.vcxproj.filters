@@ -48,6 +48,9 @@
     <ClInclude Include="DosBoxFrameReader.h">
       <Filter>Windows</Filter>
     </ClInclude>
+    <ClInclude Include="DosBoxFrameTexture.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -72,6 +75,9 @@
       <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="DosBoxFrameReader.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxFrameTexture.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
   </ItemGroup>

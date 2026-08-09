@@ -61,6 +61,18 @@ namespace MyImGui
             );
     }
 
+    const uint8_t*
+        DosBoxFrameReader::pixels() const
+    {
+        if (m_sharedMemory == nullptr)
+        {
+            return nullptr;
+        }
+
+        return m_sharedMemory +
+            sizeof(DosBoxFrameHeader);
+    }
+
     bool DosBoxFrameReader::tryOpen()
     {
         if (m_mapping == nullptr)
