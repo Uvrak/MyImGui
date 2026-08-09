@@ -10,7 +10,8 @@ namespace MyImGui
     {
     public:
         DosBoxFrameTexture(
-            ID3D11Device* device
+            ID3D11Device* device,
+            ID3D11DeviceContext* context
         );
 
         ~DosBoxFrameTexture();
@@ -26,8 +27,13 @@ namespace MyImGui
 
     private:
         ID3D11Device* m_device = nullptr;
+        ID3D11DeviceContext* m_context = nullptr;
+
         ID3D11Texture2D* m_texture = nullptr;
         ID3D11ShaderResourceView* m_textureView = nullptr;
+
+        uint32_t m_width = 0;
+        uint32_t m_height = 0;
     };
 
 }

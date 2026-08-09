@@ -5,9 +5,11 @@ namespace MyImGui
 {
 
     DosBoxFrameTexture::DosBoxFrameTexture(
-        ID3D11Device* device
+        ID3D11Device* device,
+        ID3D11DeviceContext* context
     )
-        : m_device(device)
+        : m_device(device),
+        m_context(context)
     {}
 
     DosBoxFrameTexture::~DosBoxFrameTexture()
@@ -33,6 +35,7 @@ namespace MyImGui
     )
     {
         if (m_device == nullptr ||
+            m_context == nullptr ||
             pixels == nullptr ||
             width == 0 ||
             height == 0 ||
@@ -41,16 +44,20 @@ namespace MyImGui
             return false;
         }
 
-        if (m_textureView != nullptr)
+        if (m_texture != nullptr &&
+            m_width == width &&
+            m_height == height)
         {
-            m_textureView->Release();
-            m_textureView = nullptr;
-        }
+            m_context->UpdateSubresource(
+                m_texture,
+                0,
+                nullptr,
+                pixels,
+                pitch,
+                0
+            );
 
-        if (m_texture != nullptr)
-        {
-            m_texture->Release();
-            m_texture = nullptr;
+            return true;
         }
 
         D3D11_TEXTURE2D_DESC desc = {};
@@ -78,6 +85,9 @@ namespace MyImGui
         {
             return false;
         }
+
+        m_width = width;
+        m_height = height;
 
         result =
             m_device->CreateShaderResourceView(

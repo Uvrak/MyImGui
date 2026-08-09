@@ -186,7 +186,8 @@ int main(int, char**)
     MyImGui::DosBoxFrameReader dosBoxFrameReader;
 
     MyImGui::DosBoxFrameTexture dosBoxFrameTexture(
-        g_pd3dDevice
+        g_pd3dDevice,
+        g_pd3dDeviceContext
     );
 
     if (dosBoxFound)
@@ -320,69 +321,6 @@ int main(int, char**)
             static float f = 0.0f;
             static int counter = 0;
 
-            ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-            
-            ImGui::Checkbox("Another Window", &show_another_window);
-
-            ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-            ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-            if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-                counter++;
-            ImGui::SameLine();
-            ImGui::Text("counter = %d", counter);
-
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
-            ImGui::Separator();
-
-            if (ImGui::Button("Find DOSBox"))
-            {
-                if (externalWindow.findByTitle("DOSBox"))
-                {
-                    windowCapture.setWindow(
-                        externalWindow.handle()
-                    );
-
-                    externalWindow.setBounds(
-                        -5000,
-                        0,
-                        640,
-                        400
-                    );
-                }
-            }
-
-            if (ImGui::Button("Start Capture"))
-            {
-                windowCapture.start();
-            }
-
-            if (ImGui::Button("Focus DOSBox"))
-            {
-                externalWindow.focus();
-            }
-
-            if (ImGui::Button("Send Enter"))
-            {
-                externalWindow.sendEnter();
-            }
-           
-            static unsigned long long captureFrameCount = 0;
-
-           
-            windowCapture.update();
-
-         
-            if (ImGui::Button("Register DOSBox Preview"))
-            {
-                externalWindow.registerThumbnail(
-                    hwnd
-                );
-            }
-
             static bool dosBoxInputActive = false;
 
             ImGui::Begin("DOSBox Preview");
@@ -394,11 +332,7 @@ int main(int, char**)
 
             if (frameHeader != nullptr)
             {
-                ImGui::Text(
-                    "Content size: %u x %u",
-                    frameHeader->contentWidth,
-                    frameHeader->contentHeight
-                );
+               
 
                 const uint8_t* framePixels =
                     dosBoxFrameReader.pixels();
@@ -415,12 +349,6 @@ int main(int, char**)
                     ID3D11ShaderResourceView* sharedTexture =
                         dosBoxFrameTexture.textureView();
 
-                    if (sharedTexture != nullptr)
-                    {
-                        ImGui::TextUnformatted(
-                            "Shared texture available"
-                        );
-                    }
                     if (sharedTexture != nullptr)
                     {
                         ImGui::Image(
@@ -464,12 +392,6 @@ int main(int, char**)
                     }
                 }
 
-                ImGui::Text(
-                    "Pixels: %s",
-                    framePixels != nullptr
-                    ? "available"
-                    : "not available"
-                );
             }
             else
             {
@@ -520,8 +442,6 @@ int main(int, char**)
                 );
             }
 
-            ImGui::End();
-
             if (externalWindow.handle() != nullptr)
             {
                 int captureWidth = 0;
@@ -530,48 +450,7 @@ int main(int, char**)
                 if (windowCapture.windowSize(
                     captureWidth,
                     captureHeight
-                ))
-                {
-                    ImGui::Text(
-                        "Capture size: %d x %d",
-                        captureWidth,
-                        captureHeight
-                    );
-                }
-
-                ImGui::TextUnformatted(
-                    "DOSBox found"
-                );
-
-                ImGui::Text(
-                    "HWND: %p",
-                    externalWindow.handle()
-                );
-
-                ImGui::Text(
-                    "Title: %s",
-                    externalWindow.title().c_str()
-                );
-
-                ImGui::Text(
-                    "Class: %s",
-                    externalWindow.className().c_str()
-                );
-
-                ImGui::Text(
-                    "Child HWND: %p",
-                    externalWindow.childHandle()
-                );
-
-                ImGui::Text(
-                    "Child Title: %s",
-                    externalWindow.childTitle().c_str()
-                );
-
-                ImGui::Text(
-                    "Child Class: %s",
-                    externalWindow.childClassName().c_str()
-                );
+                ));
 
                 /*if (ImGui::Button("Attach DOSBox"))
                 {
@@ -598,17 +477,6 @@ int main(int, char**)
                     "DOSBox not found"
                 );
             }
-            ImGui::End();
-        }
-
-        // 3. Show another simple window.
-        if (show_another_window)
-        {
-            ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-            ImGui::Text("Hello from another window!");
-            if (ImGui::Button("Close Me"))
-                show_another_window = false;
-
             ImGui::End();
         }
 
