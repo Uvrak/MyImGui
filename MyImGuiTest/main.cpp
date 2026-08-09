@@ -15,8 +15,6 @@
 #include <d3d11.h>
 #include <tchar.h>
 #include "ExternalWindow.h"
-#include "WindowCapture.h"
-
 
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
@@ -138,10 +136,10 @@ int main(int, char**)
         R"(C:\Projects\dosbox-x\bin\x64\Release SDL2\dosbox-x.exe)"
     );
 
-    Sleep(1000);
-
     bool dosBoxFound =
-        externalWindow.findProcessWindow();
+        externalWindow.waitForProcessWindow(
+            2000
+        );
 
     externalWindow.hideFromTaskbar();
 
@@ -178,11 +176,6 @@ int main(int, char**)
         dosBoxFound ? "YES" : "NO"
     );
 
-    MyImGui::WindowCapture windowCapture(
-        g_pd3dDevice,
-        g_pd3dDeviceContext
-    );
-
     MyImGui::DosBoxFrameReader dosBoxFrameReader;
 
     MyImGui::DosBoxFrameTexture dosBoxFrameTexture(
@@ -192,19 +185,12 @@ int main(int, char**)
 
     if (dosBoxFound)
     {
-        windowCapture.setWindow(
-            externalWindow.handle()
-        );
-
-        windowCapture.start();
-        
         externalWindow.setBounds(
             -5000,
             0,
             640,
             400
         );
-        
     }
 
     
@@ -446,11 +432,6 @@ int main(int, char**)
             {
                 int captureWidth = 0;
                 int captureHeight = 0;
-
-                if (windowCapture.windowSize(
-                    captureWidth,
-                    captureHeight
-                ));
 
                 /*if (ImGui::Button("Attach DOSBox"))
                 {

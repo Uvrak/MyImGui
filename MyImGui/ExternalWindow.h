@@ -31,6 +31,10 @@ namespace MyImGui
             const std::string& command
         );
 
+        bool waitForProcessWindow(
+            DWORD timeoutMilliseconds
+        );
+
         HWND handle() const;
         HWND childHandle() const;
 

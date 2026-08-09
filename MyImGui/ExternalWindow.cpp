@@ -7,6 +7,7 @@ namespace MyImGui
 {
     ExternalWindow::ExternalWindow()
     {}
+
     ExternalWindow::~ExternalWindow()
     {
         if (m_processHandle != nullptr)
@@ -29,6 +30,11 @@ namespace MyImGui
         const std::string& executablePath
     )
     {
+        if (m_processHandle != nullptr)
+        {
+            return false;
+        }
+
         STARTUPINFOA startupInfo{};
         startupInfo.cb = sizeof(startupInfo);
 
@@ -304,6 +310,29 @@ namespace MyImGui
         );
 
         return result != FALSE;
+    }
+
+    bool ExternalWindow::waitForProcessWindow(
+        DWORD timeoutMilliseconds
+    )
+    {
+        const ULONGLONG startTime =
+            GetTickCount64();
+
+        while (
+            GetTickCount64() - startTime <
+            timeoutMilliseconds
+            )
+        {
+            if (findProcessWindow())
+            {
+                return true;
+            }
+
+            Sleep(10);
+        }
+
+        return false;
     }
 
 
