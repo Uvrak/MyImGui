@@ -155,6 +155,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DosBoxFrameReader.h" />
     <ClInclude Include="DragDropReorder.h" />
     <ClInclude Include="ExternalWindow.h" />
     <ClInclude Include="FloatingWindow.h" />
@@ -165,6 +166,7 @@
     <ClInclude Include="WindowCapture.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DosBoxFrameReader.cpp" />
     <ClCompile Include="DragDropRecoder.cpp" />
     <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />

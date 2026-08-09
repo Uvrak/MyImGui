@@ -45,6 +45,9 @@
     <ClInclude Include="WindowCapture.h">
       <Filter>Windows</Filter>
     </ClInclude>
+    <ClInclude Include="DosBoxFrameReader.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -66,6 +69,9 @@
       <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="WindowCapture.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxFrameReader.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
   </ItemGroup>

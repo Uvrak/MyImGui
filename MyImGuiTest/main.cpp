@@ -10,6 +10,7 @@
 #include "FloatingWindow.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
+#include "DosBoxFrameReader.h"
 #include <d3d11.h>
 #include <tchar.h>
 #include "ExternalWindow.h"
@@ -176,6 +177,8 @@ int main(int, char**)
         g_pd3dDeviceContext
     );
 
+    MyImGui::DosBoxFrameReader dosBoxFrameReader;
+
     if (dosBoxFound)
     {
         windowCapture.setWindow(
@@ -184,7 +187,12 @@ int main(int, char**)
 
         windowCapture.start();
 
-        externalWindow.focus();
+        externalWindow.setBounds(
+            -5000,
+            0,
+            640,
+            400
+        );
     }
 
     
@@ -367,6 +375,25 @@ int main(int, char**)
             static bool dosBoxInputActive = false;
 
             ImGui::Begin("DOSBox Preview");
+
+            dosBoxFrameReader.tryOpen();
+
+            const MyImGui::DosBoxFrameHeader* frameHeader =
+                dosBoxFrameReader.header();
+
+            if (frameHeader != nullptr)
+            {
+                ImGui::Text(
+                    "Shared frame width: %u",
+                    frameHeader->width
+                );
+            }
+            else
+            {
+                ImGui::TextUnformatted(
+                    "Shared frame not available"
+                );
+            }
 
             ID3D11ShaderResourceView* texture =
                 windowCapture.textureView();

@@ -444,8 +444,8 @@ namespace MyImGui
         SetWindowPos(
             m_handle,
             nullptr,
-            -1000,
-            0,
+            x,
+            y,
             width,
             height,
             SWP_NOZORDER |
