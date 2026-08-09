@@ -133,7 +133,7 @@ int main(int, char**)
 	MyImGui::ExternalWindow externalWindow;
 
     externalWindow.startProcess(
-        R"(C:\Projects\dosbox-x\bin\x64\Release SDL2\dosbox-x.exe)"
+        R"(C:\Projects\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe)"
     );
 
     bool dosBoxFound =
@@ -337,18 +337,38 @@ int main(int, char**)
 
                     if (sharedTexture != nullptr)
                     {
+                        ImVec2 availableSize =
+                            ImGui::GetContentRegionAvail();
+
+                        const float scaleX =
+                            availableSize.x /
+                            static_cast<float>(
+                                frameHeader->contentWidth
+                                );
+
+                        const float scaleY =
+                            availableSize.y /
+                            static_cast<float>(
+                                frameHeader->contentHeight
+                                );
+
+                        const float scale =
+                            (scaleX < scaleY)
+                            ? scaleX
+                            : scaleY;
+
+                        
+                        ImVec2 imageSize(
+                            frameHeader->contentWidth* scale,
+                            frameHeader->contentHeight* scale
+                        );
+
                         ImGui::Image(
                             reinterpret_cast<ImTextureID>(
                                 sharedTexture
                                 ),
-                            ImVec2(
-                                static_cast<float>(
-                                    frameHeader->contentWidth
-                                    ),
-                                static_cast<float>(
-                                    frameHeader->contentHeight
-                                    )
-                            ),
+                            imageSize,
+                                
                             ImVec2(
                                 0.0f,
                                 0.0f
@@ -386,46 +406,463 @@ int main(int, char**)
                 );
             }
 
-            if (ImGui::IsWindowFocused(
-                ImGuiFocusedFlags_RootAndChildWindows
-            ))
-            {
-                if (ImGui::IsKeyPressed(ImGuiKey_A))
-                {
-                    externalWindow.sendIpcCommand("A");
-                }
-
-                if (ImGui::IsKeyPressed(ImGuiKey_Enter))
-                {
-                    externalWindow.sendIpcCommand("ENTER");
-                }
-
-                if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
-                {
-                    externalWindow.sendIpcCommand("UP");
-                }
-
-                if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
-                {
-                    externalWindow.sendIpcCommand("DOWN");
-                }
-
-                if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
-                {
-                    externalWindow.sendIpcCommand("LEFT");
-                }
-
-                if (ImGui::IsKeyPressed(ImGuiKey_RightArrow))
-                {
-                    externalWindow.sendIpcCommand("RIGHT");
-                }
-            }
+            if (dosBoxInputActive)
             
-            else
             {
-                ImGui::TextUnformatted(
-                    "No capture image."
-                );
+                struct LetterKeyMapping
+                {
+                    ImGuiKey key;
+                    const char* command;
+                };
+
+                static const LetterKeyMapping letterKeys[] =
+                {
+                    { ImGuiKey_A, "A" },
+                    { ImGuiKey_B, "B" },
+                    { ImGuiKey_C, "C" },
+                    { ImGuiKey_D, "D" },
+                    { ImGuiKey_E, "E" },
+                    { ImGuiKey_F, "F" },
+                    { ImGuiKey_G, "G" },
+                    { ImGuiKey_H, "H" },
+                    { ImGuiKey_I, "I" },
+                    { ImGuiKey_J, "J" },
+                    { ImGuiKey_K, "K" },
+                    { ImGuiKey_L, "L" },
+                    { ImGuiKey_M, "M" },
+                    { ImGuiKey_N, "N" },
+                    { ImGuiKey_O, "O" },
+                    { ImGuiKey_P, "P" },
+                    { ImGuiKey_Q, "Q" },
+                    { ImGuiKey_R, "R" },
+                    { ImGuiKey_S, "S" },
+                    { ImGuiKey_T, "T" },
+                    { ImGuiKey_U, "U" },
+                    { ImGuiKey_V, "V" },
+                    { ImGuiKey_W, "W" },
+                    { ImGuiKey_X, "X" },
+                    { ImGuiKey_Y, "Y" },
+                    { ImGuiKey_Z, "Z" }
+                };
+
+                for (const LetterKeyMapping& mapping :
+                    letterKeys)
+                {
+                    if (ImGui::IsKeyPressed(
+                        mapping.key,
+                        false
+                    ))
+                    {
+                        std::string command =
+                            "KEYDOWN:";
+
+                        command += mapping.command;
+
+                        externalWindow.sendIpcCommand(
+                            command.c_str()
+                        );
+                    }
+
+                    if (ImGui::IsKeyReleased(
+                        mapping.key
+                    ))
+                    {
+                        std::string command =
+                            "KEYUP:";
+
+                        command += mapping.command;
+
+                        externalWindow.sendIpcCommand(
+                            command.c_str()
+                        );
+                    }
+                }
+                static const LetterKeyMapping digitKeys[] =
+                {
+                    { ImGuiKey_0, "0" },
+                    { ImGuiKey_1, "1" },
+                    { ImGuiKey_2, "2" },
+                    { ImGuiKey_3, "3" },
+                    { ImGuiKey_4, "4" },
+                    { ImGuiKey_5, "5" },
+                    { ImGuiKey_6, "6" },
+                    { ImGuiKey_7, "7" },
+                    { ImGuiKey_8, "8" },
+                    { ImGuiKey_9, "9" }
+                };
+
+                for (const LetterKeyMapping& mapping :
+                    digitKeys)
+                {
+                    if (ImGui::IsKeyPressed(
+                        mapping.key,
+                        false
+                    ))
+                    {
+                        std::string command =
+                            "KEYDOWN:";
+
+                        command += mapping.command;
+
+                        externalWindow.sendIpcCommand(
+                            command.c_str()
+                        );
+                    }
+
+                    if (ImGui::IsKeyReleased(
+                        mapping.key
+                    ))
+                    {
+                        std::string command =
+                            "KEYUP:";
+
+                        command += mapping.command;
+
+                        externalWindow.sendIpcCommand(
+                            command.c_str()
+                        );
+                    }
+                }
+                    static const LetterKeyMapping functionKeys[] =
+                    {
+                        { ImGuiKey_F1,  "F1" },
+                        { ImGuiKey_F2,  "F2" },
+                        { ImGuiKey_F3,  "F3" },
+                        { ImGuiKey_F4,  "F4" },
+                        { ImGuiKey_F5,  "F5" },
+                        { ImGuiKey_F6,  "F6" },
+                        { ImGuiKey_F7,  "F7" },
+                        { ImGuiKey_F8,  "F8" },
+                        { ImGuiKey_F9,  "F9" },
+                        { ImGuiKey_F10, "F10" },
+                        { ImGuiKey_F11, "F11" },
+                        { ImGuiKey_F12, "F12" }
+                    };
+
+                    for (const LetterKeyMapping& mapping :
+                        functionKeys)
+                    {
+                        if (ImGui::IsKeyPressed(
+                            mapping.key,
+                            false
+                        ))
+                        {
+                            std::string command =
+                                "KEYDOWN:";
+
+                            command += mapping.command;
+
+                            externalWindow.sendIpcCommand(
+                                command.c_str()
+                            );
+                        }
+
+                        if (ImGui::IsKeyReleased(
+                            mapping.key
+                        ))
+                        {
+                            std::string command =
+                                "KEYUP:";
+
+                            command += mapping.command;
+
+                            externalWindow.sendIpcCommand(
+                                command.c_str()
+                            );
+                        }
+                    }
+
+                    static const LetterKeyMapping navigationKeys[] =
+                    {
+                        { ImGuiKey_Home,     "HOME" },
+                        { ImGuiKey_End,      "END" },
+                        { ImGuiKey_Insert,   "INSERT" },
+                        { ImGuiKey_Delete,   "DELETE" },
+                        { ImGuiKey_PageUp,   "PAGEUP" },
+                        { ImGuiKey_PageDown, "PAGEDOWN" }
+                    };
+
+                    for (const LetterKeyMapping& mapping :
+                        navigationKeys)
+                    {
+                        if (ImGui::IsKeyPressed(
+                            mapping.key,
+                            false
+                        ))
+                        {
+                            std::string command =
+                                "KEYDOWN:";
+
+                            command += mapping.command;
+
+                            externalWindow.sendIpcCommand(
+                                command.c_str()
+                            );
+                        }
+
+                        if (ImGui::IsKeyReleased(
+                            mapping.key
+                        ))
+                        {
+                            std::string command =
+                                "KEYUP:";
+
+                            command += mapping.command;
+
+                            externalWindow.sendIpcCommand(
+                                command.c_str()
+                            );
+                        }
+                    }
+
+                    static const LetterKeyMapping symbolKeys[] =
+                    {
+                        { ImGuiKey_Minus,        "MINUS" },
+                        { ImGuiKey_Equal,        "EQUALS" },
+                        { ImGuiKey_LeftBracket,  "LEFTBRACKET" },
+                        { ImGuiKey_RightBracket, "RIGHTBRACKET" },
+                        { ImGuiKey_Backslash,    "BACKSLASH" },
+                        { ImGuiKey_Semicolon,    "SEMICOLON" },
+                        { ImGuiKey_Apostrophe,   "QUOTE" },
+                        { ImGuiKey_Comma,        "COMMA" },
+                        { ImGuiKey_Period,       "PERIOD" },
+                        { ImGuiKey_Slash,        "SLASH" }
+                    };
+
+                    for (const LetterKeyMapping& mapping :
+                        symbolKeys)
+                    {
+                        if (ImGui::IsKeyPressed(
+                            mapping.key,
+                            false
+                        ))
+                        {
+                            std::string command =
+                                "KEYDOWN:";
+
+                            command += mapping.command;
+
+                            externalWindow.sendIpcCommand(
+                                command.c_str()
+                            );
+                        }
+
+                        if (ImGui::IsKeyReleased(
+                            mapping.key
+                        ))
+                        {
+                            std::string command =
+                                "KEYUP:";
+
+                            command += mapping.command;
+
+                            externalWindow.sendIpcCommand(
+                                command.c_str()
+                            );
+                        }
+                    }
+                
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_LeftShift,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:SHIFT"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_LeftShift
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:SHIFT"
+                    );
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_RightShift,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:SHIFT"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_RightShift
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:SHIFT"
+                    );
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_LeftCtrl,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:CTRL"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_LeftCtrl
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:CTRL"
+                    );
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_RightCtrl,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:CTRL"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_RightCtrl
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:CTRL"
+                    );
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_LeftAlt,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:ALT"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_LeftAlt
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:ALT"
+                    );
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_RightAlt,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:ALT"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_RightAlt
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:ALT"
+                    );
+                }
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_Enter,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:ENTER"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_Enter
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:ENTER"
+                    );
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_Space,
+                    false
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:SPACE"
+                    );
+                }
+
+                if (ImGui::IsKeyReleased(
+                    ImGuiKey_Space
+                ))
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:SPACE"
+                    );
+                }
+
+                struct SpecialKeyMapping
+                {
+                    ImGuiKey key;
+                    const char* command;
+                };
+
+                static const SpecialKeyMapping specialKeys[] =
+                {
+                    { ImGuiKey_Backspace, "BACKSPACE" },
+                    { ImGuiKey_Tab,       "TAB" },
+                    { ImGuiKey_Escape,    "ESC" },
+                    { ImGuiKey_UpArrow,   "UP" },
+                    { ImGuiKey_DownArrow, "DOWN" },
+                    { ImGuiKey_LeftArrow, "LEFT" },
+                    { ImGuiKey_RightArrow,"RIGHT" }
+                };
+
+                for (const SpecialKeyMapping& mapping :
+                    specialKeys)
+                {
+                    if (ImGui::IsKeyPressed(
+                        mapping.key,
+                        false
+                    ))
+                    {
+                        std::string command =
+                            "KEYDOWN:";
+
+                        command += mapping.command;
+
+                        externalWindow.sendIpcCommand(
+                            command.c_str()
+                        );
+                    }
+
+                    if (ImGui::IsKeyReleased(
+                        mapping.key
+                    ))
+                    {
+                        std::string command =
+                            "KEYUP:";
+
+                        command += mapping.command;
+
+                        externalWindow.sendIpcCommand(
+                            command.c_str()
+                        );
+                    }
+                }
             }
 
             if (externalWindow.handle() != nullptr)
