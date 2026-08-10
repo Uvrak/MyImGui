@@ -35,6 +35,24 @@ namespace MyImGui
             return false;
         }
 
+        HANDLE existingPipe =
+            CreateFileA(
+                "\\\\.\\pipe\\GridBuilderDOSBox",
+                GENERIC_WRITE,
+                0,
+                nullptr,
+                OPEN_EXISTING,
+                0,
+                nullptr
+            );
+
+        if (existingPipe != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(existingPipe);
+
+            return false;
+        }
+
         STARTUPINFOA startupInfo{};
         startupInfo.cb = sizeof(startupInfo);
 

@@ -16,6 +16,7 @@
 #include <tchar.h>
 #include <algorithm>
 #include "ExternalWindow.h"
+#include "MainMenu.h"
 
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
@@ -31,6 +32,158 @@ void CleanupDeviceD3D();
 void CreateRenderTarget();
 void CleanupRenderTarget();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+static bool sendDosKey(
+    MyImGui::ExternalWindow& externalWindow,
+    const char* key
+)
+{
+    std::string keyDown =
+        "KEYDOWN:";
+
+    keyDown += key;
+
+    if (!externalWindow.sendIpcCommand(
+        keyDown
+    ))
+    {
+        return false;
+    }
+
+    Sleep(50);
+
+    std::string keyUp =
+        "KEYUP:";
+
+    keyUp += key;
+
+    if (!externalWindow.sendIpcCommand(
+        keyUp
+    ))
+    {
+        return false;
+    }
+
+    Sleep(50);
+
+    return true;
+}
+
+static bool sendDosText(
+    MyImGui::ExternalWindow& externalWindow,
+    const std::string& text
+)
+{
+    for (char ch : text)
+    {
+        if (ch >= 'a' && ch <= 'z')
+        {
+            char upper =
+                static_cast<char>(
+                    ch - 'a' + 'A'
+                    );
+
+            // German keyboard layout:
+            // physical Y/Z positions are swapped
+            if (upper == 'Y')
+                upper = 'Z';
+            else if (upper == 'Z')
+                upper = 'Y';
+
+            char key[2] =
+            {
+                upper,
+                '\0'
+            };
+
+            if (!sendDosKey(
+                externalWindow,
+                key
+            ))
+            {
+                return false;
+            }
+        }
+        else if (ch >= 'A' && ch <= 'Z')
+        {
+            char upper = ch;
+
+            if (upper == 'Y')
+                upper = 'Z';
+            else if (upper == 'Z')
+                upper = 'Y';
+
+            char key[2] =
+            {
+                upper,
+                '\0'
+            };
+
+            if (!sendDosKey(
+                externalWindow,
+                key
+            ))
+            {
+                return false;
+            }
+        }
+        else if (ch >= '0' && ch <= '9')
+        {
+            char key[2] =
+            {
+                ch,
+                '\0'
+            };
+
+            if (!sendDosKey(
+                externalWindow,
+                key
+            ))
+            {
+                return false;
+            }
+        }
+        else if (ch == ':')
+        {
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:SHIFT"
+            );
+
+            Sleep(50);
+
+            sendDosKey(
+                externalWindow,
+                "PERIOD"
+            );
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:SHIFT"
+            );
+
+            Sleep(10);
+        }
+        else if (ch == '/')
+        {
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:SHIFT"
+            );
+
+            Sleep(10);
+
+            sendDosKey(
+                externalWindow,
+                "7"
+            );
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:SHIFT"
+            );
+
+            Sleep(10);
+        }
+    }
+
+    return true;
+}
 
 // Main code
 int main(int, char**)
@@ -130,6 +283,8 @@ int main(int, char**)
         "Third Floating Window",
         windowOptions
     );
+
+    MyImGui::MainMenu mainMenu;
 
 	MyImGui::ExternalWindow externalWindow;
 
@@ -237,9 +392,144 @@ int main(int, char**)
         // Start the Dear ImGui frame
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
+
         ImGui::NewFrame();
-            
+
+        mainMenu.draw();
+
+        if (mainMenu.consumeStartGameRequest())
+        {
+            std::string mountCommand =
+                "mount c \"" +
+                mainMenu.mountDirectory() +
+                "\"";
+
+            std::string driveCommand =
+                "c:";
+
+            std::string directoryCommand;
+
+            if (!mainMenu.dosDirectory().empty())
+            {
+                directoryCommand =
+                    "cd " +
+                    mainMenu.dosDirectory();
+            }
+
+            Sleep(50);
+
+            sendDosKey(
+                externalWindow,
+                "C"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:C"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:SHIFT"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:PERIOD"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:PERIOD"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:SHIFT"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:ENTER"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:ENTER"
+            );
+
+            Sleep(100);
+
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:J"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:J"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:ENTER"
+            );
+
+            Sleep(50);
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:ENTER"
+            );
+
+            Sleep(200);
+
+            sendDosText(
+                externalWindow,
+                "C:\\Projects\\Wizardry6\\BANE"
+            );
+
+            sendDosKey(
+                externalWindow,
+                "ENTER"
+            );
+            /*bool result =
+                externalWindow.sendIpcCommand(
+                    "COMMAND:" + mountCommand
+                );
+
+            printf(
+                "SEND COMMAND result = %d\n",
+                result ? 1 : 0
+            );*/            
+
+            /*
+            externalWindow.sendIpcCommand(
+                "COMMAND:" + driveCommand
+            );
+
+            if (!directoryCommand.empty())
+            {
+                externalWindow.sendIpcCommand(
+                    "COMMAND:" + directoryCommand
+                );
+            }
+
+            externalWindow.sendIpcCommand(
+                "COMMAND:" + executableCommand
+            );
+            */
+        }
+
         ImGui::DockSpaceOverViewport();
+
         // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
         if (testWindow.begin())
         {
@@ -406,7 +696,7 @@ int main(int, char**)
                         ImVec2 mousePos =
                             ImGui::GetMousePos();
 
-                        ImVec2 mouseInImage(
+                      /* ImVec2 mouseInImage(
                             mousePos.x - imageMin.x,
                             mousePos.y - imageMin.y
                         );
@@ -448,7 +738,7 @@ int main(int, char**)
                                     frameHeader->contentHeight
                                     ) - 1
                             );
-                        /*
+                        
                         if (dosBoxInputActive &&
                             dosBoxImageHovered)
                         {

@@ -51,6 +51,9 @@
     <ClInclude Include="DosBoxFrameTexture.h">
       <Filter>Windows</Filter>
     </ClInclude>
+    <ClInclude Include="MainMenu.h">
+      <Filter>Layout</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -79,6 +82,9 @@
     </ClCompile>
     <ClCompile Include="DosBoxFrameTexture.cpp">
       <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="MainMenu.cpp">
+      <Filter>Layout</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
