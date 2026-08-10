@@ -665,7 +665,18 @@ int main(int, char**)
                             )
                         );
                         const bool dosBoxImageHovered =
-                            ImGui::IsItemHovered();
+                            ImGui::IsMouseHoveringRect(
+                                ImGui::GetItemRectMin(),
+                                ImGui::GetItemRectMax()
+                            );
+
+                        if (dosBoxInputActive &&
+                            dosBoxImageHovered)
+                        {
+                            ImGui::SetMouseCursor(
+                                ImGuiMouseCursor_None
+                            );
+                        }
 
                         const bool dosBoxImageClicked =
                             ImGui::IsItemClicked(
@@ -681,7 +692,7 @@ int main(int, char**)
                         ImVec2 mousePos =
                             ImGui::GetMousePos();
 
-                      /* ImVec2 mouseInImage(
+                         ImVec2 mouseInImage(
                             mousePos.x - imageMin.x,
                             mousePos.y - imageMin.y
                         );
@@ -723,39 +734,88 @@ int main(int, char**)
                                     frameHeader->contentHeight
                                     ) - 1
                             );
-                        
-                        if (dosBoxInputActive &&
-                            dosBoxImageHovered)
+
+                        ImGui::Text(
+                            "Mouse X: %d / %u   Y: %d / %u",
+                            dosBoxMouseX,
+                            frameHeader->contentWidth,
+                            dosBoxMouseY,
+                            frameHeader->contentHeight
+                        );
+
+                        if (dosBoxInputActive)
                         {
-                            std::string command =
-                                "MOUSEMOVE:";
+                            static int lastDosBoxMouseX = -1;
+                            static int lastDosBoxMouseY = -1;
 
-                            command +=
-                                std::to_string(dosBoxMouseX);
+                            if (dosBoxMouseX != lastDosBoxMouseX ||
+                                dosBoxMouseY != lastDosBoxMouseY)
+                            {
+                                std::string command =
+                                    "MOUSEMOVE:";
 
-                            command += ":";
+                                command +=
+                                    std::to_string(dosBoxMouseX);
 
-                            command +=
-                                std::to_string(dosBoxMouseY);
+                                command += ":";
 
-                            command += ":";
+                                command +=
+                                    std::to_string(dosBoxMouseY);
 
-                            command +=
-                                std::to_string(
-                                    frameHeader->contentWidth
+                                command += ":";
+
+                                command +=
+                                    std::to_string(
+                                        frameHeader->contentWidth
+                                    );
+
+                                command += ":";
+
+                                command +=
+                                    std::to_string(
+                                        frameHeader->contentHeight
+                                    );
+
+                                externalWindow.sendIpcCommand(
+                                    command
                                 );
 
-                            command += ":";
+                                lastDosBoxMouseX =
+                                    dosBoxMouseX;
 
-                            command +=
-                                std::to_string(
-                                    frameHeader->contentHeight
-                                );
+                                lastDosBoxMouseY =
+                                    dosBoxMouseY;
+                            }
+                        }
 
-                            externalWindow.sendIpcCommand(
-                                command.c_str()
-                            );
-                        }*/
+                        if (dosBoxInputActive)
+{
+    static bool leftMouseWasDown = false;
+
+    const bool leftMouseIsDown =
+        ImGui::IsMouseDown(
+            ImGuiMouseButton_Left
+        );
+
+    if (leftMouseIsDown &&
+        !leftMouseWasDown)
+    {
+        externalWindow.sendIpcCommand(
+            "MOUSEDOWN:0"
+        );
+    }
+
+    if (!leftMouseIsDown &&
+        leftMouseWasDown)
+    {
+        externalWindow.sendIpcCommand(
+            "MOUSEUP:0"
+        );
+    }
+
+    leftMouseWasDown =
+        leftMouseIsDown;
+}
 
                         if (dosBoxImageClicked)
                         {
