@@ -735,14 +735,6 @@ int main(int, char**)
                                     ) - 1
                             );
 
-                        ImGui::Text(
-                            "Mouse X: %d / %u   Y: %d / %u",
-                            dosBoxMouseX,
-                            frameHeader->contentWidth,
-                            dosBoxMouseY,
-                            frameHeader->contentHeight
-                        );
-
                         if (dosBoxInputActive)
                         {
                             static int lastDosBoxMouseX = -1;
@@ -815,6 +807,48 @@ int main(int, char**)
 
     leftMouseWasDown =
         leftMouseIsDown;
+
+    static bool rightMouseWasDown = false;
+
+    const bool rightMouseIsDown =
+        ImGui::IsMouseDown(
+            ImGuiMouseButton_Right
+        );
+
+    if (rightMouseIsDown &&
+        !rightMouseWasDown)
+    {
+        externalWindow.sendIpcCommand(
+            "MOUSEDOWN:1"
+        );
+    }
+
+    if (!rightMouseIsDown &&
+        rightMouseWasDown)
+    {
+        externalWindow.sendIpcCommand(
+            "MOUSEUP:1"
+        );
+    }
+
+    rightMouseWasDown =
+        rightMouseIsDown;
+
+    const float mouseWheel =
+        ImGui::GetIO().MouseWheel;
+
+    if (mouseWheel > 0.0f)
+    {
+        externalWindow.sendIpcCommand(
+            "MOUSEWHEEL:UP"
+        );
+    }
+    else if (mouseWheel < 0.0f)
+    {
+        externalWindow.sendIpcCommand(
+            "MOUSEWHEEL:DOWN"
+        );
+    }
 }
 
                         if (dosBoxImageClicked)
