@@ -88,5 +88,6 @@ namespace MyImGui
         std::string m_childTitle;
         std::string m_childClassName;
         
+        HANDLE m_ipcPipe = INVALID_HANDLE_VALUE;
     };
 }

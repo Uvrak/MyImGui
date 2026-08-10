@@ -161,6 +161,61 @@ static bool sendDosText(
 
             Sleep(10);
         }
+
+        else if (ch == '\\')
+        {
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:ALTGR"
+            );
+
+            Sleep(10);
+
+            sendDosKey(
+                externalWindow,
+                "MINUS"
+            );
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:ALTGR"
+            );
+
+            Sleep(10);
+        }
+
+        else if (ch == ' ')
+        {
+            sendDosKey(
+                externalWindow,
+                "SPACE"
+            );
+        }
+
+        else if (ch == '"')
+        {
+            externalWindow.sendIpcCommand(
+                "KEYDOWN:SHIFT"
+            );
+
+            Sleep(10);
+
+            sendDosKey(
+                externalWindow,
+                "2"
+            );
+
+            externalWindow.sendIpcCommand(
+                "KEYUP:SHIFT"
+            );
+
+            Sleep(10);
+            }
+        else if (ch == '.')
+        {
+            sendDosKey(
+                externalWindow,
+                "PERIOD"
+            );
+}
         else if (ch == '/')
         {
             externalWindow.sendIpcCommand(
@@ -400,132 +455,62 @@ int main(int, char**)
         if (mainMenu.consumeStartGameRequest())
         {
             std::string mountCommand =
-                "mount c \"" +
+                "MOUNT C \"" +
                 mainMenu.mountDirectory() +
                 "\"";
 
-            std::string driveCommand =
-                "c:";
-
-            std::string directoryCommand;
-
-            if (!mainMenu.dosDirectory().empty())
-            {
-                directoryCommand =
-                    "cd " +
-                    mainMenu.dosDirectory();
-            }
-
-            Sleep(50);
-
-            sendDosKey(
-                externalWindow,
-                "C"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYUP:C"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYDOWN:SHIFT"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYDOWN:PERIOD"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYUP:PERIOD"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYUP:SHIFT"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYDOWN:ENTER"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYUP:ENTER"
-            );
-
-            Sleep(100);
-
-            externalWindow.sendIpcCommand(
-                "KEYDOWN:J"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYUP:J"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYDOWN:ENTER"
-            );
-
-            Sleep(50);
-
-            externalWindow.sendIpcCommand(
-                "KEYUP:ENTER"
-            );
-
-            Sleep(200);
-
             sendDosText(
                 externalWindow,
-                "C:\\Projects\\Wizardry6\\BANE"
+                mountCommand
             );
 
             sendDosKey(
                 externalWindow,
                 "ENTER"
             );
-            /*bool result =
-                externalWindow.sendIpcCommand(
-                    "COMMAND:" + mountCommand
-                );
 
-            printf(
-                "SEND COMMAND result = %d\n",
-                result ? 1 : 0
-            );*/            
+            Sleep(100);
 
-            /*
-            externalWindow.sendIpcCommand(
-                "COMMAND:" + driveCommand
+            sendDosText(
+                externalWindow,
+                "C:"
             );
 
-            if (!directoryCommand.empty())
+            sendDosKey(
+                externalWindow,
+                "ENTER"
+            );
+
+            Sleep(100);
+
+            if (!mainMenu.dosDirectory().empty())
             {
-                externalWindow.sendIpcCommand(
-                    "COMMAND:" + directoryCommand
+                std::string directoryCommand =
+                    "CD " +
+                    mainMenu.dosDirectory();
+
+                sendDosText(
+                    externalWindow,
+                    directoryCommand
                 );
+
+                sendDosKey(
+                    externalWindow,
+                    "ENTER"
+                );
+
+                Sleep(100);
             }
 
-            externalWindow.sendIpcCommand(
-                "COMMAND:" + executableCommand
+            sendDosText(
+                externalWindow,
+                mainMenu.gameFilename()
             );
-            */
+
+            sendDosKey(
+                externalWindow,
+                "ENTER"
+            );
         }
 
         ImGui::DockSpaceOverViewport();
@@ -1174,6 +1159,7 @@ int main(int, char**)
                         "KEYUP:ALT"
                     );
                 }
+
                 if (ImGui::IsKeyPressed(
                     ImGuiKey_Enter,
                     false

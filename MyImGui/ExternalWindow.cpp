@@ -24,6 +24,16 @@ namespace MyImGui
             m_processHandle = nullptr;
             m_processId = 0;
         }
+
+        if (m_ipcPipe != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(
+                m_ipcPipe
+            );
+
+            m_ipcPipe =
+                INVALID_HANDLE_VALUE;
+        }
     }
 
     bool ExternalWindow::startProcess(
@@ -294,27 +304,30 @@ namespace MyImGui
         const std::string& command
     )
     {
-        HANDLE pipe =
-            CreateFileA(
-                "\\\\.\\pipe\\GridBuilderDOSBox",
-                GENERIC_WRITE,
-                0,
-                nullptr,
-                OPEN_EXISTING,
-                0,
-                nullptr
-            );
-
-        if (pipe == INVALID_HANDLE_VALUE)
+        if (m_ipcPipe == INVALID_HANDLE_VALUE)
         {
-            return false;
+            m_ipcPipe =
+                CreateFileA(
+                    "\\\\.\\pipe\\GridBuilderDOSBox",
+                    GENERIC_WRITE,
+                    0,
+                    nullptr,
+                    OPEN_EXISTING,
+                    0,
+                    nullptr
+                );
+
+            if (m_ipcPipe == INVALID_HANDLE_VALUE)
+            {
+                return false;
+            }
         }
 
         DWORD bytesWritten = 0;
 
         BOOL result =
             WriteFile(
-                pipe,
+                m_ipcPipe,
                 command.c_str(),
                 static_cast<DWORD>(
                     command.size()
@@ -323,11 +336,19 @@ namespace MyImGui
                 nullptr
             );
 
-        CloseHandle(
-            pipe
-        );
+        if (!result)
+        {
+            CloseHandle(
+                m_ipcPipe
+            );
 
-        return result != FALSE;
+            m_ipcPipe =
+                INVALID_HANDLE_VALUE;
+
+            return false;
+        }
+
+        return true;
     }
 
     bool ExternalWindow::waitForProcessWindow(
