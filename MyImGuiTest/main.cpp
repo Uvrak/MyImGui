@@ -7,7 +7,6 @@
 // - Introduction, links and more at the top of imgui.cpp
 
 #include "imgui.h"
-#include "FloatingWindow.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
 #include "DosBoxFrameReader.h"
@@ -117,25 +116,6 @@ int main(int, char**)
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
     //IM_ASSERT(font != nullptr);
 
-    // Our state
-    MyImGui::FloatingWindowOptions windowOptions;
-    windowOptions.autoResizeHeight = true;
-
-    MyImGui::FloatingWindow testWindow(
-        "Floating Window Test",
-        windowOptions
-    );
-
-    MyImGui::FloatingWindow secondTestWindow(
-        "Second Floating Window",
-        windowOptions
-    );
-
-    MyImGui::FloatingWindow thirdTestWindow(
-        "Third Floating Window",
-        windowOptions
-    );
-
     MyImGui::MainMenu mainMenu;
 
 	MyImGui::ExternalWindow externalWindow;
@@ -206,10 +186,6 @@ int main(int, char**)
         );
     }
 
-    
-    //bool dosBoxAttached = false;
-
-    bool show_another_window = false;
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
@@ -283,87 +259,16 @@ int main(int, char**)
 
         ImGui::DockSpaceOverViewport();
 
-        // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-        if (testWindow.begin())
         {
-            ImGui::TextUnformatted(
-                "Drag the bottom border upward."
-            );
-
-            ImGui::Separator();
-
-            for (int index = 1;
-                index <= 15;
-                ++index)
-            {
-                ImGui::Text(
-                    "Test row %d",
-                    index
-                );
-            }
-        }
-
-        testWindow.end();
-
-        if (secondTestWindow.begin())
-        {
-            ImGui::TextUnformatted(
-                "Second docked window."
-            );
-
-            ImGui::Separator();
-
-            for (int index = 1;
-                index <= 8;
-                ++index)
-            {
-                ImGui::Text(
-                    "Second row %d",
-                    index
-                );
-            }
-        }
-
-        secondTestWindow.end();
-
-        if (thirdTestWindow.begin())
-        {
-            ImGui::TextUnformatted(
-                "Third docked window."
-            );
-
-            ImGui::Separator();
-
-            for (int index = 1;
-                index <= 6;
-                ++index)
-            {
-                ImGui::Text(
-                    "Third row %d",
-                    index
-                );
-            }
-        }
-
-        thirdTestWindow.end();
-        // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-        {
-
-            static float f = 0.0f;
-            static int counter = 0;
-
-            static bool dosBoxInputActive = false;
-
             dosBoxView.draw(
                 externalWindow,
                 dosBoxFrameReader,
                 dosBoxFrameTexture,
                 dosBoxKeyboard,
                 dosBoxMouse,
-				mainMenu.gameFilename()
+                mainMenu.gameFilename()
             );
         }
-
         // Rendering
         ImGui::Render();
         const float clear_color_with_alpha[4] = { clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w };
