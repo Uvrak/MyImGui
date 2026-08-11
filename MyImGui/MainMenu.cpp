@@ -204,8 +204,52 @@ namespace MyImGui
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu("DOSBox"))
+        {
+            if (ImGui::BeginMenu(
+                "Keyboard Layout"
+            ))
+            {
+                if (ImGui::MenuItem(
+                    "German",
+                    nullptr,
+                    m_germanKeyboardLayoutSelected
+                ))
+                {
+                    m_germanKeyboardLayoutRequested =
+                        true;
+
+                    m_germanKeyboardLayoutSelected =
+                        true;
+                }
+
+                if (ImGui::MenuItem(
+                    "US",
+                    nullptr,
+                    !m_germanKeyboardLayoutSelected
+                ))
+                {
+                    m_usKeyboardLayoutRequested =
+                        true;
+
+                    m_germanKeyboardLayoutSelected =
+                        false;
+                }
+                {
+                    m_usKeyboardLayoutRequested =
+                        true;
+                }
+
+                ImGui::EndMenu();
+            }
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
+    
+
 
     const std::string&
         MainMenu::selectedGameExe() const
@@ -241,6 +285,30 @@ namespace MyImGui
     {
         return m_gameFilename;
     }
+
+   bool MainMenu::consumeGermanKeyboardLayoutRequest()
+{
+    if (!m_germanKeyboardLayoutRequested)
+    {
+        return false;
+    }
+
+    m_germanKeyboardLayoutRequested = false;
+
+    return true;
+}
+
+bool MainMenu::consumeUSKeyboardLayoutRequest()
+{
+    if (!m_usKeyboardLayoutRequested)
+    {
+        return false;
+    }
+
+    m_usKeyboardLayoutRequested = false;
+
+    return true;
+}
 
 
 }

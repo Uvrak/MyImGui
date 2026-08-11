@@ -214,6 +214,8 @@ int main(int, char**)
 
     // Main loop
     bool done = false;
+    bool gameStarted = false;
+
     while (!done)
     {
         // Poll and handle messages (inputs, window resize, etc.)
@@ -254,7 +256,21 @@ int main(int, char**)
 
         mainMenu.draw();
 
-        bool gameStarted = false;
+        if (mainMenu.consumeGermanKeyboardLayoutRequest())
+        {
+            dosBoxController.setKeyboardLayout(
+                externalWindow,
+                MyImGui::KeyboardLayout::German
+            );
+        }
+
+        if (mainMenu.consumeUSKeyboardLayoutRequest())
+        {
+            dosBoxController.setKeyboardLayout(
+                externalWindow,
+                MyImGui::KeyboardLayout::US
+            );
+        }
 
         if (mainMenu.consumeStartGameRequest())
         {

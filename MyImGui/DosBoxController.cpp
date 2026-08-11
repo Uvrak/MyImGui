@@ -10,11 +10,26 @@
 namespace MyImGui
 {
     void DosBoxController::setKeyboardLayout(
+        ExternalWindow& externalWindow,
         KeyboardLayout layout
     )
     {
         m_keyboardLayout =
             layout;
+
+        if (layout ==
+            KeyboardLayout::German)
+        {
+            externalWindow.sendIpcCommand(
+                "KEYBOARD_LAYOUT:GR"
+            );
+        }
+        else
+        {
+            externalWindow.sendIpcCommand(
+                "KEYBOARD_LAYOUT:US"
+            );
+        }
     }
 
     void DosBoxController::clearCommandLine(
@@ -88,12 +103,14 @@ namespace MyImGui
                         ch - 'a' + 'A'
                         );
 
-                // German keyboard layout:
-                // physical Y/Z positions are swapped
-                if (upper == 'Y')
-                    upper = 'Z';
-                else if (upper == 'Z')
-                    upper = 'Y';
+                if (m_keyboardLayout ==
+                    KeyboardLayout::German)
+                {
+                    if (upper == 'Y')
+                        upper = 'Z';
+                    else if (upper == 'Z')
+                        upper = 'Y';
+                }
 
                 char key[2] =
                 {
@@ -154,12 +171,23 @@ namespace MyImGui
                     "KEYDOWN:SHIFT"
                 );
 
-                Sleep(50);
+                Sleep(10);
 
-                sendDosKey(
-                    externalWindow,
-                    "PERIOD"
-                );
+                if (m_keyboardLayout ==
+                    KeyboardLayout::German)
+                {
+                    sendDosKey(
+                        externalWindow,
+                        "PERIOD"
+                    );
+                }
+                else
+                {
+                    sendDosKey(
+                        externalWindow,
+                        "SEMICOLON"
+                    );
+                }
 
                 externalWindow.sendIpcCommand(
                     "KEYUP:SHIFT"
@@ -169,22 +197,33 @@ namespace MyImGui
             }
             else if (ch == '\\')
             {
-                externalWindow.sendIpcCommand(
-                    "KEYDOWN:ALTGR"
-                );
+                if (m_keyboardLayout ==
+                    KeyboardLayout::German)
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:ALTGR"
+                    );
 
-                Sleep(10);
+                    Sleep(10);
 
-                sendDosKey(
-                    externalWindow,
-                    "MINUS"
-                );
+                    sendDosKey(
+                        externalWindow,
+                        "MINUS"
+                    );
 
-                externalWindow.sendIpcCommand(
-                    "KEYUP:ALTGR"
-                );
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:ALTGR"
+                    );
 
-                Sleep(10);
+                    Sleep(10);
+                }
+                else
+                {
+                    sendDosKey(
+                        externalWindow,
+                        "BACKSLASH"
+                    );
+                }
             }
             else if (ch == ' ')
             {
@@ -221,23 +260,34 @@ namespace MyImGui
             }
             else if (ch == '/')
             {
-                externalWindow.sendIpcCommand(
-                    "KEYDOWN:SHIFT"
-                );
+                if (m_keyboardLayout ==
+                    KeyboardLayout::German)
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:SHIFT"
+                    );
 
-                Sleep(10);
+                    Sleep(10);
 
-                sendDosKey(
-                    externalWindow,
-                    "7"
-                );
+                    sendDosKey(
+                        externalWindow,
+                        "7"
+                    );
 
-                externalWindow.sendIpcCommand(
-                    "KEYUP:SHIFT"
-                );
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:SHIFT"
+                    );
 
-                Sleep(10);
-            }
+                    Sleep(10);
+                }
+                else
+                {
+                    sendDosKey(
+                        externalWindow,
+                        "SLASH"
+                    );
+                }
+                }
             else if (ch == '-')
             {
                 if (m_keyboardLayout ==
@@ -256,6 +306,37 @@ namespace MyImGui
                     );
                 }
             }
+
+            else if (ch == '#')
+            {
+                if (m_keyboardLayout ==
+                    KeyboardLayout::German)
+                {
+                    sendDosKey(
+                        externalWindow,
+                        "BACKSLASH"
+                    );
+                }
+                else
+                {
+                    externalWindow.sendIpcCommand(
+                        "KEYDOWN:SHIFT"
+                    );
+
+                    Sleep(10);
+
+                    sendDosKey(
+                        externalWindow,
+                        "3"
+                    );
+
+                    externalWindow.sendIpcCommand(
+                        "KEYUP:SHIFT"
+                    );
+
+                    Sleep(10);
+                }
+                }
         }
 
         return true;

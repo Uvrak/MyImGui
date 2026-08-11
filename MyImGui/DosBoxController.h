@@ -16,6 +16,7 @@ namespace MyImGui
     {
     public:
         void setKeyboardLayout(
+            ExternalWindow& externalWindow,
             KeyboardLayout layout
         );
 

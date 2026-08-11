@@ -23,6 +23,9 @@ namespace MyImGui
         const std::string&
             gameFilename() const;
 
+        bool consumeGermanKeyboardLayoutRequest();
+        bool consumeUSKeyboardLayoutRequest();
+
     private:
         std::string m_selectedGameExe;
 
@@ -33,5 +36,10 @@ namespace MyImGui
         std::string m_dosDirectory;
 
         bool m_startGameRequested = false;
+
+        bool m_germanKeyboardLayoutRequested = false;
+        bool m_usKeyboardLayoutRequested = false;
+
+        bool m_germanKeyboardLayoutSelected = true;
     };
 }

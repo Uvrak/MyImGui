@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DosBoxController.h"
+
 namespace MyImGui
 {
     class ExternalWindow;
@@ -10,5 +12,6 @@ namespace MyImGui
         void update(
             ExternalWindow& externalWindow
         );
+
     };
 }
