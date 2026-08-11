@@ -155,8 +155,12 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DosBoxController.h" />
     <ClInclude Include="DosBoxFrameReader.h" />
     <ClInclude Include="DosBoxFrameTexture.h" />
+    <ClInclude Include="DosBoxKeyboard.h" />
+    <ClInclude Include="DosBoxMouse.h" />
+    <ClInclude Include="DosBoxView.h" />
     <ClInclude Include="DragDropReorder.h" />
     <ClInclude Include="ExternalWindow.h" />
     <ClInclude Include="FloatingWindow.h" />
@@ -168,8 +172,12 @@
     <ClInclude Include="WindowCapture.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DosBoxController.cpp" />
     <ClCompile Include="DosBoxFrameReader.cpp" />
     <ClCompile Include="DosBoxFrameTexture.cpp" />
+    <ClCompile Include="DosBoxKeyboard.cpp" />
+    <ClCompile Include="DosBoxMouse.cpp" />
+    <ClCompile Include="DosBoxView.cpp" />
     <ClCompile Include="DragDropRecoder.cpp" />
     <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />

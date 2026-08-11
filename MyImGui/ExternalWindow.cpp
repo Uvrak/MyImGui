@@ -45,6 +45,9 @@ namespace MyImGui
             return false;
         }
 
+        m_executablePath =
+            executablePath;
+
         HANDLE existingPipe =
             CreateFileA(
                 "\\\\.\\pipe\\GridBuilderDOSBox",
@@ -98,7 +101,70 @@ namespace MyImGui
 
         return true;
     }
-    
+
+    bool ExternalWindow::stopProcess()
+    {
+        if (m_processHandle == nullptr)
+        {
+            return true;
+        }
+
+        if (m_ipcPipe != INVALID_HANDLE_VALUE)
+        {
+            CloseHandle(
+                m_ipcPipe
+            );
+
+            m_ipcPipe =
+                INVALID_HANDLE_VALUE;
+        }
+
+        BOOL result =
+            TerminateProcess(
+                m_processHandle,
+                0
+            );
+
+        WaitForSingleObject(
+            m_processHandle,
+            2000
+        );
+
+        CloseHandle(
+            m_processHandle
+        );
+
+        m_processHandle = nullptr;
+        m_processId = 0;
+
+        m_handle = nullptr;
+        m_childHandle = nullptr;
+
+        return result != FALSE;
+    }
+
+    bool ExternalWindow::restartProcess()
+    {
+        if (m_executablePath.empty())
+        {
+            return false;
+        }
+
+        const std::string executablePath =
+            m_executablePath;
+
+        if (!stopProcess())
+        {
+            return false;
+        }
+
+        Sleep(100);
+
+        return startProcess(
+            executablePath
+        );
+    }
+
     bool ExternalWindow::findByTitle(
         const std::string& title
     )

@@ -19,6 +19,10 @@ namespace MyImGui
             const std::string& executablePath
         );
 
+        bool stopProcess();
+
+        bool restartProcess();
+
         bool findByTitle(
             const std::string& title
         );
@@ -85,9 +89,13 @@ namespace MyImGui
         HANDLE m_processHandle = nullptr;
         DWORD m_processId = 0;
 
+        std::string m_executablePath;
+
         std::string m_childTitle;
         std::string m_childClassName;
         
         HANDLE m_ipcPipe = INVALID_HANDLE_VALUE;
+
+
     };
 }

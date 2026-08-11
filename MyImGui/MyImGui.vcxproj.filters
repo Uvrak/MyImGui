@@ -19,6 +19,9 @@
     <Filter Include="Internal">
       <UniqueIdentifier>{6c6876c2-c207-4b8c-aae8-5af9e083eb3c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DosBoxX">
+      <UniqueIdentifier>{191309e8-e84a-42d7-ac04-f7d51d936ec7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyImGui.h">
@@ -39,20 +42,32 @@
     <ClInclude Include="pch.h">
       <Filter>Internal</Filter>
     </ClInclude>
-    <ClInclude Include="ExternalWindow.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
     <ClInclude Include="WindowCapture.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxFrameReader.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxFrameTexture.h">
       <Filter>Windows</Filter>
     </ClInclude>
     <ClInclude Include="MainMenu.h">
       <Filter>Layout</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxFrameReader.h">
+      <Filter>DosBoxX</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxFrameTexture.h">
+      <Filter>DosBoxX</Filter>
+    </ClInclude>
+    <ClInclude Include="ExternalWindow.h">
+      <Filter>DosBoxX</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxKeyboard.h">
+      <Filter>DosBoxX</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxMouse.h">
+      <Filter>DosBoxX</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxView.h">
+      <Filter>DosBoxX</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxController.h">
+      <Filter>DosBoxX</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -71,20 +86,32 @@
     <ClCompile Include="pch.cpp">
       <Filter>Internal</Filter>
     </ClCompile>
-    <ClCompile Include="ExternalWindow.cpp">
-      <Filter>Windows</Filter>
-    </ClCompile>
     <ClCompile Include="WindowCapture.cpp">
-      <Filter>Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxFrameReader.cpp">
-      <Filter>Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxFrameTexture.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="MainMenu.cpp">
       <Filter>Layout</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxFrameReader.cpp">
+      <Filter>DosBoxX</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxFrameTexture.cpp">
+      <Filter>DosBoxX</Filter>
+    </ClCompile>
+    <ClCompile Include="ExternalWindow.cpp">
+      <Filter>DosBoxX</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxKeyboard.cpp">
+      <Filter>DosBoxX</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxMouse.cpp">
+      <Filter>DosBoxX</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxView.cpp">
+      <Filter>DosBoxX</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxController.cpp">
+      <Filter>DosBoxX</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
