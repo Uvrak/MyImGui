@@ -27,6 +27,7 @@ namespace MyImGui
         const DosBoxFrameHeader* header() const;
         const uint8_t* pixels() const;
         bool tryOpen();
+        void reset();
 
     private:
         HANDLE m_mapping = nullptr;

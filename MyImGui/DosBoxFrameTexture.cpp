@@ -99,6 +99,24 @@ namespace MyImGui
         return SUCCEEDED(result);
     }
 
+    void DosBoxFrameTexture::reset()
+    {
+        if (m_textureView != nullptr)
+        {
+            m_textureView->Release();
+            m_textureView = nullptr;
+        }
+
+        if (m_texture != nullptr)
+        {
+            m_texture->Release();
+            m_texture = nullptr;
+        }
+
+        m_width = 0;
+        m_height = 0;
+    }
+
     ID3D11ShaderResourceView* DosBoxFrameTexture::textureView() const
     {
         return m_textureView;

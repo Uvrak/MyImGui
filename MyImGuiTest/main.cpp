@@ -214,8 +214,7 @@ int main(int, char**)
 
     // Main loop
     bool done = false;
-    bool gameStarted = false;
-
+    
     while (!done)
     {
         // Poll and handle messages (inputs, window resize, etc.)
@@ -274,38 +273,12 @@ int main(int, char**)
 
         if (mainMenu.consumeStartGameRequest())
         {
-            if (gameStarted)
-            {
-                if (!externalWindow.restartProcess())
-                {
-                    continue;
-                }
-
-                if (!externalWindow.waitForProcessWindow(
-                    5000
-                ))
-                {
-                    continue;
-                }
-
-                externalWindow.hideFromTaskbar();
-
-                externalWindow.setBounds(
-                    -5000,
-                    0,
-                    640,
-                    400
-                );
-            }
-
-            dosBoxController.openGame(
+                dosBoxController.openGame(
                 externalWindow,
                 mainMenu.mountDirectory(),
                 mainMenu.dosDirectory(),
                 mainMenu.gameFilename()
             );
-
-            gameStarted = true;
         }
 
         ImGui::DockSpaceOverViewport();

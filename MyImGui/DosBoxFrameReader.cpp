@@ -106,4 +106,25 @@ namespace MyImGui
 
         return m_sharedMemory != nullptr;
     }
+
+    void DosBoxFrameReader::reset()
+    {
+        if (m_sharedMemory != nullptr)
+        {
+            UnmapViewOfFile(
+                m_sharedMemory
+            );
+
+            m_sharedMemory = nullptr;
+        }
+
+        if (m_mapping != nullptr)
+        {
+            CloseHandle(
+                m_mapping
+            );
+
+            m_mapping = nullptr;
+        }
+    }
 }

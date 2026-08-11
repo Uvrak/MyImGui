@@ -130,10 +130,14 @@ namespace MyImGui
             {
                 char upper = ch;
 
-                if (upper == 'Y')
-                    upper = 'Z';
-                else if (upper == 'Z')
-                    upper = 'Y';
+                if (m_keyboardLayout ==
+                    KeyboardLayout::German)
+                {
+                    if (upper == 'Y')
+                        upper = 'Z';
+                    else if (upper == 'Z')
+                        upper = 'Y';
+                }
 
                 char key[2] =
                 {
@@ -149,6 +153,7 @@ namespace MyImGui
                     return false;
                 }
             }
+
             else if (ch >= '0' && ch <= '9')
             {
                 char key[2] =
@@ -342,7 +347,7 @@ namespace MyImGui
         return true;
     }
 
-    void DosBoxController::openGame(
+    bool DosBoxController::openGame(
         ExternalWindow& externalWindow,
         const std::string& mountDirectory,
         const std::string& dosDirectory,
@@ -355,15 +360,31 @@ namespace MyImGui
 
         Sleep(100);
 
-        sendDosText(
+        if (!sendDosText(
             externalWindow,
             "MOUNT C -U"
-        );
+        ))
+        {
+            OutputDebugStringA(
+                "openGame failed: unmount text\n"
+            );
+            return false;
+        }
 
-        sendDosKey(
+        if (!sendDosKey(
             externalWindow,
             "ENTER"
-        );
+        ))
+        {
+            OutputDebugStringA(
+                "openGame failed: unmount text\n"
+            );
+           
+            OutputDebugStringA(
+                "openGame failed: unmount text\n"
+            );
+            return false;
+        }
 
         Sleep(100);
         const std::string mountCommand =
@@ -371,39 +392,66 @@ namespace MyImGui
             mountDirectory +
             "\"";
 
-        sendDosText(
+        if (!sendDosText(
             externalWindow,
             mountCommand
-        );
+        ))
+        {
+            OutputDebugStringA(
+                "openGame failed: unmount text\n"
+            );
+            return false;
+        }
 
-        sendDosKey(
+        if (!sendDosKey(
             externalWindow,
             "ENTER"
-        );
+        ))
+        {
+            OutputDebugStringA(
+                "openGame failed: unmount text\n"
+            );
+            return false;
+        }
 
         Sleep(100);
 
-        sendDosText(
+        if (!sendDosText(
             externalWindow,
             "C:"
-        );
+        ))
+        {
+            OutputDebugStringA(
+                "openGame failed: unmount text\n"
+            );
+            return false;
+        }
 
-        sendDosKey(
+        if (!sendDosKey(
             externalWindow,
             "ENTER"
-        );
+        ))
+        {
+            return false;
+        }
 
         Sleep(100);
 
-        sendDosText(
+        if (!sendDosText(
             externalWindow,
             "CD \\"
-        );
+        ))
+        {
+            return false;
+        }
 
-        sendDosKey(
+        if (!sendDosKey(
             externalWindow,
             "ENTER"
-        );
+        ))
+        {
+            return false;
+        }
 
         Sleep(100);
 
@@ -425,27 +473,41 @@ namespace MyImGui
                 "CD " +
                 dosDirectory;
 
-            sendDosText(
+            if (!sendDosText(
                 externalWindow,
                 directoryCommand
-            );
+            ))
+            {
+                return false;
+            }
 
-            sendDosKey(
+            if (!sendDosKey(
                 externalWindow,
                 "ENTER"
-            );
+            ))
+            {
+                return false;
+            }
         }
 
         Sleep(100);
 
-        sendDosText(
+        if (!sendDosText(
             externalWindow,
             gameFilename
-        );
+        ))
+        {
+            return false;
+        }
 
-        sendDosKey(
+        if (!sendDosKey(
             externalWindow,
             "ENTER"
-        );
+        ))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

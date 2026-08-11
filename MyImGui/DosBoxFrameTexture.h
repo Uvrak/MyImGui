@@ -23,6 +23,8 @@ namespace MyImGui
             uint32_t pitch
         );
 
+        void reset();
+
         ID3D11ShaderResourceView* textureView() const;
 
     private:

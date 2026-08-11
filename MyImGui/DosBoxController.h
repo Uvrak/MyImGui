@@ -34,7 +34,7 @@ namespace MyImGui
             const std::string& text
         );
 
-        void openGame(
+        bool openGame(
             ExternalWindow& externalWindow,
             const std::string& mountDirectory,
             const std::string& dosDirectory,

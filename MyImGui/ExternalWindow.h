@@ -39,6 +39,10 @@ namespace MyImGui
             DWORD timeoutMilliseconds
         );
 
+        bool waitForIpc(
+            DWORD timeoutMilliseconds
+        );
+
         HWND handle() const;
         HWND childHandle() const;
 
