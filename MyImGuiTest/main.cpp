@@ -359,7 +359,8 @@ int main(int, char**)
                 dosBoxFrameReader,
                 dosBoxFrameTexture,
                 dosBoxKeyboard,
-                dosBoxMouse
+                dosBoxMouse,
+				mainMenu.gameFilename()
             );
         }
 
@@ -382,6 +383,10 @@ int main(int, char**)
         //HRESULT hr = g_pSwapChain->Present(0, 0); // Present without vsync
         g_SwapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
     }
+
+    ClipCursor(
+        nullptr
+    );
 
     // Cleanup
     ImGui_ImplDX11_Shutdown();
@@ -487,6 +492,10 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             return 0;
         break;
     case WM_DESTROY:
+        ClipCursor(
+            nullptr
+        );
+
         ::PostQuitMessage(0);
         return 0;
     }

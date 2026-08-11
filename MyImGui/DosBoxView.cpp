@@ -16,11 +16,86 @@ namespace MyImGui
         DosBoxFrameReader& frameReader,
         DosBoxFrameTexture& frameTexture,
         DosBoxKeyboard& keyboard,
-        DosBoxMouse& mouse
+        DosBoxMouse& mouse,
+        const std::string& gameFilename
     )
     {
-        ImGui::Begin("DOSBox");
+        std::string windowTitle =
+            gameFilename.empty()
+            ? "DOSBox"
+            : gameFilename;
 
+        windowTitle += "###DOSBoxWindow";
+
+        
+        ImVec4 tabColor =
+            m_inputActive
+            ? ImVec4(
+                0.0f,
+                0.55f,
+                0.0f,
+                1.0f
+            )
+            : ImVec4(
+                0.65f,
+                0.0f,
+                0.0f,
+                1.0f
+            );
+
+        ImGui::PushStyleColor(
+            ImGuiCol_Tab,
+            tabColor
+        );
+
+        ImGui::PushStyleColor(
+            ImGuiCol_TabSelected,
+            tabColor
+        );
+
+        ImGui::PushStyleColor(
+            ImGuiCol_TabHovered,
+            tabColor
+        );
+
+        ImGui::PushStyleColor(
+            ImGuiCol_TabDimmed,
+            tabColor
+        );
+
+        ImGui::PushStyleColor(
+            ImGuiCol_TabDimmedSelected,
+            tabColor
+        );
+
+        ImGui::Begin(
+            windowTitle.c_str()
+        );
+
+        ImGui::PopStyleColor(5);
+
+        if (ImGui::IsWindowFocused(
+            ImGuiFocusedFlags_RootAndChildWindows
+        ) &&
+            ImGui::IsKeyPressed(
+                ImGuiKey_Tab,
+                false
+            ))
+        {
+            m_inputActive =
+                !m_inputActive;
+
+            if (!m_inputActive)
+            {
+                ClipCursor(
+                    nullptr
+                );
+
+                externalWindow.sendIpcCommand(
+                    "RELEASE_ALL"
+                );
+            }
+        }
         frameReader.tryOpen();
 
         const DosBoxFrameHeader* frameHeader =
@@ -116,6 +191,29 @@ namespace MyImGui
                     ImVec2 imageMin =
                         ImGui::GetItemRectMin();
 
+                    if (m_inputActive)
+                    {
+                        ImVec2 imageMax =
+                            ImGui::GetItemRectMax();
+
+                        RECT clipRect{
+                            static_cast<LONG>(imageMin.x),
+                            static_cast<LONG>(imageMin.y),
+                            static_cast<LONG>(imageMax.x),
+                            static_cast<LONG>(imageMax.y)
+                        };
+
+                        ClipCursor(
+                            &clipRect
+                        );
+                    }
+                    else
+                    {
+                        ClipCursor(
+                            nullptr
+                        );
+                    }
+
                     if (m_inputActive &&
                         dosBoxImageHovered)
                     {
@@ -128,6 +226,7 @@ namespace MyImGui
                             imageMin.y
                         );
                     }
+
 
                     if (dosBoxImageClicked)
                     {
@@ -153,12 +252,6 @@ namespace MyImGui
                 "Shared frame not available"
             );
         }
-        ImGui::Text(
-            "DOSBox input: %s",
-            m_inputActive
-            ? "ACTIVE"
-            : "INACTIVE"
-        );
 
         if (m_inputActive)
         {

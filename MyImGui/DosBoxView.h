@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace MyImGui
 {
     class ExternalWindow;
@@ -16,7 +18,8 @@ namespace MyImGui
             DosBoxFrameReader& frameReader,
             DosBoxFrameTexture& frameTexture,
             DosBoxKeyboard& keyboard,
-            DosBoxMouse& mouse
+            DosBoxMouse& mouse,
+            const std::string& gameFilename
         );
 
     private:
