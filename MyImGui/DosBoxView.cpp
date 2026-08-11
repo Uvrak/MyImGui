@@ -28,30 +28,6 @@ namespace MyImGui
 
         if (frameHeader != nullptr)
         {
-            static uint64_t lastFrameCounter = 0;
-
-            if (frameHeader->frameCounter < lastFrameCounter)
-            {
-                char buffer[256];
-
-                sprintf_s(
-                    buffer,
-                    "NEW DOSBOX FRAME: width=%u height=%u content=%ux%u pitch=%u frame=%llu\n",
-                    frameHeader->width,
-                    frameHeader->height,
-                    frameHeader->contentWidth,
-                    frameHeader->contentHeight,
-                    frameHeader->pitch,
-                    static_cast<unsigned long long>(
-                        frameHeader->frameCounter
-                        )
-                );
-
-                OutputDebugStringA(buffer);
-            }
-
-            lastFrameCounter =
-                frameHeader->frameCounter;
             const uint8_t* framePixels =
                 frameReader.pixels();
 
@@ -66,7 +42,7 @@ namespace MyImGui
 
                 ID3D11ShaderResourceView* sharedTexture =
                     frameTexture.textureView();
-
+         
                 if (sharedTexture != nullptr)
                 {
                     ImVec2 availableSize =
