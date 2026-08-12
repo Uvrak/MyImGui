@@ -21,6 +21,10 @@
 #include "DosBoxView.h"
 #include "DosBoxController.h"
 
+#include "NamedPipeClient.h"
+MyImGui::NamedPipeClient NamedPipeClient(
+    R"(\\.\pipe\GridBuilderDOSBox)"
+);
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
 static ID3D11DeviceContext*     g_pd3dDeviceContext = nullptr;
@@ -234,7 +238,7 @@ int main(int, char**)
         if (mainMenu.consumeGermanKeyboardLayoutRequest())
         {
             dosBoxController.setKeyboardLayout(
-                externalWindow,
+                NamedPipeClient,
                 MyImGui::KeyboardLayout::German
             );
         }
@@ -242,7 +246,7 @@ int main(int, char**)
         if (mainMenu.consumeUSKeyboardLayoutRequest())
         {
             dosBoxController.setKeyboardLayout(
-                externalWindow,
+                NamedPipeClient,
                 MyImGui::KeyboardLayout::US
             );
         }
@@ -250,7 +254,7 @@ int main(int, char**)
         if (mainMenu.consumeStartGameRequest())
         {
                 dosBoxController.openGame(
-                externalWindow,
+                NamedPipeClient,
                 mainMenu.mountDirectory(),
                 mainMenu.dosDirectory(),
                 mainMenu.gameFilename()
@@ -261,7 +265,7 @@ int main(int, char**)
 
         {
             dosBoxView.draw(
-                externalWindow,
+                NamedPipeClient,
                 dosBoxFrameReader,
                 dosBoxFrameTexture,
                 dosBoxKeyboard,

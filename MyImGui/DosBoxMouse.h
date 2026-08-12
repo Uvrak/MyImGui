@@ -2,14 +2,14 @@
 
 namespace MyImGui
 {
-    class ExternalWindow;
+    class NamedPipeClient;
     struct DosBoxFrameHeader;
 
     class DosBoxMouse
     {
     public:
         void update(
-            ExternalWindow& externalWindow,
+            NamedPipeClient& NamedPipeClient,
             const DosBoxFrameHeader& frameHeader,
             float imageWidth,
             float imageHeight,

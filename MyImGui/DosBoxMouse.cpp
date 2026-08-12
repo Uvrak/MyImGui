@@ -4,14 +4,14 @@
 #include <algorithm>
 #include <string>
 
-#include "ExternalWindow.h"
+#include "NamedPipeClient.h"
 #include "DosBoxFrameReader.h"
 #include "imgui.h"
 
 namespace MyImGui
 {
     void DosBoxMouse::update(
-        ExternalWindow& externalWindow,
+        NamedPipeClient& NamedPipeClient,
         const DosBoxFrameHeader& frameHeader,
         float imageWidth,
         float imageHeight,
@@ -97,7 +97,7 @@ namespace MyImGui
                     frameHeader.contentHeight
                 );
 
-            externalWindow.sendIpcCommand(
+            NamedPipeClient.send(
                 command
             );
 
@@ -118,7 +118,7 @@ namespace MyImGui
         if (leftMouseIsDown &&
             !leftMouseWasDown)
         {
-            externalWindow.sendIpcCommand(
+            NamedPipeClient.send(
                 "MOUSEDOWN:0"
             );
         }
@@ -126,7 +126,7 @@ namespace MyImGui
         if (!leftMouseIsDown &&
             leftMouseWasDown)
         {
-            externalWindow.sendIpcCommand(
+            NamedPipeClient.send(
                 "MOUSEUP:0"
             );
         }
@@ -144,7 +144,7 @@ namespace MyImGui
         if (rightMouseIsDown &&
             !rightMouseWasDown)
         {
-            externalWindow.sendIpcCommand(
+            NamedPipeClient.send(
                 "MOUSEDOWN:1"
             );
         }
@@ -152,7 +152,7 @@ namespace MyImGui
         if (!rightMouseIsDown &&
             rightMouseWasDown)
         {
-            externalWindow.sendIpcCommand(
+            NamedPipeClient.send(
                 "MOUSEUP:1"
             );
         }
@@ -165,13 +165,13 @@ namespace MyImGui
 
         if (mouseWheel > 0.0f)
         {
-            externalWindow.sendIpcCommand(
+            NamedPipeClient.send(
                 "MOUSEWHEEL:UP"
             );
         }
         else if (mouseWheel < 0.0f)
         {
-            externalWindow.sendIpcCommand(
+            NamedPipeClient.send(
                 "MOUSEWHEEL:DOWN"
             );
         }

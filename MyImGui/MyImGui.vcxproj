@@ -168,6 +168,7 @@
     <ClInclude Include="framework.h" />
     <ClInclude Include="MainMenu.h" />
     <ClInclude Include="MyImGui.h" />
+    <ClInclude Include="NamedPipeClient.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="WindowCapture.h" />
   </ItemGroup>
@@ -184,6 +185,7 @@
     <ClCompile Include="FlowLayout.cpp" />
     <ClCompile Include="MainMenu.cpp" />
     <ClCompile Include="MyImGui.cpp" />
+    <ClCompile Include="NamedPipeClient.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

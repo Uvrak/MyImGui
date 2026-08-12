@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "DosBoxController.h"
 
-#include "ExternalWindow.h"
+#include "NamedPipeClient.h"
 
 #include <filesystem>
 #include <string>
@@ -10,7 +10,7 @@
 namespace MyImGui
 {
     void DosBoxController::setKeyboardLayout(
-        ExternalWindow& externalWindow,
+        NamedPipeClient& pipeClient,
         KeyboardLayout layout
     )
     {
@@ -20,41 +20,41 @@ namespace MyImGui
         if (layout ==
             KeyboardLayout::German)
         {
-            externalWindow.sendIpcCommand(
+            pipeClient.send(
                 "KEYBOARD_LAYOUT:GR"
             );
         }
         else
         {
-            externalWindow.sendIpcCommand(
+            pipeClient.send(
                 "KEYBOARD_LAYOUT:US"
             );
         }
     }
 
     void DosBoxController::clearCommandLine(
-        ExternalWindow& externalWindow
+        NamedPipeClient& pipeClient
     )
     {
-        externalWindow.sendIpcCommand(
+        pipeClient.send(
             "KEYDOWN:CTRL"
         );
 
-        externalWindow.sendIpcCommand(
+        pipeClient.send(
             "KEYDOWN:C"
         );
 
-        externalWindow.sendIpcCommand(
+        pipeClient.send(
             "KEYUP:C"
         );
 
-        externalWindow.sendIpcCommand(
+        pipeClient.send(
             "KEYUP:CTRL"
         );
     }
 
     bool DosBoxController::sendDosKey(
-        ExternalWindow& externalWindow,
+        NamedPipeClient& pipeClient,
         const char* key
     )
     {
@@ -63,7 +63,7 @@ namespace MyImGui
 
         keyDown += key;
 
-        if (!externalWindow.sendIpcCommand(
+        if (!pipeClient.send(
             keyDown
         ))
         {
@@ -77,7 +77,7 @@ namespace MyImGui
 
         keyUp += key;
 
-        if (!externalWindow.sendIpcCommand(
+        if (!pipeClient.send(
             keyUp
         ))
         {
@@ -90,7 +90,7 @@ namespace MyImGui
     }
 
     bool DosBoxController::sendDosText(
-        ExternalWindow& externalWindow,
+        NamedPipeClient& pipeClient,
         const std::string& text
     )
     {
@@ -119,7 +119,7 @@ namespace MyImGui
                 };
 
                 if (!sendDosKey(
-                    externalWindow,
+                    pipeClient,
                     key
                 ))
                 {
@@ -146,7 +146,7 @@ namespace MyImGui
                 };
 
                 if (!sendDosKey(
-                    externalWindow,
+                    pipeClient,
                     key
                 ))
                 {
@@ -163,7 +163,7 @@ namespace MyImGui
                 };
 
                 if (!sendDosKey(
-                    externalWindow,
+                    pipeClient,
                     key
                 ))
                 {
@@ -172,7 +172,7 @@ namespace MyImGui
             }
             else if (ch == ':')
             {
-                externalWindow.sendIpcCommand(
+                pipeClient.send(
                     "KEYDOWN:SHIFT"
                 );
 
@@ -182,19 +182,19 @@ namespace MyImGui
                     KeyboardLayout::German)
                 {
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "PERIOD"
                     );
                 }
                 else
                 {
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "SEMICOLON"
                     );
                 }
 
-                externalWindow.sendIpcCommand(
+                pipeClient.send(
                     "KEYUP:SHIFT"
                 );
 
@@ -205,18 +205,18 @@ namespace MyImGui
                 if (m_keyboardLayout ==
                     KeyboardLayout::German)
                 {
-                    externalWindow.sendIpcCommand(
+                    pipeClient.send(
                         "KEYDOWN:ALTGR"
                     );
 
                     Sleep(10);
 
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "MINUS"
                     );
 
-                    externalWindow.sendIpcCommand(
+                    pipeClient.send(
                         "KEYUP:ALTGR"
                     );
 
@@ -225,7 +225,7 @@ namespace MyImGui
                 else
                 {
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "BACKSLASH"
                     );
                 }
@@ -233,24 +233,24 @@ namespace MyImGui
             else if (ch == ' ')
             {
                 sendDosKey(
-                    externalWindow,
+                    pipeClient,
                     "SPACE"
                 );
             }
             else if (ch == '"')
             {
-                externalWindow.sendIpcCommand(
+                pipeClient.send(
                     "KEYDOWN:SHIFT"
                 );
 
                 Sleep(10);
 
                 sendDosKey(
-                    externalWindow,
+                    pipeClient,
                     "2"
                 );
 
-                externalWindow.sendIpcCommand(
+                pipeClient.send(
                     "KEYUP:SHIFT"
                 );
 
@@ -259,7 +259,7 @@ namespace MyImGui
             else if (ch == '.')
             {
                 sendDosKey(
-                    externalWindow,
+                    pipeClient,
                     "PERIOD"
                 );
             }
@@ -268,18 +268,18 @@ namespace MyImGui
                 if (m_keyboardLayout ==
                     KeyboardLayout::German)
                 {
-                    externalWindow.sendIpcCommand(
+                    pipeClient.send(
                         "KEYDOWN:SHIFT"
                     );
 
                     Sleep(10);
 
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "7"
                     );
 
-                    externalWindow.sendIpcCommand(
+                    pipeClient.send(
                         "KEYUP:SHIFT"
                     );
 
@@ -288,7 +288,7 @@ namespace MyImGui
                 else
                 {
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "SLASH"
                     );
                 }
@@ -299,14 +299,14 @@ namespace MyImGui
                     KeyboardLayout::German)
                 {
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "SLASH"
                     );
                 }
                 else
                 {
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "MINUS"
                     );
                 }
@@ -318,24 +318,24 @@ namespace MyImGui
                     KeyboardLayout::German)
                 {
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "BACKSLASH"
                     );
                 }
                 else
                 {
-                    externalWindow.sendIpcCommand(
+                    pipeClient.send(
                         "KEYDOWN:SHIFT"
                     );
 
                     Sleep(10);
 
                     sendDosKey(
-                        externalWindow,
+                        pipeClient,
                         "3"
                     );
 
-                    externalWindow.sendIpcCommand(
+                    pipeClient.send(
                         "KEYUP:SHIFT"
                     );
 
@@ -348,20 +348,20 @@ namespace MyImGui
     }
 
     bool DosBoxController::openGame(
-        ExternalWindow& externalWindow,
+        NamedPipeClient& pipeClient,
         const std::string& mountDirectory,
         const std::string& dosDirectory,
         const std::string& gameFilename
     )
     {
         clearCommandLine(
-            externalWindow
+            pipeClient
         );
 
         Sleep(100);
 
         if (!sendDosText(
-            externalWindow,
+            pipeClient,
             "MOUNT C -U"
         ))
         {
@@ -372,7 +372,7 @@ namespace MyImGui
         }
 
         if (!sendDosKey(
-            externalWindow,
+            pipeClient,
             "ENTER"
         ))
         {
@@ -393,7 +393,7 @@ namespace MyImGui
             "\"";
 
         if (!sendDosText(
-            externalWindow,
+            pipeClient,
             mountCommand
         ))
         {
@@ -404,7 +404,7 @@ namespace MyImGui
         }
 
         if (!sendDosKey(
-            externalWindow,
+            pipeClient,
             "ENTER"
         ))
         {
@@ -417,7 +417,7 @@ namespace MyImGui
         Sleep(100);
 
         if (!sendDosText(
-            externalWindow,
+            pipeClient,
             "C:"
         ))
         {
@@ -428,7 +428,7 @@ namespace MyImGui
         }
 
         if (!sendDosKey(
-            externalWindow,
+            pipeClient,
             "ENTER"
         ))
         {
@@ -438,7 +438,7 @@ namespace MyImGui
         Sleep(100);
 
         if (!sendDosText(
-            externalWindow,
+            pipeClient,
             "CD \\"
         ))
         {
@@ -446,7 +446,7 @@ namespace MyImGui
         }
 
         if (!sendDosKey(
-            externalWindow,
+            pipeClient,
             "ENTER"
         ))
         {
@@ -474,7 +474,7 @@ namespace MyImGui
                 dosDirectory;
 
             if (!sendDosText(
-                externalWindow,
+                pipeClient,
                 directoryCommand
             ))
             {
@@ -482,7 +482,7 @@ namespace MyImGui
             }
 
             if (!sendDosKey(
-                externalWindow,
+                pipeClient,
                 "ENTER"
             ))
             {
@@ -493,7 +493,7 @@ namespace MyImGui
         Sleep(100);
 
         if (!sendDosText(
-            externalWindow,
+            pipeClient,
             gameFilename
         ))
         {
@@ -501,7 +501,7 @@ namespace MyImGui
         }
 
         if (!sendDosKey(
-            externalWindow,
+            pipeClient,
             "ENTER"
         ))
         {

@@ -3,13 +3,13 @@
 
 #include <string>
 
-#include "ExternalWindow.h"
+#include "NamedPipeClient.h"
 #include "imgui.h"
 
 namespace MyImGui
 {
     void DosBoxKeyboard::update(
-        ExternalWindow& externalWindow
+        NamedPipeClient& NamedPipeClient
     )
     {
         struct KeyMapping
@@ -19,7 +19,7 @@ namespace MyImGui
         };
 
         const auto processKeys =
-            [&externalWindow](
+            [&NamedPipeClient](
                 const KeyMapping* mappings,
                 size_t count
                 )
@@ -42,7 +42,7 @@ namespace MyImGui
                         command +=
                             mapping.command;
 
-                        externalWindow.sendIpcCommand(
+                        NamedPipeClient.send(
                             command
                         );
                     }
@@ -57,7 +57,7 @@ namespace MyImGui
                         command +=
                             mapping.command;
 
-                        externalWindow.sendIpcCommand(
+                        NamedPipeClient.send(
                             command
                         );
                     }

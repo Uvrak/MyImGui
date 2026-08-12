@@ -4,7 +4,7 @@
 
 namespace MyImGui
 {
-    class ExternalWindow;
+    class NamedPipeClient;
 
     enum class KeyboardLayout
     {
@@ -16,26 +16,26 @@ namespace MyImGui
     {
     public:
         void setKeyboardLayout(
-            ExternalWindow& externalWindow,
+            NamedPipeClient& pipeClient,
             KeyboardLayout layout
         );
 
         void clearCommandLine(
-            ExternalWindow& externalWindow
+            NamedPipeClient& pipeClient
         );
 
         bool sendDosKey(
-            ExternalWindow& externalWindow,
+            NamedPipeClient& pipeClient,
             const char* key
         );
 
         bool sendDosText(
-            ExternalWindow& externalWindow,
+            NamedPipeClient& pipeClient,
             const std::string& text
         );
 
         bool openGame(
-            ExternalWindow& externalWindow,
+            NamedPipeClient& pipeClient,
             const std::string& mountDirectory,
             const std::string& dosDirectory,
             const std::string& gameFilename

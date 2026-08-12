@@ -4,13 +4,13 @@
 
 namespace MyImGui
 {
-    class ExternalWindow;
+    class NamedPipeClient;
 
     class DosBoxKeyboard
     {
     public:
         void update(
-            ExternalWindow& externalWindow
+            NamedPipeClient& NamedPipeClient
         );
 
     };

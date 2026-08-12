@@ -5,14 +5,14 @@
 #include "DosBoxFrameTexture.h"
 #include "DosBoxKeyboard.h"
 #include "DosBoxMouse.h"
-#include "ExternalWindow.h"
+#include "NamedPipeClient.h"
 
 #include "imgui.h"
 
 namespace MyImGui
 {
     void DosBoxView::draw(
-        ExternalWindow& externalWindow,
+        NamedPipeClient& NamedPipeClient,
         DosBoxFrameReader& frameReader,
         DosBoxFrameTexture& frameTexture,
         DosBoxKeyboard& keyboard,
@@ -91,7 +91,7 @@ namespace MyImGui
                     nullptr
                 );
 
-                externalWindow.sendIpcCommand(
+                NamedPipeClient.send(
                     "RELEASE_ALL"
                 );
             }
@@ -218,7 +218,7 @@ namespace MyImGui
                         dosBoxImageHovered)
                     {
                         mouse.update(
-                            externalWindow,
+                            NamedPipeClient,
                             *frameHeader,
                             imageSize.x,
                             imageSize.y,
@@ -238,7 +238,7 @@ namespace MyImGui
                     {
                         m_inputActive = false;
 
-                        externalWindow.sendIpcCommand(
+                        NamedPipeClient.send(
                             "RELEASE_ALL"
                         );
                     }
@@ -256,7 +256,7 @@ namespace MyImGui
         if (m_inputActive)
         {
             keyboard.update(
-                externalWindow
+                NamedPipeClient
             );
         }
 

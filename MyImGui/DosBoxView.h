@@ -4,7 +4,7 @@
 
 namespace MyImGui
 {
-    class ExternalWindow;
+    class NamedPipeClient;
     class DosBoxFrameReader;
     class DosBoxFrameTexture;
     class DosBoxKeyboard;
@@ -14,7 +14,7 @@ namespace MyImGui
     {
     public:
         void draw(
-            ExternalWindow& externalWindow,
+            NamedPipeClient& NamedPipeClient,
             DosBoxFrameReader& frameReader,
             DosBoxFrameTexture& frameTexture,
             DosBoxKeyboard& keyboard,
