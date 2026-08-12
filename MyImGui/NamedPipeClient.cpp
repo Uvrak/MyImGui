@@ -2,6 +2,7 @@
 #include "NamedPipeClient.h"
 
 #include <utility>
+#include <cstdio>
 
 namespace MyImGui
 {
@@ -51,8 +52,26 @@ namespace MyImGui
                 nullptr
             );
 
+        const DWORD errorCode =
+            result
+            ? ERROR_SUCCESS
+            : GetLastError();
+
         if (!result)
         {
+            char errorText[128] = {};
+
+            std::snprintf(
+                errorText,
+                sizeof(errorText),
+                "NamedPipeClient request failed: %lu\n",
+                errorCode
+            );
+
+            OutputDebugStringA(
+                errorText
+            );
+
             disconnect();
             return false;
         }
@@ -138,9 +157,27 @@ namespace MyImGui
 
         m_access = access;
 
+        if ((access & GENERIC_READ) != 0)
+        {
+            DWORD mode =
+                PIPE_READMODE_MESSAGE;
+
+            if (!SetNamedPipeHandleState(
+                m_pipe,
+                &mode,
+                nullptr,
+                nullptr
+            ))
+            {
+                disconnect();
+                return false;
+            }
+        }
+
         return true;
 
     }
+
     void NamedPipeClient::disconnect()
     {
         if (m_pipe == INVALID_HANDLE_VALUE)
