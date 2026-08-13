@@ -194,7 +194,8 @@ namespace MyImGui
             { ImGuiKey_UpArrow,    "UP" },
             { ImGuiKey_DownArrow,  "DOWN" },
             { ImGuiKey_LeftArrow,  "LEFT" },
-            { ImGuiKey_RightArrow, "RIGHT" }
+            { ImGuiKey_RightArrow, "RIGHT" },
+            { ImGuiKey_CapsLock, "CAPSLOCK" }
         };
 
         processKeys(
