@@ -13,6 +13,7 @@ namespace MyImGui
     enum class DosBoxMemoryScanMode
     {
         NewScan,
+        ExactValue,
         Changed,
         Unchanged,
         Increased,
@@ -33,7 +34,8 @@ namespace MyImGui
         DosBoxMemoryScanner();
 
         bool scan(
-            DosBoxMemoryScanMode mode
+            DosBoxMemoryScanMode mode,
+            uint8_t exactValue = 0
         );
 
         void reset();
@@ -49,12 +51,14 @@ namespace MyImGui
         bool requestSnapshot();
 
         void initializeCandidates(
-            const std::vector<uint8_t>&
-            memory
+            const std::vector<uint8_t>& memory,
+            bool filterExactValue,
+            uint8_t exactValue
         );
 
         void refineCandidates(
             DosBoxMemoryScanMode mode,
+            uint8_t exactValue,
             const std::vector<uint8_t>&
             previousMemory,
             const std::vector<uint8_t>&
@@ -74,5 +78,7 @@ namespace MyImGui
         > m_candidates;
 
         std::string m_status;
+
+        int m_exactValue = 0;
     };
 }

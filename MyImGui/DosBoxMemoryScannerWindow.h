@@ -17,5 +17,7 @@ namespace MyImGui
 
         DosBoxMemoryScanMode m_scanMode =
             DosBoxMemoryScanMode::Changed;
+
+        int m_exactValue = 0;
     };
 }

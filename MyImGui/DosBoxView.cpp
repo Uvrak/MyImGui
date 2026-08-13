@@ -78,7 +78,7 @@ namespace MyImGui
             ImGuiFocusedFlags_RootAndChildWindows
         ) &&
             ImGui::IsKeyPressed(
-                ImGuiKey_Tab,
+                ImGuiKey_End,
                 false
             ))
         {

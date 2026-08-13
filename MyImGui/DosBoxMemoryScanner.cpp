@@ -21,7 +21,8 @@ namespace MyImGui
     {}
 
     bool DosBoxMemoryScanner::scan(
-        DosBoxMemoryScanMode mode
+        DosBoxMemoryScanMode mode,
+        uint8_t exactValue
     )
     {
         if (!requestSnapshot())
@@ -43,10 +44,17 @@ namespace MyImGui
 
         if (mode ==
             DosBoxMemoryScanMode::NewScan ||
-            m_previousMemory.empty())
+            (
+                mode ==
+                DosBoxMemoryScanMode::ExactValue &&
+                m_previousMemory.empty()
+                ))
         {
             initializeCandidates(
-                currentMemory
+                currentMemory,
+                mode ==
+                DosBoxMemoryScanMode::ExactValue,
+                exactValue
             );
 
             m_previousMemory =
@@ -60,6 +68,7 @@ namespace MyImGui
 
         refineCandidates(
             mode,
+            exactValue,
             m_previousMemory,
             currentMemory
         );
@@ -115,8 +124,9 @@ namespace MyImGui
 
     void DosBoxMemoryScanner::
         initializeCandidates(
-            const std::vector<uint8_t>&
-            memory
+            const std::vector<uint8_t>& memory,
+            bool filterExactValue,
+            uint8_t exactValue
         )
     {
         m_candidates.clear();
@@ -125,10 +135,17 @@ namespace MyImGui
             memory.size()
         );
 
+
         for (size_t address = 0;
             address < memory.size();
             ++address)
         {
+            if (filterExactValue &&
+                memory[address] != exactValue)
+            {
+                continue;
+            }
+
             m_candidates.push_back(
                 DosBoxMemoryCandidate{
                     address,
@@ -142,6 +159,7 @@ namespace MyImGui
     void DosBoxMemoryScanner::
         refineCandidates(
             DosBoxMemoryScanMode mode,
+            uint8_t exactValue,
             const std::vector<uint8_t>&
             previousMemory,
             const std::vector<uint8_t>&
@@ -185,6 +203,12 @@ namespace MyImGui
                 accepted =
                     currentValue !=
                     previousValue;
+                break;
+
+            case DosBoxMemoryScanMode::ExactValue:
+                accepted =
+                    currentValue ==
+                    exactValue;
                 break;
 
             case DosBoxMemoryScanMode::Unchanged:

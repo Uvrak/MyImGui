@@ -41,6 +41,7 @@ namespace MyImGui
 
         const char* scanModes[] =
         {
+            "Exact Value",
             "Changed",
             "Unchanged",
             "Increased",
@@ -71,6 +72,31 @@ namespace MyImGui
                     );
         }
 
+        if (m_scanMode ==
+            DosBoxMemoryScanMode::ExactValue)
+        {
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(
+                80.0f
+            );
+
+            ImGui::InputInt(
+                "##ExactValue",
+                &m_exactValue
+            );
+
+            if (m_exactValue < 0)
+            {
+                m_exactValue = 0;
+            }
+
+            if (m_exactValue > 255)
+            {
+                m_exactValue = 255;
+            }
+        }
+
         ImGui::SameLine();
 
         if (ImGui::Button(
@@ -78,7 +104,10 @@ namespace MyImGui
         ))
         {
             m_scanner.scan(
-                m_scanMode
+                m_scanMode,
+                static_cast<uint8_t>(
+                    m_exactValue
+                    )
             );
         }
 
