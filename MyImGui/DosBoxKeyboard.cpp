@@ -9,7 +9,9 @@
 namespace MyImGui
 {
     void DosBoxKeyboard::update(
-        NamedPipeClient& NamedPipeClient
+        NamedPipeClient& namedPipeClient,
+        const DosBoxKeyCommandResolver&
+        commandResolver
     )
     {
         struct KeyMapping
@@ -19,7 +21,10 @@ namespace MyImGui
         };
 
         const auto processKeys =
-            [&NamedPipeClient](
+            [
+                &namedPipeClient,
+                &commandResolver
+            ](
                 const KeyMapping* mappings,
                 size_t count
                 )
@@ -31,6 +36,23 @@ namespace MyImGui
                     const KeyMapping& mapping =
                         mappings[index];
 
+                    std::string resolvedCommand =
+                        mapping.command;
+
+                    if (commandResolver)
+                    {
+                        resolvedCommand =
+                            commandResolver(
+                                mapping.key,
+                                mapping.command
+                            );
+                    }
+
+                    if (resolvedCommand.empty())
+                    {
+                        continue;
+                    }
+
                     if (ImGui::IsKeyPressed(
                         mapping.key,
                         false
@@ -40,9 +62,9 @@ namespace MyImGui
                             "KEYDOWN:";
 
                         command +=
-                            mapping.command;
+                            resolvedCommand;
 
-                        NamedPipeClient.send(
+                        namedPipeClient.send(
                             command
                         );
                     }
@@ -55,9 +77,9 @@ namespace MyImGui
                             "KEYUP:";
 
                         command +=
-                            mapping.command;
+                            resolvedCommand;
 
-                        NamedPipeClient.send(
+                        namedPipeClient.send(
                             command
                         );
                     }
