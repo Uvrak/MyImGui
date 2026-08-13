@@ -89,6 +89,7 @@ namespace MyImGui
     )
     {
         if (!connect(
+            GENERIC_READ |
             GENERIC_WRITE
         ))
         {
