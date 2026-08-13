@@ -11,6 +11,12 @@ namespace MyImGui
         bool* isOpen
     )
     {
+        if (isOpen &&
+            !*isOpen)
+        {
+            return;
+        }
+
         ImGui::SetNextWindowSize(
             ImVec2(
                 700.0f,
