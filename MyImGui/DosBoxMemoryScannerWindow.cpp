@@ -306,6 +306,19 @@ namespace MyImGui
             size()
         );
 
+        if (!m_pinnedAddresses.empty())
+        {
+            ImGui::SameLine();
+
+            if (ImGui::Button(
+                "Unpin All"
+            ))
+            {
+                m_pinnedAddresses.clear();
+                m_scanner.clearPinnedAddresses();
+            }
+        }
+
         if (ImGui::BeginTable(
             "##MemoryCandidates",
             4,
@@ -440,11 +453,6 @@ namespace MyImGui
                             : "0x%05zX",
                             candidate.address
                         );
-
-                        const bool selected =
-                            m_selectedAddresses.contains(
-                                candidate.address
-                            );
 
                             candidate.address;
 

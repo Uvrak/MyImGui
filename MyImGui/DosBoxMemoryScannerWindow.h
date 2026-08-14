@@ -50,9 +50,6 @@ namespace MyImGui
         int m_differenceValue = 0;
 
         std::unordered_set<size_t>
-            m_selectedAddresses;
-
-        std::unordered_set<size_t>
             m_pinnedAddresses;
     };
     
