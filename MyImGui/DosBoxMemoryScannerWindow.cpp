@@ -589,6 +589,94 @@ namespace MyImGui
                                 }
                             }
 
+                            if (ImGui::BeginPopupContextItem())
+                            {
+                                if (ImGui::MenuItem(
+                                    "Copy Address"
+                                ))
+                                {
+                                    char addressText[32];
+
+                                    std::snprintf(
+                                        addressText,
+                                        sizeof(addressText),
+                                        "0x%05zX",
+                                        candidate.address
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        addressText
+                                    );
+                                }
+
+                                if (ImGui::MenuItem(
+                                    "Copy Current Value"
+                                ))
+                                {
+                                    char valueText[32];
+
+                                    std::snprintf(
+                                        valueText,
+                                        sizeof(valueText),
+                                        "%u",
+                                        static_cast<unsigned int>(
+                                            candidate.currentValue
+                                            )
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        valueText
+                                    );
+                                }
+
+                                if (ImGui::MenuItem(
+                                    "Copy Previous Value"
+                                ))
+                                {
+                                    char valueText[32];
+
+                                    std::snprintf(
+                                        valueText,
+                                        sizeof(valueText),
+                                        "%u",
+                                        static_cast<unsigned int>(
+                                            candidate.previousValue
+                                            )
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        valueText
+                                    );
+                                }
+                                if (ImGui::MenuItem(
+                                    "Copy Difference"
+                                ))
+                                {
+                                    const int difference =
+                                        static_cast<int>(
+                                            candidate.currentValue
+                                            ) -
+                                        static_cast<int>(
+                                            candidate.previousValue
+                                            );
+
+                                    char valueText[32];
+
+                                    std::snprintf(
+                                        valueText,
+                                        sizeof(valueText),
+                                        "%d",
+                                        difference
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        valueText
+                                    );
+                                }
+
+                                ImGui::EndPopup();
+                            }
+
                         ImGui::TableSetColumnIndex(1);
 
                         ImGui::Text(
