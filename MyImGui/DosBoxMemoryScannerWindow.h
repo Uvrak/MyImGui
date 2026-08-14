@@ -55,6 +55,7 @@ namespace MyImGui
         char m_addressSearch[32] = {};
         size_t m_foundAddress = 0;
         bool m_hasFoundAddress = false;
+        bool m_addressSearchAttempted = false;
     };
     
 }

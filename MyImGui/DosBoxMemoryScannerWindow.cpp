@@ -339,6 +339,7 @@ namespace MyImGui
             "Find"
         ))
         {
+            m_addressSearchAttempted = true;
             char* end = nullptr;
 
             const unsigned long long address =
@@ -390,8 +391,23 @@ namespace MyImGui
                     m_foundAddress
                 );
             }
-
         }
+
+        ImGui::SameLine();
+
+        if (m_addressSearchAttempted)
+        {
+            if (m_hasFoundAddress)
+            {
+                ImGui::TextUnformatted("Found");
+            }
+            else
+            {
+                ImGui::TextUnformatted("Not found");
+            }
+        }
+
+        ImGui::NewLine();
 
         if (!m_pinnedAddresses.empty())
         {
