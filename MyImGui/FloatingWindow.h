@@ -13,6 +13,7 @@ namespace MyImGui
         bool closable = false;
         bool titleBar = true;
         bool autoResizeHeight = false;
+        bool dockable = true;
     };
 
     class FloatingWindow

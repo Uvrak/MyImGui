@@ -28,20 +28,36 @@ namespace MyImGui
         windowTitle += "###DOSBoxWindow";
 
         
-        ImVec4 tabColor =
-            m_inputActive
-            ? ImVec4(
+        ImVec4 tabColor;
+
+        if (m_inputMode ==
+            DosBoxInputMode::AlwaysActive)
+        {
+            tabColor = ImVec4(
+                0.0f,
+                0.35f,
+                0.75f,
+                1.0f
+            );
+        }
+        else if (m_inputActive)
+        {
+            tabColor = ImVec4(
                 0.0f,
                 0.55f,
                 0.0f,
                 1.0f
-            )
-            : ImVec4(
+            );
+        }
+        else
+        {
+            tabColor = ImVec4(
                 0.65f,
                 0.0f,
                 0.0f,
                 1.0f
             );
+        }
 
         ImGui::PushStyleColor(
             ImGuiCol_Tab,
@@ -73,6 +89,21 @@ namespace MyImGui
         );
 
         ImGui::PopStyleColor(5);
+        bool alwaysActive =
+            m_inputMode ==
+            DosBoxInputMode::AlwaysActive;
+
+        if (ImGui::Checkbox(
+            "Always Active",
+            &alwaysActive
+        ))
+        
+        {
+            m_inputMode =
+                alwaysActive
+                ? DosBoxInputMode::AlwaysActive
+                : DosBoxInputMode::Focused;
+        }
 
         if (ImGui::IsWindowFocused(
             ImGuiFocusedFlags_RootAndChildWindows
@@ -96,6 +127,7 @@ namespace MyImGui
                 );
             }
         }
+
         frameReader.tryOpen();
 
         const DosBoxFrameHeader* frameHeader =
@@ -253,7 +285,9 @@ namespace MyImGui
             );
         }
 
-        if (m_inputActive)
+        if (m_inputActive ||
+            m_inputMode ==
+            DosBoxInputMode::AlwaysActive)
         {
             keyboard.update(
                 NamedPipeClient

@@ -33,98 +33,165 @@ namespace MyImGui
             ImGui::End();
             return;
         }
-
-        if (ImGui::Button(
-            "New Scan"
-        ))
+        if (m_toolbarWindow.begin())
         {
-            m_scanner.scan(
-                DosBoxMemoryScanMode::NewScan
+            m_toolbarLayout.begin();
+
+            const ImVec2 framePadding =
+                ImGui::GetStyle().FramePadding;
+
+            // New Scan
+            const ImVec2 newScanSize(
+                ImGui::CalcTextSize("New Scan").x +
+                framePadding.x * 2.0f,
+                ImGui::GetFrameHeight()
             );
-        }
 
-        ImGui::SameLine();
+            m_toolbarLayout.beginItem(
+                newScanSize
+            );
 
-        const char* scanModes[] =
-        {
-            "Exact Value",
-            "Changed",
-            "Unchanged",
-            "Increased",
-            "Decreased"
-        };
+            if (ImGui::Button(
+                "New Scan"
+            ))
+            {
+                m_scanner.scan(
+                    DosBoxMemoryScanMode::NewScan
+                );
+            }
 
-        int selectedMode =
-            static_cast<int>(
-                m_scanMode
-                ) - 1;
+            m_toolbarLayout.endItem();
 
-        ImGui::SetNextItemWidth(
-            160.0f
-        );
 
-        if (ImGui::Combo(
-            "##ScanMode",
-            &selectedMode,
-            scanModes,
-            IM_ARRAYSIZE(scanModes)
-        ))
-        {
-            m_scanMode =
-                static_cast<
-                DosBoxMemoryScanMode
-                >(
-                    selectedMode + 1
-                    );
-        }
+            // Scan mode
+            const char* scanModes[] =
+            {
+                "Exact Value",
+                "Changed",
+                "Unchanged",
+                "Increased",
+                "Decreased"
+            };
 
-        if (m_scanMode ==
-            DosBoxMemoryScanMode::ExactValue)
-        {
-            ImGui::SameLine();
+            int selectedMode =
+                static_cast<int>(
+                    m_scanMode
+                    ) - 1;
+
+            m_toolbarLayout.beginItem(
+                ImVec2(
+                    160.0f,
+                    ImGui::GetFrameHeight()
+                )
+            );
 
             ImGui::SetNextItemWidth(
-                80.0f
+                160.0f
             );
 
-            ImGui::InputInt(
-                "##ExactValue",
-                &m_exactValue
-            );
-
-            if (m_exactValue < 0)
+            if (ImGui::Combo(
+                "##ScanMode",
+                &selectedMode,
+                scanModes,
+                IM_ARRAYSIZE(scanModes)
+            ))
             {
-                m_exactValue = 0;
+                m_scanMode =
+                    static_cast<
+                    DosBoxMemoryScanMode
+                    >(
+                        selectedMode + 1
+                        );
             }
 
-            if (m_exactValue > 255)
+            m_toolbarLayout.endItem();
+
+
+            // Exact value
+            if (m_scanMode ==
+                DosBoxMemoryScanMode::ExactValue)
             {
-                m_exactValue = 255;
-            }
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Next Scan"
-        ))
-        {
-            m_scanner.scan(
-                m_scanMode,
-                static_cast<uint8_t>(
-                    m_exactValue
+                m_toolbarLayout.beginItem(
+                    ImVec2(
+                        80.0f,
+                        ImGui::GetFrameHeight()
                     )
+                );
+
+                ImGui::SetNextItemWidth(
+                    80.0f
+                );
+
+                ImGui::InputInt(
+                    "##ExactValue",
+                    &m_exactValue
+                );
+
+                m_toolbarLayout.endItem();
+
+                if (m_exactValue < 0)
+                {
+                    m_exactValue = 0;
+                }
+
+                if (m_exactValue > 255)
+                {
+                    m_exactValue = 255;
+                }
+            }
+
+
+            // Next Scan
+            const ImVec2 nextScanSize(
+                ImGui::CalcTextSize("Next Scan").x +
+                framePadding.x * 2.0f,
+                ImGui::GetFrameHeight()
             );
+
+            m_toolbarLayout.beginItem(
+                nextScanSize
+            );
+
+            if (ImGui::Button(
+                "Next Scan"
+            ))
+            {
+                m_scanner.scan(
+                    m_scanMode,
+                    static_cast<uint8_t>(
+                        m_exactValue
+                        )
+                );
+            }
+
+            m_toolbarLayout.endItem();
+
+
+            // Reset
+            const ImVec2 resetSize(
+                ImGui::CalcTextSize("Reset").x +
+                framePadding.x * 2.0f,
+                ImGui::GetFrameHeight()
+            );
+
+            m_toolbarLayout.beginItem(
+                resetSize
+            );
+
+            if (ImGui::Button(
+                "Reset"
+            ))
+            {
+                m_scanner.reset();
+            }
+
+            m_toolbarLayout.endItem();
+
+            m_toolbarLayout.end();
         }
 
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Reset"
-        ))
-        {
-            m_scanner.reset();
-        }
+        m_toolbarWindow.end();
+        m_toolbarWindow.end();
 
         ImGui::Separator();
 
@@ -155,95 +222,95 @@ namespace MyImGui
                 0.0f,
                 0.0f
             )
-        ))
-        {
-            ImGui::TableSetupColumn(
-                "Address"
-            );
-
-            ImGui::TableSetupColumn(
-                "Previous"
-            );
-
-            ImGui::TableSetupColumn(
-                "Current"
-            );
-
-            ImGui::TableSetupColumn(
-                "Difference"
-            );
-
-            ImGui::TableHeadersRow();
-
-            ImGuiListClipper clipper;
-
-            clipper.Begin(
-                static_cast<int>(
-                    m_scanner.
-                    candidates().
-                    size()
-                    )
-            );
-
-            while (clipper.Step())
+            ))
             {
-                for (int index =
-                    clipper.DisplayStart;
-                    index <
-                    clipper.DisplayEnd;
-                    ++index)
-                {
-                    const DosBoxMemoryCandidate&
-                        candidate =
+                ImGui::TableSetupColumn(
+                    "Address"
+                );
+
+                ImGui::TableSetupColumn(
+                    "Previous"
+                );
+
+                ImGui::TableSetupColumn(
+                    "Current"
+                );
+
+                ImGui::TableSetupColumn(
+                    "Difference"
+                );
+
+                ImGui::TableHeadersRow();
+
+                ImGuiListClipper clipper;
+
+                clipper.Begin(
+                    static_cast<int>(
                         m_scanner.
-                        candidates()[
-                            index
-                        ];
+                        candidates().
+                        size()
+                        )
+                );
 
-                    ImGui::TableNextRow();
+                while (clipper.Step())
+                {
+                    for (int index =
+                        clipper.DisplayStart;
+                        index <
+                        clipper.DisplayEnd;
+                        ++index)
+                    {
+                        const DosBoxMemoryCandidate&
+                            candidate =
+                            m_scanner.
+                            candidates()[
+                                index
+                            ];
 
-                    ImGui::TableSetColumnIndex(0);
+                        ImGui::TableNextRow();
 
-                    ImGui::Text(
-                        "0x%05zX",
-                        candidate.address
-                    );
+                        ImGui::TableSetColumnIndex(0);
 
-                    ImGui::TableSetColumnIndex(1);
+                        ImGui::Text(
+                            "0x%05zX",
+                            candidate.address
+                        );
 
-                    ImGui::Text(
-                        "%u",
-                        static_cast<unsigned int>(
-                            candidate.previousValue
-                            )
-                    );
+                        ImGui::TableSetColumnIndex(1);
 
-                    ImGui::TableSetColumnIndex(2);
+                        ImGui::Text(
+                            "%u",
+                            static_cast<unsigned int>(
+                                candidate.previousValue
+                                )
+                        );
 
-                    ImGui::Text(
-                        "%u",
-                        static_cast<unsigned int>(
-                            candidate.currentValue
-                            )
-                    );
+                        ImGui::TableSetColumnIndex(2);
 
-                    ImGui::TableSetColumnIndex(3);
+                        ImGui::Text(
+                            "%u",
+                            static_cast<unsigned int>(
+                                candidate.currentValue
+                                )
+                        );
 
-                    ImGui::Text(
-                        "%d",
-                        static_cast<int>(
-                            candidate.currentValue
-                            ) -
-                        static_cast<int>(
-                            candidate.previousValue
-                            )
-                    );
+                        ImGui::TableSetColumnIndex(3);
+
+                        ImGui::Text(
+                            "%d",
+                            static_cast<int>(
+                                candidate.currentValue
+                                ) -
+                            static_cast<int>(
+                                candidate.previousValue
+                                )
+                        );
+                    }
                 }
+
+                ImGui::EndTable();
             }
-
-            ImGui::EndTable();
-        }
-
+        
         ImGui::End();
     }
 }

@@ -51,6 +51,11 @@ namespace MyImGui
             flags |= ImGuiWindowFlags_NoTitleBar;
         }
 
+        if (!m_options.dockable)
+        {
+            flags |= ImGuiWindowFlags_NoDocking;
+        }
+
         bool* openState =
             m_options.closable
             ? &m_isOpen

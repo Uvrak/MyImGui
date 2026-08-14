@@ -10,7 +10,14 @@ namespace MyImGui
     class DosBoxKeyboard;
     class DosBoxMouse;
 
+    enum class DosBoxInputMode
+    {
+        Focused,
+        AlwaysActive
+    };
+
     class DosBoxView
+   
     {
     public:
         void draw(
@@ -24,5 +31,8 @@ namespace MyImGui
 
     private:
         bool m_inputActive = false;
+        DosBoxInputMode m_inputMode =
+            DosBoxInputMode::Focused;
+
     };
 }
