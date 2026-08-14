@@ -22,6 +22,8 @@
 #include "DosBoxController.h"
 #include "DosBoxMemoryScannerWindow.h"
 #include "DosBoxMemoryTools.h"
+#include "MyImGuiSettings.h"
+#include "MyImGuiSettingsWindow.h"
 
 #include "NamedPipeClient.h"
 MyImGui::NamedPipeClient NamedPipeClient(
@@ -123,6 +125,17 @@ int main(int, char**)
     //IM_ASSERT(font != nullptr);
 
     MyImGui::MainMenu mainMenu;
+
+    MyImGui::MyImGuiSettings settings;
+
+    MyImGui::MyImGuiSettingsWindow
+        settingsWindow(
+            settings
+        );
+
+    bool showSettingsWindow = false;
+
+    settings.apply();
 
 	MyImGui::ExternalWindow externalWindow;
 
@@ -238,6 +251,18 @@ int main(int, char**)
         ImGui::NewFrame();
 
         mainMenu.draw();
+
+        if (mainMenu.consumeOpenSettingsRequest())
+        {
+            showSettingsWindow = true;
+        }
+
+        if (showSettingsWindow)
+        {
+            settingsWindow.draw(
+                &showSettingsWindow
+            );
+        }
 
         if (mainMenu.consumeGermanKeyboardLayoutRequest())
         {

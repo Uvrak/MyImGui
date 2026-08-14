@@ -25,6 +25,7 @@ namespace MyImGui
 
         bool consumeGermanKeyboardLayoutRequest();
         bool consumeUSKeyboardLayoutRequest();
+        bool consumeOpenSettingsRequest();
 
     private:
         std::string m_selectedGameExe;
@@ -41,5 +42,7 @@ namespace MyImGui
         bool m_usKeyboardLayoutRequested = false;
 
         bool m_germanKeyboardLayoutSelected = true;
+
+        bool m_openSettingsRequested = false;
     };
 }

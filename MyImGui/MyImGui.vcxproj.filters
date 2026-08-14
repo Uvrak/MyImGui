@@ -31,6 +31,9 @@
     <Filter Include="DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader">
       <UniqueIdentifier>{725298d1-f83f-4467-b5ea-7cac525f40e0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="UiSettings">
+      <UniqueIdentifier>{a8cb85f4-3b66-4fef-a737-0aa442e379fc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyImGui.h">
@@ -99,6 +102,12 @@
     <ClInclude Include="DosBoxMemoryTools.h">
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
     </ClInclude>
+    <ClInclude Include="MyImGuiSettings.h">
+      <Filter>UiSettings</Filter>
+    </ClInclude>
+    <ClInclude Include="MyImGuiSettingsWindow.h">
+      <Filter>UiSettings</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -163,6 +172,12 @@
     </ClCompile>
     <ClCompile Include="DosBoxMemoryTools.cpp">
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
+    </ClCompile>
+    <ClCompile Include="MyImGuiSettings.cpp">
+      <Filter>UiSettings</Filter>
+    </ClCompile>
+    <ClCompile Include="MyImGuiSettingsWindow.cpp">
+      <Filter>UiSettings</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

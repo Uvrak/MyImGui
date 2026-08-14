@@ -246,6 +246,21 @@ namespace MyImGui
             ImGui::EndMenu();
         }
 
+        if (ImGui::BeginMenu(
+            "Settings"
+        ))
+        {
+            if (ImGui::MenuItem(
+                "Appearance..."
+            ))
+            {
+                m_openSettingsRequested =
+                    true;
+            }
+
+            ImGui::EndMenu();
+        }
+
         ImGui::EndMainMenuBar();
     }
     
@@ -306,6 +321,20 @@ bool MainMenu::consumeUSKeyboardLayoutRequest()
     }
 
     m_usKeyboardLayoutRequested = false;
+
+    return true;
+}
+
+bool MainMenu::
+consumeOpenSettingsRequest()
+{
+    if (!m_openSettingsRequested)
+    {
+        return false;
+    }
+
+    m_openSettingsRequested =
+        false;
 
     return true;
 }
