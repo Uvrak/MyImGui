@@ -327,17 +327,19 @@ namespace MyImGui
             120.0f
         );
 
-        ImGui::InputText(
-            "Address",
-            m_addressSearch,
-            sizeof(m_addressSearch)
-        );
+        const bool addressEnter =
+            ImGui::InputText(
+                "Address",
+                m_addressSearch,
+                sizeof(m_addressSearch),
+                ImGuiInputTextFlags_EnterReturnsTrue
+            );
 
         ImGui::SameLine();
 
         if (ImGui::Button(
             "Find"
-        ))
+        ) || addressEnter)
         {
             m_addressSearchAttempted = true;
             char* end = nullptr;
