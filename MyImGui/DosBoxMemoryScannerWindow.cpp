@@ -239,6 +239,7 @@ namespace MyImGui
         ImGui::Separator();
 
         std::vector<int> filteredIndices;
+        std::vector<int> pinnedIndices;
         
         filteredIndices.reserve(
             static_cast<int>(
@@ -277,6 +278,15 @@ namespace MyImGui
                     candidate.address
                 );
 
+            if (pinned)
+            {
+                pinnedIndices.push_back(
+                    index
+                );
+
+                continue;
+            }
+
             if (pinned ||
                 ((!m_filterPrevious ||
                     candidate.previousValue ==
@@ -297,6 +307,12 @@ namespace MyImGui
                 );
             }
         }
+
+        filteredIndices.insert(
+            filteredIndices.begin(),
+            pinnedIndices.begin(),
+            pinnedIndices.end()
+        );
 
         ImGui::Text(
             "Visible: %zu / %zu",
