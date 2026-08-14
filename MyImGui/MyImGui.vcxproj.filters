@@ -25,6 +25,12 @@
     <Filter Include="DosBoxMemoryScanner">
       <UniqueIdentifier>{a1215f16-0a08-4936-bc97-fb0ece38cca1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="DosBoxMemoryScanner\DosboxMemoryTools">
+      <UniqueIdentifier>{a676c1e8-c40c-435e-bae0-d6b36d246eac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader">
+      <UniqueIdentifier>{725298d1-f83f-4467-b5ea-7cac525f40e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyImGui.h">
@@ -79,13 +85,19 @@
       <Filter>DosBoxMemoryScanner</Filter>
     </ClInclude>
     <ClInclude Include="DosBoxMemoryReader.h">
-      <Filter>DosBoxMemoryScanner</Filter>
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
     </ClInclude>
     <ClInclude Include="DosBoxMemoryScanner.h">
-      <Filter>DosBoxMemoryScanner</Filter>
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxMemoryViewerWindow.h">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClInclude>
     <ClInclude Include="DosBoxMemoryScannerWindow.h">
-      <Filter>DosBoxMemoryScanner</Filter>
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxMemoryTools.h">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -138,13 +150,19 @@
       <Filter>DosBoxMemoryScanner</Filter>
     </ClCompile>
     <ClCompile Include="DosBoxMemoryReader.cpp">
-      <Filter>DosBoxMemoryScanner</Filter>
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
     </ClCompile>
     <ClCompile Include="DosBoxMemoryScanner.cpp">
-      <Filter>DosBoxMemoryScanner</Filter>
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxMemoryViewerWindow.cpp">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClCompile>
     <ClCompile Include="DosBoxMemoryScannerWindow.cpp">
-      <Filter>DosBoxMemoryScanner</Filter>
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxMemoryTools.cpp">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

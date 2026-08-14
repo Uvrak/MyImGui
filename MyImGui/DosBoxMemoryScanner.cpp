@@ -14,9 +14,14 @@ namespace
 namespace MyImGui
 {
     DosBoxMemoryScanner::
-        DosBoxMemoryScanner()
+        DosBoxMemoryScanner(
+            DosBoxMemoryReader& memoryReader
+        )
         : m_pipeClient(
             DosBoxMemoryScannerPipeName
+        ),
+        m_memoryReader(
+            memoryReader
         )
     {}
 

@@ -32,7 +32,9 @@ namespace MyImGui
     class DosBoxMemoryScanner
     {
     public:
-        DosBoxMemoryScanner();
+        DosBoxMemoryScanner(
+            DosBoxMemoryReader& memoryReader
+        );
 
         bool scan(
             DosBoxMemoryScanMode mode,
@@ -78,7 +80,7 @@ namespace MyImGui
 
         NamedPipeClient m_pipeClient;
 
-        DosBoxMemoryReader
+        DosBoxMemoryReader&
             m_memoryReader;
 
         std::vector<uint8_t>

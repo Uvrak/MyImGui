@@ -8,6 +8,15 @@
 
 namespace MyImGui
 {
+    DosBoxMemoryScannerWindow::
+        DosBoxMemoryScannerWindow(
+            DosBoxMemoryReader& memoryReader
+            )
+       : m_scanner(
+       memoryReader
+       )
+    {}
+
     void DosBoxMemoryScannerWindow::draw(
         bool* isOpen
     )

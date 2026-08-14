@@ -21,6 +21,7 @@
 #include "DosBoxView.h"
 #include "DosBoxController.h"
 #include "DosBoxMemoryScannerWindow.h"
+#include "DosBoxMemoryTools.h"
 
 #include "NamedPipeClient.h"
 MyImGui::NamedPipeClient NamedPipeClient(
@@ -180,8 +181,8 @@ int main(int, char**)
     MyImGui::DosBoxMouse dosBoxMouse;   
     MyImGui::DosBoxView dosBoxView;
 	MyImGui::DosBoxController dosBoxController; 
-    MyImGui::DosBoxMemoryScannerWindow
-        memoryScannerWindow;
+    MyImGui::DosBoxMemoryTools
+        memoryTools;
 
     if (dosBoxFound)
     {
@@ -266,7 +267,7 @@ int main(int, char**)
 
         ImGui::DockSpaceOverViewport();
 
-        memoryScannerWindow.draw();
+        memoryTools.draw();
 
         {
             dosBoxView.draw(

@@ -12,6 +12,10 @@ namespace MyImGui
     class DosBoxMemoryScannerWindow
     {
     public:
+        DosBoxMemoryScannerWindow(
+            DosBoxMemoryReader& memoryReader
+        );
+
         void draw(
             bool* isOpen = nullptr
         );

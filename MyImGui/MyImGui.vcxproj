@@ -163,6 +163,8 @@
     <ClInclude Include="DosBoxMemoryScanner.h" />
     <ClInclude Include="DosBoxMemoryScannerWindow.h" />
     <ClInclude Include="DosBoxMemorySnapshot.h" />
+    <ClInclude Include="DosBoxMemoryTools.h" />
+    <ClInclude Include="DosBoxMemoryViewerWindow.h" />
     <ClInclude Include="DosBoxMouse.h" />
     <ClInclude Include="DosBoxView.h" />
     <ClInclude Include="DragDropReorder.h" />
@@ -185,6 +187,8 @@
     <ClCompile Include="DosBoxMemoryScanner.cpp" />
     <ClCompile Include="DosBoxMemoryScannerWindow.cpp" />
     <ClCompile Include="DosBoxMemorySnapshot.cpp" />
+    <ClCompile Include="DosBoxMemoryTools.cpp" />
+    <ClCompile Include="DosBoxMemoryViewerWindow.cpp" />
     <ClCompile Include="DosBoxMouse.cpp" />
     <ClCompile Include="DosBoxView.cpp" />
     <ClCompile Include="DragDropRecoder.cpp" />
