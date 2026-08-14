@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <unordered_set>
 
 #include "DosBoxMemoryReader.h"
 #include "NamedPipeClient.h"
@@ -47,6 +48,16 @@ namespace MyImGui
         const std::string&
             status() const;
 
+        void pinAddress(
+            size_t address
+        );
+
+        void unpinAddress(
+            size_t address
+        );
+
+        void clearPinnedAddresses();
+
     private:
         bool requestSnapshot();
 
@@ -80,5 +91,8 @@ namespace MyImGui
         std::string m_status;
 
         int m_exactValue = 0;
+
+        std::unordered_set<size_t>
+            m_pinnedAddresses;
     };
 }

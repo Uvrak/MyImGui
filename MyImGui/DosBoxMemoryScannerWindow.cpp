@@ -272,19 +272,25 @@ namespace MyImGui
                     candidate.previousValue
                     );
 
-            if ((!m_filterPrevious ||
-                candidate.previousValue ==
-                static_cast<uint8_t>(
-                    m_previousValue
-                    )) &&
-                (!m_filterCurrent ||
-                    candidate.currentValue ==
+            const bool pinned =
+                m_pinnedAddresses.contains(
+                    candidate.address
+                );
+
+            if (pinned ||
+                ((!m_filterPrevious ||
+                    candidate.previousValue ==
                     static_cast<uint8_t>(
-                        m_currentValue
+                        m_previousValue
                         )) &&
-                (!m_filterDifference ||
-                    difference ==
-                    m_differenceValue))
+                    (!m_filterCurrent ||
+                        candidate.currentValue ==
+                        static_cast<uint8_t>(
+                            m_currentValue
+                            )) &&
+                    (!m_filterDifference ||
+                        difference ==
+                        m_differenceValue)))
             {
                 filteredIndices.push_back(
                     index
@@ -419,10 +425,56 @@ namespace MyImGui
 
                         ImGui::TableSetColumnIndex(0);
 
-                        ImGui::Text(
-                            "0x%05zX",
+                        const bool pinned =
+                            m_pinnedAddresses.contains(
+                                candidate.address
+                            );
+
+                        char addressText[32];
+
+                        std::snprintf(
+                            addressText,
+                            sizeof(addressText),
+                            pinned
+                            ? "[PIN] 0x%05zX"
+                            : "0x%05zX",
                             candidate.address
                         );
+
+                        const bool selected =
+                            m_selectedAddresses.contains(
+                                candidate.address
+                            );
+
+                            candidate.address;
+
+                            if (ImGui::Selectable(
+                                addressText,
+                                pinned,
+                                ImGuiSelectableFlags_SpanAllColumns
+                            ))
+                            {
+                                if (pinned)
+                                {
+                                    m_pinnedAddresses.erase(
+                                        candidate.address
+                                    );
+
+                                    m_scanner.unpinAddress(
+                                        candidate.address
+                                    );
+                                }
+                                else
+                                {
+                                    m_pinnedAddresses.insert(
+                                        candidate.address
+                                    );
+
+                                    m_scanner.pinAddress(
+                                        candidate.address
+                                    );
+                                }
+                            }
 
                         ImGui::TableSetColumnIndex(1);
 

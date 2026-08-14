@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <unordered_set>
+
 #include "DosBoxMemoryScanner.h"
 #include "FloatingWindow.h"
 #include "FlowLayout.h"
@@ -45,6 +48,12 @@ namespace MyImGui
 
         bool m_filterDifference = false;
         int m_differenceValue = 0;
+
+        std::unordered_set<size_t>
+            m_selectedAddresses;
+
+        std::unordered_set<size_t>
+            m_pinnedAddresses;
     };
     
 }

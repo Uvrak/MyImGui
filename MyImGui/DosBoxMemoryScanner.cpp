@@ -234,6 +234,16 @@ namespace MyImGui
                 break;
             }
 
+            const bool pinned =
+                m_pinnedAddresses.contains(
+                    candidate.address
+                );
+
+            if (pinned)
+            {
+                accepted = true;
+            }
+
             if (accepted)
             {
                 refined.push_back(
@@ -273,5 +283,28 @@ namespace MyImGui
         DosBoxMemoryScanner::status() const
     {
         return m_status;
+    }
+
+    void DosBoxMemoryScanner::pinAddress(
+        size_t address
+    )
+    {
+        m_pinnedAddresses.insert(
+            address
+        );
+    }
+
+    void DosBoxMemoryScanner::unpinAddress(
+        size_t address
+    )
+    {
+        m_pinnedAddresses.erase(
+            address
+        );
+    }
+
+    void DosBoxMemoryScanner::clearPinnedAddresses()
+    {
+        m_pinnedAddresses.clear();
     }
 }
