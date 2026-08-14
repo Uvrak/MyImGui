@@ -188,6 +188,33 @@ namespace MyImGui
 
             m_toolbarLayout.endItem();
 
+            // Clear Filters
+            const ImVec2 clearFiltersSize(
+                ImGui::CalcTextSize("Clear Filters").x +
+                framePadding.x * 2.0f,
+                ImGui::GetFrameHeight()
+            );
+
+            m_toolbarLayout.beginItem(
+                clearFiltersSize
+            );
+
+            if (ImGui::Button(
+                "Clear Filters"
+            ))
+            {
+                m_filterPrevious = false;
+                m_previousValue = 0;
+
+                m_filterCurrent = false;
+                m_currentValue = 0;
+
+                m_filterDifference = false;
+                m_differenceValue = 0;
+            }
+
+            m_toolbarLayout.endItem();
+
             m_toolbarLayout.end();
         }
 
