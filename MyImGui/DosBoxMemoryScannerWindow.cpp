@@ -591,6 +591,40 @@ namespace MyImGui
 
                             if (ImGui::BeginPopupContextItem())
                             {
+
+                                if (pinned)
+                                {
+                                    if (ImGui::MenuItem(
+                                        "Unpin Address"
+                                    ))
+                                    {
+                                        m_pinnedAddresses.erase(
+                                            candidate.address
+                                        );
+
+                                        m_scanner.unpinAddress(
+                                            candidate.address
+                                        );
+                                    }
+                                }
+                                else
+                                {
+                                    if (ImGui::MenuItem(
+                                        "Pin Address"
+                                    ))
+                                    {
+                                        m_pinnedAddresses.insert(
+                                            candidate.address
+                                        );
+
+                                        m_scanner.pinAddress(
+                                            candidate.address
+                                        );
+                                    }
+                                }
+
+                                ImGui::Separator();
+
                                 if (ImGui::MenuItem(
                                     "Copy Address"
                                 ))
@@ -608,6 +642,8 @@ namespace MyImGui
                                         addressText
                                     );
                                 }
+
+                                ImGui::Separator();
 
                                 if (ImGui::MenuItem(
                                     "Copy Current Value"
@@ -671,6 +707,39 @@ namespace MyImGui
 
                                     ImGui::SetClipboardText(
                                         valueText
+                                    );
+                                }
+
+                                if (ImGui::MenuItem(
+                                    "Copy All"
+                                ))
+                                {
+                                    const int difference =
+                                        static_cast<int>(
+                                            candidate.currentValue
+                                            ) -
+                                        static_cast<int>(
+                                            candidate.previousValue
+                                            );
+
+                                    char text[128];
+
+                                    std::snprintf(
+                                        text,
+                                        sizeof(text),
+                                        "0x%05zX  Previous: %u  Current: %u  Difference: %d",
+                                        candidate.address,
+                                        static_cast<unsigned int>(
+                                            candidate.previousValue
+                                            ),
+                                        static_cast<unsigned int>(
+                                            candidate.currentValue
+                                            ),
+                                        difference
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        text
                                     );
                                 }
 
