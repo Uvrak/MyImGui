@@ -211,6 +211,68 @@ namespace MyImGui
 
         ImGui::Separator();
 
+        std::vector<int> filteredIndices;
+        
+        filteredIndices.reserve(
+            static_cast<int>(
+                m_scanner.
+                candidates().
+                size()
+                )
+        );
+
+        for (int index = 0;
+            index <
+            static_cast<int>(
+                m_scanner.
+                candidates().
+                size()
+                );
+            ++index)
+        {
+            const DosBoxMemoryCandidate&
+                candidate =
+                m_scanner.
+                candidates()[
+                    index
+                ];
+
+            const int difference =
+                static_cast<int>(
+                    candidate.currentValue
+                    ) -
+                static_cast<int>(
+                    candidate.previousValue
+                    );
+
+            if ((!m_filterPrevious ||
+                candidate.previousValue ==
+                static_cast<uint8_t>(
+                    m_previousValue
+                    )) &&
+                (!m_filterCurrent ||
+                    candidate.currentValue ==
+                    static_cast<uint8_t>(
+                        m_currentValue
+                        )) &&
+                (!m_filterDifference ||
+                    difference ==
+                    m_differenceValue))
+            {
+                filteredIndices.push_back(
+                    index
+                );
+            }
+        }
+
+        ImGui::Text(
+            "Visible: %zu / %zu",
+            filteredIndices.size(),
+            m_scanner.
+            candidates().
+            size()
+        );
+
         if (ImGui::BeginTable(
             "##MemoryCandidates",
             4,
@@ -296,61 +358,7 @@ namespace MyImGui
                 ImGui::InputInt(
                     "##DifferenceValue",
                     &m_differenceValue
-                );
-
-                std::vector<int> filteredIndices;
-
-                filteredIndices.reserve(
-                    static_cast<int>(
-                        m_scanner.
-                        candidates().
-                        size()
-                        )
-                );
-
-                for (int index = 0;
-                    index <
-                    static_cast<int>(
-                        m_scanner.
-                        candidates().
-                        size()
-                        );
-                    ++index)
-                {
-                    const DosBoxMemoryCandidate&
-                        candidate =
-                        m_scanner.
-                        candidates()[
-                            index
-                        ];
-
-                    const int difference =
-                        static_cast<int>(
-                            candidate.currentValue
-                            ) -
-                        static_cast<int>(
-                            candidate.previousValue
-                            );
-
-                    if ((!m_filterPrevious ||
-                        candidate.previousValue ==
-                        static_cast<uint8_t>(
-                            m_previousValue
-                            )) &&
-                        (!m_filterCurrent ||
-                            candidate.currentValue ==
-                            static_cast<uint8_t>(
-                                m_currentValue
-                                )) &&
-                        (!m_filterDifference ||
-                            difference ==
-                            m_differenceValue))
-                    {
-                        filteredIndices.push_back(
-                            index
-                        );
-                    }
-                }
+                );              
 
                 ImGuiListClipper clipper;
 
