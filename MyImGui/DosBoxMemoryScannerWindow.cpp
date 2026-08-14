@@ -2,6 +2,7 @@
 #include "DosBoxMemoryScannerWindow.h"
 
 #include <cstdio>
+#include <cstdlib>
 
 #include "imgui.h"
 
@@ -321,6 +322,76 @@ namespace MyImGui
             candidates().
             size()
         );
+
+        ImGui::SetNextItemWidth(
+            120.0f
+        );
+
+        ImGui::InputText(
+            "Address",
+            m_addressSearch,
+            sizeof(m_addressSearch)
+        );
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Find"
+        ))
+        {
+            char* end = nullptr;
+
+            const unsigned long long address =
+                std::strtoull(
+                    m_addressSearch,
+                    &end,
+                    0
+                );
+
+            if (end != m_addressSearch &&
+                *end == '\0')
+            {
+                m_foundAddress =
+                    static_cast<size_t>(
+                        address
+                        );
+
+                m_hasFoundAddress = true;
+            }
+            else
+            {
+                m_hasFoundAddress = false;
+            }
+
+            bool foundCandidate = false;
+
+            for (const DosBoxMemoryCandidate&
+                candidate :
+                m_scanner.candidates())
+            {
+                if (candidate.address ==
+                    m_foundAddress)
+                {
+                    foundCandidate = true;
+                    break;
+                }
+            }
+
+            m_hasFoundAddress =
+                foundCandidate;
+
+            if (foundCandidate)
+            {
+                m_pinnedAddresses.insert(
+                    m_foundAddress
+                );
+
+                m_scanner.pinAddress(
+                    m_foundAddress
+                );
+            }
+
+        }
 
         if (!m_pinnedAddresses.empty())
         {

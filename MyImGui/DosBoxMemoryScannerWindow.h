@@ -51,6 +51,10 @@ namespace MyImGui
 
         std::unordered_set<size_t>
             m_pinnedAddresses;
+
+        char m_addressSearch[32] = {};
+        size_t m_foundAddress = 0;
+        bool m_hasFoundAddress = false;
     };
     
 }
