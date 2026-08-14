@@ -36,6 +36,15 @@ namespace MyImGui
             DosBoxMemoryScanMode::Changed;
 
         int m_exactValue = 0;
+
+        bool m_filterPrevious = false;
+        int m_previousValue = 0;
+
+        bool m_filterCurrent = false;
+        int m_currentValue = 0;
+
+        bool m_filterDifference = false;
+        int m_differenceValue = 0;
     };
     
 }

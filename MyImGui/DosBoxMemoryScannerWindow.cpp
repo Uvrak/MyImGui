@@ -106,7 +106,8 @@ namespace MyImGui
 
             m_toolbarLayout.endItem();
 
-
+            // Previous
+            
             // Exact value
             if (m_scanMode ==
                 DosBoxMemoryScanMode::ExactValue)
@@ -191,7 +192,6 @@ namespace MyImGui
         }
 
         m_toolbarWindow.end();
-        m_toolbarWindow.end();
 
         ImGui::Separator();
 
@@ -242,13 +242,121 @@ namespace MyImGui
 
                 ImGui::TableHeadersRow();
 
-                ImGuiListClipper clipper;
+                ImGui::TableNextRow();
 
-                clipper.Begin(
+                ImGui::TableSetColumnIndex(1);
+
+                ImGui::Checkbox(
+                    "##FilterPrevious",
+                    &m_filterPrevious
+                );
+
+                ImGui::SameLine();
+
+                ImGui::SetNextItemWidth(
+                    80.0f
+                );
+
+                ImGui::InputInt(
+                    "##PreviousValue",
+                    &m_previousValue
+                );
+
+                ImGui::TableSetColumnIndex(2);
+
+                ImGui::Checkbox(
+                    "##FilterCurrent",
+                    &m_filterCurrent
+                );
+
+                ImGui::SameLine();
+
+                ImGui::SetNextItemWidth(
+                    80.0f
+                );
+
+                ImGui::InputInt(
+                    "##CurrentValue",
+                    &m_currentValue
+                );
+
+                ImGui::TableSetColumnIndex(3);
+
+                ImGui::Checkbox(
+                    "##FilterDifference",
+                    &m_filterDifference
+                );
+
+                ImGui::SameLine();
+
+                ImGui::SetNextItemWidth(
+                    80.0f
+                );
+
+                ImGui::InputInt(
+                    "##DifferenceValue",
+                    &m_differenceValue
+                );
+
+                std::vector<int> filteredIndices;
+
+                filteredIndices.reserve(
                     static_cast<int>(
                         m_scanner.
                         candidates().
                         size()
+                        )
+                );
+
+                for (int index = 0;
+                    index <
+                    static_cast<int>(
+                        m_scanner.
+                        candidates().
+                        size()
+                        );
+                    ++index)
+                {
+                    const DosBoxMemoryCandidate&
+                        candidate =
+                        m_scanner.
+                        candidates()[
+                            index
+                        ];
+
+                    const int difference =
+                        static_cast<int>(
+                            candidate.currentValue
+                            ) -
+                        static_cast<int>(
+                            candidate.previousValue
+                            );
+
+                    if ((!m_filterPrevious ||
+                        candidate.previousValue ==
+                        static_cast<uint8_t>(
+                            m_previousValue
+                            )) &&
+                        (!m_filterCurrent ||
+                            candidate.currentValue ==
+                            static_cast<uint8_t>(
+                                m_currentValue
+                                )) &&
+                        (!m_filterDifference ||
+                            difference ==
+                            m_differenceValue))
+                    {
+                        filteredIndices.push_back(
+                            index
+                        );
+                    }
+                }
+
+                ImGuiListClipper clipper;
+
+                clipper.Begin(
+                    static_cast<int>(
+                        filteredIndices.size()
                         )
                 );
 
@@ -260,11 +368,16 @@ namespace MyImGui
                         clipper.DisplayEnd;
                         ++index)
                     {
+                        const int candidateIndex =
+                            filteredIndices[
+                                index
+                            ];
+
                         const DosBoxMemoryCandidate&
                             candidate =
                             m_scanner.
                             candidates()[
-                                index
+                                candidateIndex
                             ];
 
                         ImGui::TableNextRow();
