@@ -30,9 +30,8 @@ namespace MyImGui
         );
 
     private:
-        bool m_inputActive = false;
         DosBoxInputMode m_inputMode =
-            DosBoxInputMode::Focused;
-
+            DosBoxInputMode::AlwaysActive;
+        bool m_inputActive = true;
     };
 }

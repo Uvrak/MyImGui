@@ -81,5 +81,13 @@ namespace MyImGui
         std::string m_gameId;
         std::string pinnedAddressesFilePath() const;
 
+        char m_descriptionBuffer[256] = {};
+        size_t m_descriptionAddress = 0;
+
+        bool hasDescription(
+            size_t address
+        ) const;
+
+        bool m_descriptionsFirst = false;
     };
 }

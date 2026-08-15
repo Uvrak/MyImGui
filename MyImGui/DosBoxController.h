@@ -15,6 +15,7 @@ namespace MyImGui
     class DosBoxController
     {
     public:
+        void closeExistingInstances();
         void setKeyboardLayout(
             NamedPipeClient& pipeClient,
             KeyboardLayout layout

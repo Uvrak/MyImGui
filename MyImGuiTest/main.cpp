@@ -124,6 +124,9 @@ int main(int, char**)
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
     //IM_ASSERT(font != nullptr);
 
+    MyImGui::DosBoxController dosBoxController;
+    dosBoxController.closeExistingInstances();
+
     MyImGui::MainMenu mainMenu;
 
     MyImGui::MyImGuiSettings settings;
@@ -193,7 +196,7 @@ int main(int, char**)
     MyImGui::DosBoxKeyboard dosBoxKeyboard;
     MyImGui::DosBoxMouse dosBoxMouse;   
     MyImGui::DosBoxView dosBoxView;
-	MyImGui::DosBoxController dosBoxController; 
+    
     MyImGui::DosBoxMemoryTools
         memoryTools(
             mainMenu.gameFilename()

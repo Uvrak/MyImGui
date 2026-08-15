@@ -6,6 +6,7 @@
 #include <fstream>
 #include <sstream>
 #include <filesystem>
+#include <algorithm>
 
 #include "imgui.h"
 
@@ -264,6 +265,22 @@ namespace MyImGui
         
         std::vector<size_t> pinnedOnlyAddresses;
 
+        int address8Count = 0;
+
+        for (const DosBoxMemoryCandidate& candidate :
+            m_scanner.candidates())
+        {
+            if (candidate.address == 0x00008)
+            {
+                ++address8Count;
+            }
+        }
+
+        ImGui::Text(
+            "0x00008 candidates: %d",
+            address8Count
+        );
+
         filteredIndices.reserve(
             static_cast<int>(
                 m_scanner.
@@ -355,12 +372,28 @@ namespace MyImGui
                 );
             }
         }
+
+        if (m_descriptionsFirst)
+        {
+            std::stable_partition(
+                filteredIndices.begin(),
+                filteredIndices.end(),
+                [this](int index)
+                {
+                    return hasDescription(
+                        m_scanner.candidates()[
+                            index
+                        ].address
+                    );
+                }
+            );
+        }
+
         filteredIndices.insert(
             filteredIndices.begin(),
             pinnedIndices.begin(),
             pinnedIndices.end()
         );
-
         ImGui::Text(
             "Visible: %zu / %zu",
             filteredIndices.size(),
@@ -526,6 +559,17 @@ namespace MyImGui
         }
 
         ImGui::Separator();
+        ImGui::Checkbox(
+            "Descriptions first",
+            &m_descriptionsFirst
+        );
+
+        ImGui::Text(
+            "Known descriptions: %zu",
+            m_pinnedDescriptions.size()
+        );
+
+        ImGui::Separator();
 
         if (ImGui::BeginTable(
             "##MemoryCandidates",
@@ -559,6 +603,7 @@ namespace MyImGui
                 ImGui::TableHeadersRow();
 
                 ImGui::TableNextRow();
+
 
                 ImGui::TableSetColumnIndex(1);
 
@@ -662,6 +707,23 @@ namespace MyImGui
 
                             ImGui::TableNextRow();
 
+                            if (hasDescription(
+                                address
+                            ))
+                            {
+                                ImGui::TableSetBgColor(
+                                    ImGuiTableBgTarget_RowBg0,
+                                    ImGui::GetColorU32(
+                                        ImVec4(
+                                            0.10f,
+                                            0.30f,
+                                            0.10f,
+                                            1.0f
+                                        )
+                                    )
+                                );
+                            }
+
                             ImGui::TableSetColumnIndex(0);
 
                             char addressText[32];
@@ -698,6 +760,51 @@ namespace MyImGui
                                 }
                             }
 
+                            const auto description =
+                                m_pinnedDescriptions.find(
+                                    address
+                                );
+
+                            if (ImGui::IsItemHovered() &&
+                                description !=
+                                m_pinnedDescriptions.end() &&
+                                !description->second.empty())
+                            {
+                                ImGui::SetTooltip(
+                                    "%s",
+                                    description->second.c_str()
+                                );
+                            }
+
+                            if (ImGui::IsItemClicked(
+                                ImGuiMouseButton_Right
+                            ))
+                            {
+                                m_descriptionAddress =
+                                    address;
+
+                                const auto description =
+                                    m_pinnedDescriptions.find(
+                                        address
+                                    );
+
+                                if (description !=
+                                    m_pinnedDescriptions.end())
+                                {
+                                    std::snprintf(
+                                        m_descriptionBuffer,
+                                        sizeof(m_descriptionBuffer),
+                                        "%s",
+                                        description->second.c_str()
+                                    );
+                                }
+                                else
+                                {
+                                    m_descriptionBuffer[0] =
+                                        '\0';
+                                }
+                            }
+
                             if (ImGui::BeginPopupContextItem())
                             {
                                 if (ImGui::MenuItem(
@@ -722,6 +829,27 @@ namespace MyImGui
                                 }
 
                                 ImGui::Separator();
+
+                                ImGui::SetNextItemWidth(
+                                    220.0f
+                                );
+
+                                ImGui::InputText(
+                                    "Description",
+                                    m_descriptionBuffer,
+                                    sizeof(m_descriptionBuffer)
+                                );
+
+                                if (ImGui::Button(
+                                    "Save Description"
+                                ))
+                                {
+                                    m_pinnedDescriptions[
+                                        m_descriptionAddress
+                                    ] = m_descriptionBuffer;
+
+                                    savePinnedAddresses();
+                                }
 
                                 if (ImGui::MenuItem(
                                     "Copy Address"
@@ -816,6 +944,23 @@ namespace MyImGui
 
                         ImGui::TableNextRow();
 
+                        if (hasDescription(
+                            candidate.address
+                        ))
+                        {
+                            ImGui::TableSetBgColor(
+                                ImGuiTableBgTarget_RowBg0,
+                                ImGui::GetColorU32(
+                                    ImVec4(
+                                        0.10f,
+                                        0.30f,
+                                        0.10f,
+                                        1.0f
+                                    )
+                                )
+                            );
+                        }
+
                         ImGui::TableSetColumnIndex(0);
 
                         const bool pinned =
@@ -860,6 +1005,53 @@ namespace MyImGui
                                     );
                                 }
                             }
+
+                            const auto description =
+                                m_pinnedDescriptions.find(
+                                    candidate.address
+                                );
+
+                            if (ImGui::IsItemHovered() &&
+                                description !=
+                                m_pinnedDescriptions.end() &&
+                                !description->second.empty())
+                            {
+                                ImGui::SetTooltip(
+                                    "%s",
+                                    description->second.c_str()
+                                );
+                            }
+
+                            if (ImGui::IsItemClicked(
+                                ImGuiMouseButton_Right
+                            ))
+                            
+                            {
+                                m_descriptionAddress =
+                                    candidate.address;
+
+                                const auto description =
+                                    m_pinnedDescriptions.find(
+                                        candidate.address
+                                    );
+
+                                if (description !=
+                                    m_pinnedDescriptions.end())
+                                {
+                                    std::snprintf(
+                                        m_descriptionBuffer,
+                                        sizeof(m_descriptionBuffer),
+                                        "%s",
+                                        description->second.c_str()
+                                    );
+                                }
+                                else
+                                {
+                                    m_descriptionBuffer[0] =
+                                        '\0';
+                                }
+                            }
+
                             if (ImGui::BeginPopupContextItem())
                             {
 
@@ -892,6 +1084,32 @@ namespace MyImGui
                                         m_scanner.pinAddress(
                                             candidate.address
                                         );
+                                        savePinnedAddresses();
+                                    }
+                                }
+
+                                if (pinned)
+                                {
+                                    ImGui::Separator();
+
+                                    ImGui::SetNextItemWidth(
+                                        220.0f
+                                    );
+
+                                    ImGui::InputText(
+                                        "Description",
+                                        m_descriptionBuffer,
+                                        sizeof(m_descriptionBuffer)
+                                    );
+
+                                    if (ImGui::Button(
+                                        "Save Description"
+                                    ))
+                                    {
+                                        m_pinnedDescriptions[
+                                            m_descriptionAddress
+                                        ] = m_descriptionBuffer;
+
                                         savePinnedAddresses();
                                     }
                                 }
@@ -1046,6 +1264,19 @@ namespace MyImGui
             ".cfg";
     }
 
+    bool DosBoxMemoryScannerWindow::hasDescription(
+        size_t address
+    ) const
+    {
+        const auto it =
+            m_pinnedDescriptions.find(
+                address
+            );
+
+        return
+            it != m_pinnedDescriptions.end() &&
+            !it->second.empty();
+    }
     void DosBoxMemoryScannerWindow::setGameId(
         const std::string& gameId
     )
@@ -1088,13 +1319,43 @@ namespace MyImGui
                 continue;
             }
 
-            const size_t separator =
+            const size_t firstSeparator =
                 line.find('|');
+
+            if (firstSeparator ==
+                std::string::npos)
+            {
+                continue;
+            }
+
+            const size_t secondSeparator =
+                line.find(
+                    '|',
+                    firstSeparator + 1
+                );
+
+            if (secondSeparator ==
+                std::string::npos)
+            {
+                continue;
+            }
 
             const std::string addressText =
                 line.substr(
                     0,
-                    separator
+                    firstSeparator
+                );
+
+            const std::string pinnedText =
+                line.substr(
+                    firstSeparator + 1,
+                    secondSeparator -
+                    firstSeparator - 1
+                );
+
+            const std::string description =
+                line.substr(
+                    secondSeparator + 1
                 );
 
             const size_t address =
@@ -1106,35 +1367,29 @@ namespace MyImGui
                     )
                     );
 
-            std::string description;
+            const bool pinned =
+                pinnedText == "1";
 
-            if (separator !=
-                std::string::npos)
+            if (pinned)
             {
-                description =
-                    line.substr(
-                        separator + 1
-                    );
+                m_pinnedAddresses.insert(
+                    address
+                );
+
+                m_scanner.pinAddress(
+                    address
+                );
             }
-
-            m_pinnedAddresses.insert(
-                address
-            );
-
-            m_scanner.pinAddress(
-                address
-            );
 
             m_pinnedDescriptions[
                 address
             ] = description;
         }
-
-
     }
     void DosBoxMemoryScannerWindow::
         savePinnedAddresses() const
     {
+
         const std::string filename =
             pinnedAddressesFilePath();
 
@@ -1142,40 +1397,34 @@ namespace MyImGui
             filename
         );
 
-        printf(
-            "File open: %s\n",
-            file.is_open()
-            ? "YES"
-            : "NO"
-        );
-
         if (!file.is_open())
         {
             return;
         }
 
-        for (size_t address :
-        m_pinnedAddresses)
+        for (const auto& entry :
+            m_pinnedDescriptions)
         {
-            file
-                << "0x"
-                << std::hex
-                << address;
+            const size_t address =
+                entry.first;
 
-            const auto description =
-                m_pinnedDescriptions.find(
+            const std::string& description =
+                entry.second;
+
+            const bool pinned =
+                m_pinnedAddresses.contains(
                     address
                 );
 
-            if (description !=
-                m_pinnedDescriptions.end())
-            {
-                file
-                    << "|"
-                    << description->second;
-            }
-
-            file << '\n';
+            file
+                << "0x"
+                << std::hex
+                << address
+                << "|"
+                << (pinned ? 1 : 0)
+                << "|"
+                << description
+                << '\n';
         }
     }
 }
