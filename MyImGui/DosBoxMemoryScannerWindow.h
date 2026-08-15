@@ -89,5 +89,9 @@ namespace MyImGui
         ) const;
 
         bool m_descriptionsFirst = false;
+
+        size_t m_writeAddress = 0;
+        int m_writeValue = 0;
+        bool m_showWriteValuePopup = false;
     };
 }

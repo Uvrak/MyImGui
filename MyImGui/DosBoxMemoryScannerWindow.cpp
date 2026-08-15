@@ -389,6 +389,7 @@ namespace MyImGui
             );
         }
 
+
         filteredIndices.insert(
             filteredIndices.begin(),
             pinnedIndices.begin(),
@@ -828,6 +829,19 @@ namespace MyImGui
                                     m_selectedAddresses.clear();
                                 }
 
+                                if (ImGui::MenuItem(
+                                    "Write Value..."
+                                ))
+                                {
+                                    m_writeAddress =
+                                        address;
+
+                                    m_writeValue =
+                                        currentValue;
+
+                                    m_showWriteValuePopup =
+                                        true;
+                                }
                                 ImGui::Separator();
 
                                 ImGui::SetNextItemWidth(
@@ -1055,6 +1069,22 @@ namespace MyImGui
                             if (ImGui::BeginPopupContextItem())
                             {
 
+                                if (ImGui::MenuItem(
+                                    "Write Value..."
+                                ))
+                                {
+                                    m_writeAddress =
+                                        candidate.address;
+
+                                    m_writeValue =
+                                        candidate.currentValue;
+
+                                    m_showWriteValuePopup =
+                                        true;
+                                }
+
+                                ImGui::Separator();
+
                                 if (pinned)
                                 {
                                     if (ImGui::MenuItem(
@@ -1251,7 +1281,67 @@ namespace MyImGui
 
                 ImGui::EndTable();
             }
-        
+            if (m_showWriteValuePopup)
+            {
+                ImGui::OpenPopup(
+                    "Write Memory Value"
+                );
+
+                m_showWriteValuePopup = false;
+            }
+
+            if (ImGui::BeginPopupModal(
+                "Write Memory Value",
+                nullptr,
+                ImGuiWindowFlags_AlwaysAutoResize
+            ))
+            {
+                ImGui::Text(
+                    "Address: 0x%05zX",
+                    m_writeAddress
+                );
+
+                ImGui::InputInt(
+                    "Value",
+                    &m_writeValue
+                );
+
+                if (m_writeValue < 0)
+                {
+                    m_writeValue = 0;
+                }
+
+                if (m_writeValue > 255)
+                {
+                    m_writeValue = 255;
+                }
+
+                if (ImGui::Button(
+                    "Write"
+                ))
+                {
+                    m_scanner.writeValue(
+                        m_writeAddress,
+                        static_cast<uint8_t>(
+                            m_writeValue
+                            )
+                    );
+
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::SameLine();
+
+                if (ImGui::Button(
+                    "Cancel"
+                ))
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::EndPopup();
+            }
+
         ImGui::End();
     }
 

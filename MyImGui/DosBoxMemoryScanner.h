@@ -70,6 +70,11 @@ namespace MyImGui
 
         bool refreshMemory();
 
+        bool writeValue(
+            size_t address,
+            uint8_t value
+        );
+
     private:
         bool requestSnapshot();
 

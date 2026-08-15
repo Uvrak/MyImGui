@@ -348,4 +348,46 @@ namespace MyImGui
 
         return true;
     }
+    bool DosBoxMemoryScanner::writeValue(
+        size_t address,
+        uint8_t value
+    )
+    {
+        std::string response;
+
+        const std::string command =
+            "WRITE:" +
+            std::to_string(address) +
+            ":" +
+            std::to_string(
+                static_cast<unsigned int>(
+                    value
+                    )
+            );
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not write memory.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Memory write failed: " +
+                response;
+
+            return false;
+        }
+
+        m_status =
+            "Memory value written.";
+
+        return true;
+    }
 }
