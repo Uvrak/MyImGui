@@ -433,6 +433,53 @@ namespace MyImGui
             }
         }
 
+        if (!m_selectedAddresses.empty())
+        {
+            if (ImGui::Button(
+                "Pin Selected"
+            ))
+            {
+                for (size_t address :
+                m_selectedAddresses)
+                {
+                    m_pinnedAddresses.insert(
+                        address
+                    );
+
+                    m_scanner.pinAddress(
+                        address
+                    );
+                }
+                m_selectedAddresses.clear();
+            }
+
+            if (!m_selectedAddresses.empty())
+            {
+                ImGui::SameLine();
+
+                if (ImGui::Button(
+                    "Unpin Selected"
+                ))
+                {
+                    for (size_t address :
+                    m_selectedAddresses)
+                    {
+                        m_pinnedAddresses.erase(
+                            address
+                        );
+
+                        m_scanner.unpinAddress(
+                            address
+                        );
+                    }
+
+                    m_selectedAddresses.clear();
+                }
+            }
+        }
+
+        ImGui::Separator();
+
         if (ImGui::BeginTable(
             "##MemoryCandidates",
             4,
@@ -570,34 +617,30 @@ namespace MyImGui
 
                             candidate.address;
 
+                            const bool selected =
+                                m_selectedAddresses.contains(
+                                    candidate.address
+                                );
+
                             if (ImGui::Selectable(
                                 addressText,
-                                pinned,
+                                selected,
                                 ImGuiSelectableFlags_SpanAllColumns
                             ))
                             {
-                                if (pinned)
+                                if (selected)
                                 {
-                                    m_pinnedAddresses.erase(
-                                        candidate.address
-                                    );
-
-                                    m_scanner.unpinAddress(
+                                    m_selectedAddresses.erase(
                                         candidate.address
                                     );
                                 }
                                 else
                                 {
-                                    m_pinnedAddresses.insert(
-                                        candidate.address
-                                    );
-
-                                    m_scanner.pinAddress(
+                                    m_selectedAddresses.insert(
                                         candidate.address
                                     );
                                 }
                             }
-
                             if (ImGui::BeginPopupContextItem())
                             {
 
