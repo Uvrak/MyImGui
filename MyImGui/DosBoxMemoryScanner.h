@@ -60,6 +60,14 @@ namespace MyImGui
 
         void clearPinnedAddresses();
 
+        const std::unordered_set<size_t>&
+            pinnedAddresses() const;
+
+        bool readCurrentValue(
+            size_t address,
+            uint8_t& value
+        ) const;
+
     private:
         bool requestSnapshot();
 

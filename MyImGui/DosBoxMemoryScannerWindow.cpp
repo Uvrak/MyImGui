@@ -194,6 +194,8 @@ namespace MyImGui
             ))
             {
                 m_scanner.reset();
+
+                m_selectedAddresses.clear();
             }
 
             m_toolbarLayout.endItem();
@@ -251,6 +253,8 @@ namespace MyImGui
         std::vector<int> filteredIndices;
         std::vector<int> pinnedIndices;
         
+        std::vector<size_t> pinnedOnlyAddresses;
+
         filteredIndices.reserve(
             static_cast<int>(
                 m_scanner.
@@ -318,6 +322,30 @@ namespace MyImGui
             }
         }
 
+        for (size_t pinnedAddress :
+        m_scanner.pinnedAddresses())
+        {
+            bool foundCandidate = false;
+
+            for (const DosBoxMemoryCandidate&
+                candidate :
+                m_scanner.candidates())
+            {
+                if (candidate.address ==
+                    pinnedAddress)
+                {
+                    foundCandidate = true;
+                    break;
+                }
+            }
+
+            if (!foundCandidate)
+            {
+                pinnedOnlyAddresses.push_back(
+                    pinnedAddress
+                );
+            }
+        }
         filteredIndices.insert(
             filteredIndices.begin(),
             pinnedIndices.begin(),
@@ -571,6 +599,7 @@ namespace MyImGui
 
                 clipper.Begin(
                     static_cast<int>(
+                        pinnedOnlyAddresses.size() +
                         filteredIndices.size()
                         )
                 );
@@ -583,10 +612,177 @@ namespace MyImGui
                         clipper.DisplayEnd;
                         ++index)
                     {
+                        const int pinnedOnlyCount =
+                            static_cast<int>(
+                                pinnedOnlyAddresses.size()
+                                );
+
+                        const bool pinnedOnly =
+                            index < pinnedOnlyCount;
+                        
                         const int candidateIndex =
-                            filteredIndices[
-                                index
+                            pinnedOnly
+                            ? -1
+                            : filteredIndices[
+                                index - pinnedOnlyCount
                             ];
+
+                        if (pinnedOnly)
+                        {
+                            const size_t address =
+                                pinnedOnlyAddresses[
+                                    index
+                                ];
+
+                            uint8_t currentValue = 0;
+
+                            m_scanner.readCurrentValue(
+                                address,
+                                currentValue
+                            );
+
+                            ImGui::TableNextRow();
+
+                            ImGui::TableSetColumnIndex(0);
+
+                            char addressText[32];
+
+                            std::snprintf(
+                                addressText,
+                                sizeof(addressText),
+                                "[PIN] 0x%05zX",
+                                address
+                            );
+
+                            const bool selected =
+                                m_selectedAddresses.contains(
+                                    address
+                                );
+
+                            if (ImGui::Selectable(
+                                addressText,
+                                selected,
+                                ImGuiSelectableFlags_SpanAllColumns
+                            ))
+                            {
+                                if (selected)
+                                {
+                                    m_selectedAddresses.erase(
+                                        address
+                                    );
+                                }
+                                else
+                                {
+                                    m_selectedAddresses.insert(
+                                        address
+                                    );
+                                }
+                            }
+
+                            if (ImGui::BeginPopupContextItem())
+                            {
+                                if (ImGui::MenuItem(
+                                    "Unpin Address"
+                                ))
+                                {
+                                    m_pinnedAddresses.erase(
+                                        address
+                                    );
+
+                                    m_scanner.unpinAddress(
+                                        address
+                                    );
+
+                                    m_selectedAddresses.erase(
+                                        address
+                                    );
+                                }
+
+                                ImGui::Separator();
+
+                                if (ImGui::MenuItem(
+                                    "Copy Address"
+                                ))
+                                {
+                                    char copyText[32];
+
+                                    std::snprintf(
+                                        copyText,
+                                        sizeof(copyText),
+                                        "0x%05zX",
+                                        address
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        copyText
+                                    );
+                                }
+
+                                ImGui::Separator();
+
+                                if (ImGui::MenuItem(
+                                    "Copy Current Value"
+                                ))
+                                {
+                                    char valueText[32];
+
+                                    std::snprintf(
+                                        valueText,
+                                        sizeof(valueText),
+                                        "%u",
+                                        static_cast<unsigned int>(
+                                            currentValue
+                                            )
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        valueText
+                                    );
+                                }
+
+                                if (ImGui::MenuItem(
+                                    "Copy All"
+                                ))
+                                {
+                                    char text[128];
+
+                                    std::snprintf(
+                                        text,
+                                        sizeof(text),
+                                        "0x%05zX  Previous: -  Current: %u  Difference: -",
+                                        address,
+                                        static_cast<unsigned int>(
+                                            currentValue
+                                            )
+                                    );
+
+                                    ImGui::SetClipboardText(
+                                        text
+                                    );
+                                }
+
+                                ImGui::EndPopup();
+                            }
+                            ImGui::TableSetColumnIndex(1);
+
+                            ImGui::TextUnformatted("-");
+
+                            ImGui::TableSetColumnIndex(2);
+
+                            ImGui::Text(
+                                "%u",
+                                static_cast<unsigned int>(
+                                    currentValue
+                                    )
+                            );
+
+                            ImGui::TableSetColumnIndex(3);
+
+                            ImGui::TextUnformatted("-");
+
+                            continue;
+                        }
+
 
                         const DosBoxMemoryCandidate&
                             candidate =
@@ -695,27 +891,7 @@ namespace MyImGui
                                     );
                                 }
 
-                                ImGui::Separator();
-
-                                if (ImGui::MenuItem(
-                                    "Copy Current Value"
-                                ))
-                                {
-                                    char valueText[32];
-
-                                    std::snprintf(
-                                        valueText,
-                                        sizeof(valueText),
-                                        "%u",
-                                        static_cast<unsigned int>(
-                                            candidate.currentValue
-                                            )
-                                    );
-
-                                    ImGui::SetClipboardText(
-                                        valueText
-                                    );
-                                }
+                               
 
                                 if (ImGui::MenuItem(
                                     "Copy Previous Value"

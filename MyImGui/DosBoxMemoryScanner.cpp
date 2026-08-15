@@ -312,4 +312,27 @@ namespace MyImGui
     {
         m_pinnedAddresses.clear();
     }
+
+    const std::unordered_set<size_t>&
+        DosBoxMemoryScanner::pinnedAddresses() const
+    {
+        return m_pinnedAddresses;
+    }
+    bool DosBoxMemoryScanner::readCurrentValue(
+        size_t address,
+        uint8_t& value
+    ) const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        if (address >= memory.size())
+        {
+            return false;
+        }
+
+        value = memory[address];
+
+        return true;
+    }
 }
