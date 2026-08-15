@@ -1320,12 +1320,15 @@ namespace MyImGui
                     "Write"
                 ))
                 {
-                    m_scanner.writeValue(
+                    if (m_scanner.writeValue(
                         m_writeAddress,
                         static_cast<uint8_t>(
                             m_writeValue
                             )
-                    );
+                    ))
+                    {
+                        m_scanner.refreshValues();
+                    }
 
                     ImGui::CloseCurrentPopup();
                 }

@@ -29,6 +29,10 @@
 MyImGui::NamedPipeClient NamedPipeClient(
     R"(\\.\pipe\GridBuilderDOSBox)"
 );
+
+#include "ItemExplorerWindow.h"
+#include "MightAndMagic3ItemSource.h"
+
 // Data
 static ID3D11Device*            g_pd3dDevice = nullptr;
 static ID3D11DeviceContext*     g_pd3dDeviceContext = nullptr;
@@ -212,6 +216,15 @@ int main(int, char**)
         );
     }
 
+    MightAndMagic3::ItemSource
+        mm3ItemSource;
+
+    ItemExplorer::ItemExplorerWindow
+        itemExplorerWindow;
+
+    itemExplorerWindow.setSource(
+        &mm3ItemSource
+    );
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     // Main loop
@@ -301,6 +314,8 @@ int main(int, char**)
         ImGui::DockSpaceOverViewport();
 
         memoryTools.draw();
+
+        itemExplorerWindow.draw();
 
         {
             dosBoxView.draw(

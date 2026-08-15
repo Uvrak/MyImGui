@@ -75,6 +75,8 @@ namespace MyImGui
             uint8_t value
         );
 
+        void refreshValues();
+
     private:
         bool requestSnapshot();
 

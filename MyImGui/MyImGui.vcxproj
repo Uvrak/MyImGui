@@ -172,7 +172,11 @@
     <ClInclude Include="FloatingWindow.h" />
     <ClInclude Include="FlowLayout.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="Item.h" />
+    <ClInclude Include="ItemExplorerWindow.h" />
+    <ClInclude Include="ItemSource.h" />
     <ClInclude Include="MainMenu.h" />
+    <ClInclude Include="MightAndMagic3ItemSource.h" />
     <ClInclude Include="MyImGui.h" />
     <ClInclude Include="MyImGuiSettings.h" />
     <ClInclude Include="MyImGuiSettingsWindow.h" />
@@ -197,7 +201,9 @@
     <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
+    <ClCompile Include="ItemExplorerWindow.cpp" />
     <ClCompile Include="MainMenu.cpp" />
+    <ClCompile Include="MightAndMagic3ItemSource.cpp" />
     <ClCompile Include="MyImGui.cpp" />
     <ClCompile Include="MyImGuiSettings.cpp" />
     <ClCompile Include="MyImGuiSettingsWindow.cpp" />
@@ -214,6 +220,9 @@
     <ProjectReference Include="..\ImGui\ImGui.vcxproj">
       <Project>{7400f32b-42d9-432d-81d4-e5b8e0fd510d}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MM3_MEMORY_FINDINGS.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

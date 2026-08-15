@@ -390,4 +390,27 @@ namespace MyImGui
 
         return true;
     }
+    void DosBoxMemoryScanner::refreshValues()
+    {
+        if (!requestSnapshot())
+        {
+            return;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        for (DosBoxMemoryCandidate& candidate :
+            m_candidates)
+        {
+            if (candidate.address <
+                memory.size())
+            {
+                candidate.currentValue =
+                    memory[
+                        candidate.address
+                    ];
+            }
+        }
+    }
 }

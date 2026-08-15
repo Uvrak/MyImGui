@@ -34,6 +34,15 @@
     <Filter Include="UiSettings">
       <UniqueIdentifier>{a8cb85f4-3b66-4fef-a737-0aa442e379fc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ItemExplorer">
+      <UniqueIdentifier>{0b99abfc-60cb-42c8-81cc-2cfdbf89f6ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Games">
+      <UniqueIdentifier>{88a4d003-0533-4872-8b54-870646681703}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Games\docs">
+      <UniqueIdentifier>{298750f3-cbd0-411d-90a5-bd944776a1ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyImGui.h">
@@ -108,6 +117,18 @@
     <ClInclude Include="MyImGuiSettingsWindow.h">
       <Filter>UiSettings</Filter>
     </ClInclude>
+    <ClInclude Include="Item.h">
+      <Filter>ItemExplorer</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemSource.h">
+      <Filter>ItemExplorer</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemExplorerWindow.h">
+      <Filter>ItemExplorer</Filter>
+    </ClInclude>
+    <ClInclude Include="MightAndMagic3ItemSource.h">
+      <Filter>Games</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -179,5 +200,14 @@
     <ClCompile Include="MyImGuiSettingsWindow.cpp">
       <Filter>UiSettings</Filter>
     </ClCompile>
+    <ClCompile Include="ItemExplorerWindow.cpp">
+      <Filter>ItemExplorer</Filter>
+    </ClCompile>
+    <ClCompile Include="MightAndMagic3ItemSource.cpp">
+      <Filter>Games</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="MM3_MEMORY_FINDINGS.md" />
   </ItemGroup>
 </Project>
