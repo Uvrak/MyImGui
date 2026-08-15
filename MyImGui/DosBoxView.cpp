@@ -223,7 +223,9 @@ namespace MyImGui
                     ImVec2 imageMin =
                         ImGui::GetItemRectMin();
 
-                    if (m_inputActive)
+                    if (m_inputActive &&
+                        m_inputMode ==
+                        DosBoxInputMode::Focused)
                     {
                         ImVec2 imageMax =
                             ImGui::GetItemRectMax();
@@ -274,7 +276,6 @@ namespace MyImGui
                             "RELEASE_ALL"
                         );
                     }
-
                 }
             }
         }

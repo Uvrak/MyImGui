@@ -45,8 +45,8 @@ namespace MyImGui
 
                 dialog.Flags =
                     OFN_FILEMUSTEXIST |
-                    OFN_PATHMUSTEXIST;
-
+                    OFN_PATHMUSTEXIST |
+                    OFN_NOCHANGEDIR;
                 if (GetOpenFileNameA(&dialog))
                 {
                     m_selectedGameExe =

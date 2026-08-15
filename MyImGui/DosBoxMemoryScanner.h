@@ -68,6 +68,8 @@ namespace MyImGui
             uint8_t& value
         ) const;
 
+        bool refreshMemory();
+
     private:
         bool requestSnapshot();
 

@@ -8,8 +8,13 @@ namespace MyImGui
     class DosBoxMemoryTools
     {
     public:
-        DosBoxMemoryTools();
+        DosBoxMemoryTools(
+            const std::string& gameId
+        );
 
+        void setGameId(
+            const std::string& gameId
+        );
         void draw();
 
     private:

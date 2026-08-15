@@ -335,4 +335,17 @@ namespace MyImGui
 
         return true;
     }
+
+    bool DosBoxMemoryScanner::refreshMemory()
+    {
+        if (!requestSnapshot())
+        {
+            return false;
+        }
+
+        m_status =
+            "Memory refreshed.";
+
+        return true;
+    }
 }

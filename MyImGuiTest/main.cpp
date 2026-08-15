@@ -195,7 +195,9 @@ int main(int, char**)
     MyImGui::DosBoxView dosBoxView;
 	MyImGui::DosBoxController dosBoxController; 
     MyImGui::DosBoxMemoryTools
-        memoryTools;
+        memoryTools(
+            mainMenu.gameFilename()
+        );
 
     if (dosBoxFound)
     {
@@ -282,6 +284,9 @@ int main(int, char**)
 
         if (mainMenu.consumeStartGameRequest())
         {
+            memoryTools.setGameId(
+                mainMenu.gameFilename()
+            );
                 dosBoxController.openGame(
                 NamedPipeClient,
                 mainMenu.mountDirectory(),

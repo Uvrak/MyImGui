@@ -4,14 +4,26 @@
 namespace MyImGui
 {
     DosBoxMemoryTools::
-        DosBoxMemoryTools()
+        DosBoxMemoryTools(
+            const std::string& gameId
+        )
         : m_scannerWindow(
-            m_memoryReader
+            m_memoryReader,
+            gameId
         ),
         m_viewerWindow(
             m_memoryReader
         )
     {}
+
+    void DosBoxMemoryTools::setGameId(
+        const std::string& gameId
+    )
+    {
+        m_scannerWindow.setGameId(
+            gameId
+        );
+    }
 
     void DosBoxMemoryTools::draw()
     {

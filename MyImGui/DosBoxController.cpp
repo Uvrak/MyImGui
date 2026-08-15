@@ -245,17 +245,28 @@ namespace MyImGui
 
                 Sleep(10);
 
-                sendDosKey(
-                    pipeClient,
-                    "2"
-                );
+                if (m_keyboardLayout ==
+                    KeyboardLayout::German)
+                {
+                    sendDosKey(
+                        pipeClient,
+                        "2"
+                    );
+                }
+                else
+                {
+                    sendDosKey(
+                        pipeClient,
+                        "APOSTROPHE"
+                    );
+                }
 
                 pipeClient.send(
                     "KEYUP:SHIFT"
                 );
 
                 Sleep(10);
-            }
+                }
             else if (ch == '.')
             {
                 sendDosKey(

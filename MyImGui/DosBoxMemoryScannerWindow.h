@@ -7,17 +7,25 @@
 #include "FloatingWindow.h"
 #include "FlowLayout.h"
 
+#include <string>
+#include <unordered_map>
+
 namespace MyImGui
 {
     class DosBoxMemoryScannerWindow
     {
     public:
         DosBoxMemoryScannerWindow(
-            DosBoxMemoryReader& memoryReader
+            DosBoxMemoryReader& memoryReader,
+            const std::string& gameId
         );
 
         void draw(
             bool* isOpen = nullptr
+        );
+
+        void setGameId(
+            const std::string& gameId
         );
 
     private:
@@ -56,6 +64,13 @@ namespace MyImGui
         std::unordered_set<size_t>
             m_pinnedAddresses;
 
+    private:
+        void loadPinnedAddresses();
+        void savePinnedAddresses() const;
+
+        std::unordered_map<size_t, std::string>
+            m_pinnedDescriptions;
+
         std::unordered_set<size_t>
             m_selectedAddresses;
 
@@ -63,6 +78,8 @@ namespace MyImGui
         size_t m_foundAddress = 0;
         bool m_hasFoundAddress = false;
         bool m_addressSearchAttempted = false;
+        std::string m_gameId;
+        std::string pinnedAddressesFilePath() const;
+
     };
-    
 }

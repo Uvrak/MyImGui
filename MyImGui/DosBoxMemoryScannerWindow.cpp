@@ -3,6 +3,9 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
 
 #include "imgui.h"
 
@@ -10,12 +13,18 @@ namespace MyImGui
 {
     DosBoxMemoryScannerWindow::
         DosBoxMemoryScannerWindow(
-            DosBoxMemoryReader& memoryReader
-            )
-       : m_scanner(
-       memoryReader
-       )
-    {}
+            DosBoxMemoryReader& memoryReader,
+            const std::string& gameId
+        )
+        : m_scanner(
+            memoryReader
+        ),
+        m_gameId(
+            gameId
+        )
+    {
+        loadPinnedAddresses();
+    }
 
     void DosBoxMemoryScannerWindow::draw(
         bool* isOpen
@@ -429,6 +438,8 @@ namespace MyImGui
                 m_scanner.pinAddress(
                     m_foundAddress
                 );
+
+				savePinnedAddresses();
             }
         }
 
@@ -458,6 +469,9 @@ namespace MyImGui
             {
                 m_pinnedAddresses.clear();
                 m_scanner.clearPinnedAddresses();
+                m_selectedAddresses.clear();
+
+                savePinnedAddresses();
             }
         }
 
@@ -478,31 +492,36 @@ namespace MyImGui
                         address
                     );
                 }
+
+                savePinnedAddresses();
+
                 m_selectedAddresses.clear();
             }
+        }
 
-            if (!m_selectedAddresses.empty())
+        if (!m_selectedAddresses.empty())
+        {
+            ImGui::SameLine();
+
+            if (ImGui::Button(
+                "Unpin Selected"
+            ))
             {
-                ImGui::SameLine();
-
-                if (ImGui::Button(
-                    "Unpin Selected"
-                ))
+                for (size_t address :
+                m_selectedAddresses)
                 {
-                    for (size_t address :
-                    m_selectedAddresses)
-                    {
-                        m_pinnedAddresses.erase(
-                            address
-                        );
+                    m_pinnedAddresses.erase(
+                        address
+                    );
 
-                        m_scanner.unpinAddress(
-                            address
-                        );
-                    }
+                    m_scanner.unpinAddress(
+                        address
+                    );
 
-                    m_selectedAddresses.clear();
+                    savePinnedAddresses();
                 }
+
+                m_selectedAddresses.clear();
             }
         }
 
@@ -693,9 +712,13 @@ namespace MyImGui
                                         address
                                     );
 
+                                    savePinnedAddresses();
+
                                     m_selectedAddresses.erase(
                                         address
                                     );
+
+                                    m_selectedAddresses.clear();
                                 }
 
                                 ImGui::Separator();
@@ -853,6 +876,7 @@ namespace MyImGui
                                         m_scanner.unpinAddress(
                                             candidate.address
                                         );
+                                        savePinnedAddresses();
                                     }
                                 }
                                 else
@@ -868,6 +892,7 @@ namespace MyImGui
                                         m_scanner.pinAddress(
                                             candidate.address
                                         );
+                                        savePinnedAddresses();
                                     }
                                 }
 
@@ -1010,5 +1035,147 @@ namespace MyImGui
             }
         
         ImGui::End();
+    }
+
+    std::string DosBoxMemoryScannerWindow::
+        pinnedAddressesFilePath() const
+    {
+        return
+            "settings/memory_pins_" +
+            m_gameId +
+            ".cfg";
+    }
+
+    void DosBoxMemoryScannerWindow::setGameId(
+        const std::string& gameId
+    )
+    {
+        if (m_gameId == gameId)
+        {
+            return;
+        }
+
+        m_gameId = gameId;
+
+        m_pinnedAddresses.clear();
+        m_pinnedDescriptions.clear();
+        m_scanner.clearPinnedAddresses();
+
+        loadPinnedAddresses();
+    }
+
+    void DosBoxMemoryScannerWindow::
+        loadPinnedAddresses()
+    {
+        std::ifstream file(
+            pinnedAddressesFilePath()
+        );
+
+        if (!file.is_open())
+        {
+            return;
+        }
+
+        std::string line;
+
+        while (std::getline(
+            file,
+            line
+        ))
+        {
+            if (line.empty())
+            {
+                continue;
+            }
+
+            const size_t separator =
+                line.find('|');
+
+            const std::string addressText =
+                line.substr(
+                    0,
+                    separator
+                );
+
+            const size_t address =
+                static_cast<size_t>(
+                    std::stoull(
+                        addressText,
+                        nullptr,
+                        0
+                    )
+                    );
+
+            std::string description;
+
+            if (separator !=
+                std::string::npos)
+            {
+                description =
+                    line.substr(
+                        separator + 1
+                    );
+            }
+
+            m_pinnedAddresses.insert(
+                address
+            );
+
+            m_scanner.pinAddress(
+                address
+            );
+
+            m_pinnedDescriptions[
+                address
+            ] = description;
+        }
+
+
+    }
+    void DosBoxMemoryScannerWindow::
+        savePinnedAddresses() const
+    {
+        const std::string filename =
+            pinnedAddressesFilePath();
+
+        std::ofstream file(
+            filename
+        );
+
+        printf(
+            "File open: %s\n",
+            file.is_open()
+            ? "YES"
+            : "NO"
+        );
+
+        if (!file.is_open())
+        {
+            return;
+        }
+
+        for (size_t address :
+        m_pinnedAddresses)
+        {
+            file
+                << "0x"
+                << std::hex
+                << address;
+
+            const auto description =
+                m_pinnedDescriptions.find(
+                    address
+                );
+
+            if (description !=
+                m_pinnedDescriptions.end())
+            {
+                file
+                    << "|"
+                    << description->second;
+            }
+
+            file << '\n';
+        }
     }
 }
