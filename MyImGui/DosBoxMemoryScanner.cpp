@@ -141,8 +141,24 @@ namespace MyImGui
         );
 
 
-        for (size_t address = 0;
-            address < memory.size();
+        const size_t startAddress =
+            m_scanRangeEnabled
+            ? (std::min)(
+                m_scanStartAddress,
+                memory.size()
+            )
+            : 0;
+
+        const size_t endAddress =
+            m_scanRangeEnabled
+            ? (std::min)(
+                m_scanEndAddress + 1,
+                memory.size()
+            )
+            : memory.size();
+
+        for (size_t address = startAddress;
+            address < endAddress;
             ++address)
         {
             if (filterExactValue &&
@@ -412,5 +428,26 @@ namespace MyImGui
                     ];
             }
         }
+    }
+    
+    void DosBoxMemoryScanner::setScanRange(
+        size_t startAddress,
+        size_t endAddress
+    )
+    {
+        m_scanStartAddress =
+            startAddress;
+
+        m_scanEndAddress =
+            endAddress;
+
+        m_scanRangeEnabled =
+            true;
+    }
+
+    void DosBoxMemoryScanner::clearScanRange()
+    {
+        m_scanRangeEnabled =
+            false;
     }
 }

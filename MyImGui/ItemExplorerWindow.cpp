@@ -31,6 +31,26 @@ namespace ItemExplorer
             return;
         }
 
+        const char* viewModes[] =
+        {
+            "Show Item",
+            "Show All"
+        };
+
+        ImGui::SetNextItemWidth(
+            150.0f
+        );
+
+        ImGui::Combo(
+            "##ItemExplorerView",
+            &m_viewMode,
+            viewModes,
+            IM_ARRAYSIZE(viewModes)
+        );
+
+        ImGui::Separator();
+
+
         if (!m_source)
         {
             ImGui::TextUnformatted(
@@ -51,21 +71,30 @@ namespace ItemExplorer
         const auto& items =
             m_source->items();
 
-        ImGui::Text(
-            "Items: %zu",
-            items.size()
-        );
-
-        ImGui::Separator();
-
-        for (const Item& item :
-            items)
+        if (m_viewMode == 0)
+        {
+            ImGui::TextUnformatted(
+                "No item selected."
+            );
+        }
+        else
         {
             ImGui::Text(
-                "%d - %s",
-                item.id,
-                item.name.c_str()
+                "Items: %zu",
+                items.size()
             );
+
+            ImGui::Separator();
+
+            for (const Item& item :
+                items)
+            {
+                ImGui::Text(
+                    "%d - %s",
+                    item.id,
+                    item.name.c_str()
+                );
+            }
         }
 
         ImGui::End();

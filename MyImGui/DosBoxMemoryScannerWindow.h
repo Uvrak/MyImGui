@@ -62,6 +62,11 @@ namespace MyImGui
 
         int m_exactValue = 0;
 
+        bool m_limitScanRange = false;
+
+        char m_scanStartAddress[32] = {};
+        char m_scanEndAddress[32] = {};
+
         bool m_filterPrevious = false;
         int m_previousValue = 0;
 

@@ -76,6 +76,13 @@ namespace MyImGui
         );
 
         void refreshValues();
+        
+        void setScanRange(
+            size_t startAddress,
+            size_t endAddress
+        );
+
+        void clearScanRange();
 
     private:
         bool requestSnapshot();
@@ -111,7 +118,15 @@ namespace MyImGui
 
         int m_exactValue = 0;
 
+
+        bool m_filterPrevious = false;
+
         std::unordered_set<size_t>
             m_pinnedAddresses;
+
+        bool m_scanRangeEnabled = false;
+
+        size_t m_scanStartAddress = 0;
+        size_t m_scanEndAddress = 0;
     };
 }

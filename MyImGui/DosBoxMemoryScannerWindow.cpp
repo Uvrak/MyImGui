@@ -75,6 +75,42 @@ namespace MyImGui
                 "New Scan"
             ))
             {
+                if (m_limitScanRange)
+                {
+                    char* startEnd = nullptr;
+                    char* endEnd = nullptr;
+
+                    const unsigned long long startAddress =
+                        std::strtoull(
+                            m_scanStartAddress,
+                            &startEnd,
+                            0
+                        );
+
+                    const unsigned long long endAddress =
+                        std::strtoull(
+                            m_scanEndAddress,
+                            &endEnd,
+                            0
+                        );
+
+                    if (startEnd != m_scanStartAddress &&
+                        *startEnd == '\0' &&
+                        endEnd != m_scanEndAddress &&
+                        *endEnd == '\0' &&
+                        startAddress <= endAddress)
+                    {
+                        m_scanner.setScanRange(
+                            static_cast<size_t>(startAddress),
+                            static_cast<size_t>(endAddress)
+                        );
+                    }
+                }
+                else
+                {
+                    m_scanner.clearScanRange();
+                }
+
                 m_scanner.scan(
                     DosBoxMemoryScanMode::NewScan
                 );
@@ -268,6 +304,40 @@ namespace MyImGui
         }
 
         m_toolbarWindow.end();
+
+        ImGui::Separator();
+
+        ImGui::Checkbox(
+            "Limit Range",
+            &m_limitScanRange
+        );
+
+        if (m_limitScanRange)
+        {
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(
+                120.0f
+            );
+
+            ImGui::InputText(
+                "Start",
+                m_scanStartAddress,
+                sizeof(m_scanStartAddress)
+            );
+
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(
+                120.0f
+            );
+
+            ImGui::InputText(
+                "End",
+                m_scanEndAddress,
+                sizeof(m_scanEndAddress)
+            );
+        }
 
         ImGui::Separator();
 

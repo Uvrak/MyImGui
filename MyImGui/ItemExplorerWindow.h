@@ -18,5 +18,8 @@ namespace ItemExplorer
     private:
         ItemSource* m_source =
             nullptr;
+
+        int m_viewMode = 0;
+
     };
 }

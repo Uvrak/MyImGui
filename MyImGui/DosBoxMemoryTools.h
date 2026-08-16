@@ -23,6 +23,8 @@ namespace MyImGui
 
         void draw();
 
+        DosBoxMemoryReader& memoryReader();
+
     private:
         bool m_liveView = false;
         double m_lastLiveRefresh = 0.0;

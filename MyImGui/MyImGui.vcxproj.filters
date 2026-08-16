@@ -208,6 +208,8 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="MM3_MEMORY_FINDINGS.md" />
+    <None Include="MM3_MEMORY_FINDINGS.md">
+      <Filter>Games\docs</Filter>
+    </None>
   </ItemGroup>
 </Project>

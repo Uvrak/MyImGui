@@ -22,7 +22,7 @@ namespace MyImGui
         void goToAddress(
             size_t address
         );
-
+        
     private:
         DosBoxMemoryReader&
             m_memoryReader;
@@ -36,5 +36,12 @@ namespace MyImGui
         bool m_scrollToSearchResult = false;
         
         char m_addressText[32] = {};
+
+        size_t m_selectedAddress = 0;
+        bool m_hasSelectedAddress = false;
+        bool m_memoryViewActive = false;
+
+        bool m_scrollToSelectedAddress = false;
+        bool m_keepSelectedVisible = false;
     };
 }

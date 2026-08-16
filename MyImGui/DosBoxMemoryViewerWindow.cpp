@@ -69,11 +69,65 @@ namespace MyImGui
             sizeof(m_searchText)
         );
 
+        if (ImGui::IsItemActive())
+        {
+            m_memoryViewActive = false;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Search##MemorySearchButton"
+        ))
+        {
+            m_hasSearchResult = false;
+
+            const std::string searchText =
+                m_searchText;
+
+            if (!searchText.empty())
+            {
+                for (size_t address = 0;
+                    address + searchText.size() <= memory.size();
+                    ++address)
+                {
+                    bool match = true;
+
+                    for (size_t i = 0;
+                        i < searchText.size();
+                        ++i)
+                    {
+                        if (memory[address + i] !=
+                            static_cast<uint8_t>(
+                                searchText[i]
+                                ))
+                        {
+                            match = false;
+                            break;
+                        }
+                    }
+
+                    if (match)
+                    {
+                        m_searchResult = address;
+                        m_hasSearchResult = true;
+                        m_scrollToSearchResult = true;
+                        break;
+                    }
+                }
+            }
+        }
+
         ImGui::InputText(
             "Address",
             m_addressText,
             sizeof(m_addressText)
         );
+
+        if (ImGui::IsItemActive())
+        {
+            m_memoryViewActive = false;
+        }
 
         ImGui::SameLine();
 
@@ -116,52 +170,19 @@ namespace MyImGui
             &liveView
         );
 
-        if (ImGui::Button("Search##MemorySearchButton"))
-        {
-            m_hasSearchResult = false;
-
-            const std::string searchText =
-                m_searchText;
-
-            if (!searchText.empty())
-            {
-                for (size_t address = 0;
-                    address + searchText.size() <= memory.size();
-                    ++address)
-                {
-                    bool match = true;
-
-                    for (size_t i = 0;
-                        i < searchText.size();
-                        ++i)
-                    {
-                        if (memory[address + i] !=
-                            static_cast<uint8_t>(
-                                searchText[i]
-                                ))
-                        {
-                            match = false;
-                            break;
-                        }
-                    }
-
-                    if (match)
-                    {
-                        m_searchResult = address;
-                        m_hasSearchResult = true;
-                        m_scrollToSearchResult = true;
-                        break;
-                    }
-                }
-            }
-
-        }
-
         if (m_hasSearchResult)
         {
             ImGui::Text(
                 "Found at: 0x%05zX",
                 m_searchResult
+            );
+        }
+
+        if (m_hasSelectedAddress)
+        {
+            ImGui::Text(
+                "Selected: 0x%05zX",
+                m_selectedAddress
             );
         }
 
@@ -258,6 +279,22 @@ namespace MyImGui
 
                     ImGui::TableNextRow();
 
+                    const size_t selectedRow =
+                        m_selectedAddress /
+                        BytesPerRow;
+
+                    if (m_keepSelectedVisible &&
+                        m_hasSelectedAddress &&
+                        static_cast<size_t>(row) == selectedRow)
+                    {
+                        ImGui::SetScrollHereY(
+                            0.5f
+                        );
+
+                        m_keepSelectedVisible =
+                            false;
+                    }
+
                     const size_t activeRow =
                         m_searchResult /
                         BytesPerRow;
@@ -276,15 +313,6 @@ namespace MyImGui
                                 )
                             )
                         );
-                    }
-
-                    if (m_scrollToSearchResult)
-                    {
-                        const int targetRow =
-                            static_cast<int>(
-                                m_searchResult /
-                                BytesPerRow
-                                );
                     }
 
                     ImGui::TableSetColumnIndex(0);
@@ -310,12 +338,54 @@ namespace MyImGui
                         if (byteAddress <
                             memory.size())
                         {
-                            ImGui::Text(
+                            char byteText[3];
+
+                            std::snprintf(
+                                byteText,
+                                sizeof(byteText),
                                 "%02X",
                                 static_cast<unsigned int>(
                                     memory[byteAddress]
                                     )
                             );
+
+                            const bool selected =
+                                m_hasSelectedAddress &&
+                                m_selectedAddress == byteAddress;
+
+                            if (selected)
+                            {
+                                ImGui::TableSetBgColor(
+                                    ImGuiTableBgTarget_CellBg,
+                                    ImGui::GetColorU32(
+                                        ImGuiCol_Header
+                                    )
+                                );
+                            }
+
+                            ImGui::PushID(
+                                static_cast<int>(byteAddress)
+                            );
+
+                            ImGui::TextUnformatted(
+                                byteText
+                            );
+
+                            if (ImGui::IsItemClicked(
+                                ImGuiMouseButton_Left
+                            ))
+                            {
+                                m_selectedAddress =
+                                    byteAddress;
+
+                                m_hasSelectedAddress =
+                                    true;
+
+                                m_memoryViewActive =
+                                    true;
+                            }
+
+                            ImGui::PopID();
                         }
                     }
                     
@@ -355,6 +425,64 @@ namespace MyImGui
             }
 
             ImGui::EndTable();
+
+            if (m_memoryViewActive &&
+                m_hasSelectedAddress &&
+                ImGui::IsWindowFocused(
+                    ImGuiFocusedFlags_RootAndChildWindows
+                ))
+            {
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_LeftArrow,
+                    false
+                ))
+                {
+                    if (m_selectedAddress > 0)
+                    {
+                        --m_selectedAddress;
+                        m_keepSelectedVisible = true;
+                    }
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_RightArrow,
+                    false
+                ))
+                {
+                    if (m_selectedAddress + 1 <
+                        memory.size())
+                    {
+                        ++m_selectedAddress;
+                        m_keepSelectedVisible = true;
+                    }
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_UpArrow,
+                    false
+                ))
+                {
+                    if (m_selectedAddress >= 16)
+                    {
+                        m_selectedAddress -= 16;
+                        m_keepSelectedVisible = true;
+                    }
+                }
+
+                if (ImGui::IsKeyPressed(
+                    ImGuiKey_DownArrow,
+                    false
+                ))
+                {
+                    if (m_selectedAddress + 16 <
+                        memory.size())
+                    {
+                        m_selectedAddress += 16;
+                        m_keepSelectedVisible = true;
+                    }
+                }
+            }
+                    
         }
 
         ImGui::End();

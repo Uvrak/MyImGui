@@ -217,7 +217,9 @@ int main(int, char**)
     }
 
     MightAndMagic3::ItemSource
-        mm3ItemSource;
+        mm3ItemSource(
+            memoryTools.memoryReader()
+        );
 
     ItemExplorer::ItemExplorerWindow
         itemExplorerWindow;
@@ -314,6 +316,8 @@ int main(int, char**)
         ImGui::DockSpaceOverViewport();
 
         memoryTools.draw();
+
+        mm3ItemSource.refresh();
 
         itemExplorerWindow.draw();
 

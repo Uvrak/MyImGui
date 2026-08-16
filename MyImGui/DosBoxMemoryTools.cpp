@@ -67,4 +67,10 @@ namespace MyImGui
             m_liveView
         );
     }
+
+    DosBoxMemoryReader&
+        DosBoxMemoryTools::memoryReader()
+    {
+        return m_memoryReader;
+    }
 }
