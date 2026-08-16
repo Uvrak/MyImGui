@@ -29,9 +29,13 @@ namespace MyImGui
             const std::string& gameFilename
         );
 
+        void requestRefresh();
+
     private:
         DosBoxInputMode m_inputMode =
             DosBoxInputMode::AlwaysActive;
         bool m_inputActive = true;
+
+        bool m_refreshRequested = false;
     };
 }

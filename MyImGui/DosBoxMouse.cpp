@@ -66,6 +66,12 @@ namespace MyImGui
                     ) - 1
             );
 
+        ImGui::SetTooltip(
+            "DOSBox: %d, %d",
+            dosBoxMouseX,
+            dosBoxMouseY
+        );
+
         static int lastDosBoxMouseX = -1;
         static int lastDosBoxMouseY = -1;
 
@@ -175,7 +181,73 @@ namespace MyImGui
                 "MOUSEWHEEL:DOWN"
             );
         }
+        if (m_clickPending)
+        {
+            const double currentTime =
+                ImGui::GetTime();
 
+            if (currentTime -
+                m_clickStartTime >= 0.01)
+            {
+                NamedPipeClient.send(
+                    "MOUSEUP:0"
+                );
+
+                m_clickPending = false;
+            }
+        }
     }
 
+    void DosBoxMouse::click(
+        NamedPipeClient& namedPipeClient,
+        int x,
+        int y,
+        int contentWidth,
+        int contentHeight
+    )
+    {
+        std::string command =
+            "MOUSEMOVE:" +
+            std::to_string(x) +
+            ":" +
+            std::to_string(y) +
+            ":" +
+            std::to_string(contentWidth) +
+            ":" +
+            std::to_string(contentHeight);
+
+        namedPipeClient.send(
+            command
+        );
+
+        namedPipeClient.send(
+            "MOUSEDOWN:0"
+        );
+
+        m_clickPending = true;
+
+        m_clickStartTime =
+            ImGui::GetTime();
+    }
+
+    void DosBoxMouse::updatePendingClick(
+        NamedPipeClient& namedPipeClient
+    )
+    {
+        if (!m_clickPending)
+            return;
+
+        const double currentTime =
+            ImGui::GetTime();
+
+        if (currentTime -
+            m_clickStartTime >= 0.05)
+        {
+            namedPipeClient.send(
+                "MOUSEUP:0"
+            );
+
+            m_clickPending = false;
+        }
+    }
 }

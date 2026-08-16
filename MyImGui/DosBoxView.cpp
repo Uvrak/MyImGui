@@ -11,6 +11,11 @@
 
 namespace MyImGui
 {
+    void DosBoxView::requestRefresh()
+    {
+        m_refreshRequested = true;
+    }
+
     void DosBoxView::draw(
         NamedPipeClient& NamedPipeClient,
         DosBoxFrameReader& frameReader,
@@ -132,9 +137,26 @@ namespace MyImGui
 
         const DosBoxFrameHeader* frameHeader =
             frameReader.header();
+        
+        mouse.updatePendingClick(
+            NamedPipeClient
+        );
 
         if (frameHeader != nullptr)
         {
+            if (m_refreshRequested)
+            {
+                mouse.click(
+                    NamedPipeClient,
+                    54,
+                    356,
+                    frameHeader->contentWidth,
+                    frameHeader->contentHeight
+                );
+
+                m_refreshRequested = false;
+            }
+
             const uint8_t* framePixels =
                 frameReader.pixels();
 
@@ -149,7 +171,7 @@ namespace MyImGui
 
                 ID3D11ShaderResourceView* sharedTexture =
                     frameTexture.textureView();
-         
+
                 if (sharedTexture != nullptr)
                 {
                     ImVec2 availableSize =
@@ -201,6 +223,7 @@ namespace MyImGui
                                 )
                         )
                     );
+
                     const bool dosBoxImageHovered =
                         ImGui::IsMouseHoveringRect(
                             ImGui::GetItemRectMin(),
@@ -261,7 +284,6 @@ namespace MyImGui
                         );
                     }
 
-
                     if (dosBoxImageClicked)
                     {
                         m_inputActive = true;
@@ -285,7 +307,7 @@ namespace MyImGui
                 "Shared frame not available"
             );
         }
-
+        
         if (m_inputActive ||
             m_inputMode ==
             DosBoxInputMode::AlwaysActive)

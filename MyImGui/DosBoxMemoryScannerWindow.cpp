@@ -10,25 +10,25 @@
 
 #include "imgui.h"
 
+#include "DosBoxView.h"
+
 namespace MyImGui
 {
-    DosBoxMemoryScannerWindow::
-        DosBoxMemoryScannerWindow(
-            DosBoxMemoryReader& memoryReader,
-            const std::string& gameId
-        )
-        : m_scanner(
-            memoryReader
-        ),
-        m_gameId(
-            gameId
-        )
+    DosBoxMemoryScannerWindow::DosBoxMemoryScannerWindow(
+        DosBoxMemoryReader& memoryReader,
+        const std::string& gameId,
+        DosBoxView* dosBoxView
+    )
+        : m_scanner(memoryReader),
+        m_gameId(gameId),
+        m_dosBoxView(dosBoxView)
     {
         loadPinnedAddresses();
     }
 
     void DosBoxMemoryScannerWindow::draw(
-        bool* isOpen
+        bool* isOpen,
+        bool& liveView
     )
     {
         if (isOpen &&
@@ -143,11 +143,6 @@ namespace MyImGui
                     80.0f
                 );
 
-                ImGui::InputInt(
-                    "##ExactValue",
-                    &m_exactValue
-                );
-
                 m_toolbarLayout.endItem();
 
                 if (m_exactValue < 0)
@@ -187,7 +182,39 @@ namespace MyImGui
 
             m_toolbarLayout.endItem();
 
+            // Refresh
+            const ImVec2 refreshSize(
+                ImGui::CalcTextSize("Refresh").x +
+                framePadding.x * 2.0f,
+                ImGui::GetFrameHeight()
+            );
 
+            m_toolbarLayout.beginItem(
+                refreshSize
+            );
+
+            if (ImGui::Button("Refresh"))
+            {
+                m_scanner.refreshValues();
+            }
+
+            m_toolbarLayout.endItem();
+
+            // Live View
+            m_toolbarLayout.beginItem(
+                ImVec2(
+                    ImGui::CalcTextSize("Live").x +
+                    30.0f,
+                    ImGui::GetFrameHeight()
+                )
+            );
+
+            ImGui::Checkbox(
+                "Live",
+                &liveView
+            );
+
+            m_toolbarLayout.endItem();
             // Reset
             const ImVec2 resetSize(
                 ImGui::CalcTextSize("Reset").x +
@@ -934,10 +961,18 @@ namespace MyImGui
 
                             ImGui::TableSetColumnIndex(2);
 
+                            uint8_t liveCurrentValue =
+                                currentValue;
+
+                            m_scanner.readCurrentValue(
+                                address,
+                                liveCurrentValue
+                            );
+
                             ImGui::Text(
                                 "%u",
                                 static_cast<unsigned int>(
-                                    currentValue
+                                    liveCurrentValue
                                     )
                             );
 
@@ -1258,10 +1293,18 @@ namespace MyImGui
 
                         ImGui::TableSetColumnIndex(2);
 
+                        uint8_t liveCurrentValue =
+                            candidate.currentValue;
+
+                        m_scanner.readCurrentValue(
+                            candidate.address,
+                            liveCurrentValue
+                        );
+
                         ImGui::Text(
                             "%u",
                             static_cast<unsigned int>(
-                                candidate.currentValue
+                                liveCurrentValue
                                 )
                         );
 
@@ -1296,11 +1339,6 @@ namespace MyImGui
                 ImGuiWindowFlags_AlwaysAutoResize
             ))
             {
-                ImGui::Text(
-                    "Address: 0x%05zX",
-                    m_writeAddress
-                );
-
                 ImGui::InputInt(
                     "Value",
                     &m_writeValue
@@ -1316,6 +1354,7 @@ namespace MyImGui
                     m_writeValue = 255;
                 }
 
+
                 if (ImGui::Button(
                     "Write"
                 ))
@@ -1330,18 +1369,13 @@ namespace MyImGui
                         m_scanner.refreshValues();
                     }
 
+                    if (m_dosBoxView != nullptr)
+                    {
+                        m_dosBoxView->requestRefresh();
+                    }
+
                     ImGui::CloseCurrentPopup();
                 }
-
-                ImGui::SameLine();
-
-                if (ImGui::Button(
-                    "Cancel"
-                ))
-                {
-                    ImGui::CloseCurrentPopup();
-                }
-
                 ImGui::EndPopup();
             }
 
@@ -1386,6 +1420,12 @@ namespace MyImGui
         m_scanner.clearPinnedAddresses();
 
         loadPinnedAddresses();
+    }
+
+    bool DosBoxMemoryScannerWindow::
+        refreshMemory()
+    {
+        return m_scanner.refreshMemory();
     }
 
     void DosBoxMemoryScannerWindow::

@@ -2,6 +2,7 @@
 #include "DosBoxMemoryViewerWindow.h"
 
 #include <cstdio>
+#include <cstdlib>
 
 #include "imgui.h"
 
@@ -13,11 +14,15 @@ namespace MyImGui
         )
         : m_memoryReader(
             memoryReader
+        ),
+        m_memoryScanner(
+            memoryReader
         )
     {}
 
     void DosBoxMemoryViewerWindow::draw(
-        bool* isOpen
+        bool* isOpen,
+        bool& liveView
     )
     {
         if (isOpen &&
@@ -57,6 +62,108 @@ namespace MyImGui
             "Memory size: %zu bytes",
             memory.size()
         );
+
+        ImGui::InputText(
+            "Search",
+            m_searchText,
+            sizeof(m_searchText)
+        );
+
+        ImGui::InputText(
+            "Address",
+            m_addressText,
+            sizeof(m_addressText)
+        );
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Go"))
+        {
+            char* end = nullptr;
+
+            const unsigned long long address =
+                std::strtoull(
+                    m_addressText,
+                    &end,
+                    0
+                );
+
+            if (end != m_addressText &&
+                *end == '\0' &&
+                address < memory.size())
+            {
+                m_searchResult =
+                    static_cast<size_t>(
+                        address
+                        );
+
+                m_hasSearchResult = true;
+                m_scrollToSearchResult = true;
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Refresh"))
+        {
+            m_memoryScanner.refreshMemory();
+        }
+
+        ImGui::SameLine();
+
+        ImGui::Checkbox(
+            "Live",
+            &liveView
+        );
+
+        if (ImGui::Button("Search##MemorySearchButton"))
+        {
+            m_hasSearchResult = false;
+
+            const std::string searchText =
+                m_searchText;
+
+            if (!searchText.empty())
+            {
+                for (size_t address = 0;
+                    address + searchText.size() <= memory.size();
+                    ++address)
+                {
+                    bool match = true;
+
+                    for (size_t i = 0;
+                        i < searchText.size();
+                        ++i)
+                    {
+                        if (memory[address + i] !=
+                            static_cast<uint8_t>(
+                                searchText[i]
+                                ))
+                        {
+                            match = false;
+                            break;
+                        }
+                    }
+
+                    if (match)
+                    {
+                        m_searchResult = address;
+                        m_hasSearchResult = true;
+                        m_scrollToSearchResult = true;
+                        break;
+                    }
+                }
+            }
+
+        }
+
+        if (m_hasSearchResult)
+        {
+            ImGui::Text(
+                "Found at: 0x%05zX",
+                m_searchResult
+            );
+        }
 
         ImGui::Separator();
 
@@ -119,6 +226,19 @@ namespace MyImGui
                 rowCount
             );
 
+            if (m_scrollToSearchResult)
+            {
+                const int targetRow =
+                    static_cast<int>(
+                        m_searchResult /
+                        BytesPerRow
+                        );
+
+                clipper.IncludeItemByIndex(
+                    targetRow
+                );
+            }
+
             while (clipper.Step())
             {
                 for (int row =
@@ -131,6 +251,45 @@ namespace MyImGui
                         BytesPerRow;
 
                     ImGui::TableNextRow();
+
+                    const size_t activeRow =
+                        m_searchResult /
+                        BytesPerRow;
+
+                    if (m_hasSearchResult &&
+                        static_cast<size_t>(row) == activeRow)
+                    {
+                        ImGui::TableSetBgColor(
+                            ImGuiTableBgTarget_RowBg0,
+                            ImGui::GetColorU32(
+                                ImVec4(
+                                    0.25f,
+                                    0.25f,
+                                    0.10f,
+                                    1.0f
+                                )
+                            )
+                        );
+                    }
+
+                    if (m_scrollToSearchResult)
+                    {
+                        const int targetRow =
+                            static_cast<int>(
+                                m_searchResult /
+                                BytesPerRow
+                                );
+
+                        if (row == targetRow)
+                        {
+                            ImGui::SetScrollHereY(
+                                0.5f
+                            );
+
+                            m_scrollToSearchResult =
+                                false;
+                        }
+                    }
 
                     ImGui::TableSetColumnIndex(0);
 

@@ -200,10 +200,10 @@ int main(int, char**)
     MyImGui::DosBoxKeyboard dosBoxKeyboard;
     MyImGui::DosBoxMouse dosBoxMouse;   
     MyImGui::DosBoxView dosBoxView;
-    
     MyImGui::DosBoxMemoryTools
         memoryTools(
-            mainMenu.gameFilename()
+            mainMenu.gameFilename(),
+            &dosBoxView
         );
 
     if (dosBoxFound)

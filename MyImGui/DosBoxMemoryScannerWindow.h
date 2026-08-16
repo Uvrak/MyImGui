@@ -12,21 +12,27 @@
 
 namespace MyImGui
 {
+    class DosBoxView;
+
     class DosBoxMemoryScannerWindow
     {
     public:
         DosBoxMemoryScannerWindow(
             DosBoxMemoryReader& memoryReader,
-            const std::string& gameId
+            const std::string& gameId,
+            DosBoxView* dosBoxView
         );
 
         void draw(
-            bool* isOpen = nullptr
+            bool* isOpen,
+            bool& liveView
         );
 
         void setGameId(
             const std::string& gameId
         );
+
+        bool refreshMemory();
 
     private:
         DosBoxMemoryScanner
@@ -93,5 +99,9 @@ namespace MyImGui
         size_t m_writeAddress = 0;
         int m_writeValue = 0;
         bool m_showWriteValuePopup = false;
+
+        DosBoxView* m_dosBoxView = nullptr;
     };
+
+
 }
