@@ -220,24 +220,30 @@ namespace MyImGui
 
             ImGui::TableHeadersRow();
 
+            if (m_scrollToSearchResult)
+            {
+                const float rowHeight =
+                    ImGui::GetTextLineHeightWithSpacing();
+
+                const float targetY =
+                    static_cast<float>(
+                        m_searchResult /
+                        BytesPerRow
+                        ) * rowHeight;
+
+                ImGui::SetScrollY(
+                    targetY
+                );
+
+                m_scrollToSearchResult =
+                    false;
+            }
+
             ImGuiListClipper clipper;
 
             clipper.Begin(
                 rowCount
             );
-
-            if (m_scrollToSearchResult)
-            {
-                const int targetRow =
-                    static_cast<int>(
-                        m_searchResult /
-                        BytesPerRow
-                        );
-
-                clipper.IncludeItemByIndex(
-                    targetRow
-                );
-            }
 
             while (clipper.Step())
             {
@@ -279,16 +285,6 @@ namespace MyImGui
                                 m_searchResult /
                                 BytesPerRow
                                 );
-
-                        if (row == targetRow)
-                        {
-                            ImGui::SetScrollHereY(
-                                0.5f
-                            );
-
-                            m_scrollToSearchResult =
-                                false;
-                        }
                     }
 
                     ImGui::TableSetColumnIndex(0);
@@ -362,5 +358,14 @@ namespace MyImGui
         }
 
         ImGui::End();
+    }
+
+    void DosBoxMemoryViewerWindow::goToAddress(
+        size_t address
+    )
+    {
+        m_searchResult = address;
+        m_hasSearchResult = true;
+        m_scrollToSearchResult = true;
     }
 }

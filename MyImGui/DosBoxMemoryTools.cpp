@@ -46,25 +46,22 @@ namespace MyImGui
             }
         }
 
-        if (m_liveView)
-        {
-            const double currentTime =
-                ImGui::GetTime();
-
-            if (currentTime -
-                m_lastLiveRefresh >= 0.2)
-            {
-                m_scannerWindow.refreshMemory();
-
-                m_lastLiveRefresh =
-                    currentTime;
-            }
-        }
-
         m_scannerWindow.draw(
             nullptr,
             m_liveView
         );
+
+        size_t selectedAddress = 0;
+
+        if (m_scannerWindow.takeSelectedAddress(
+            selectedAddress
+        ))
+        {
+            m_viewerWindow.goToAddress(
+                selectedAddress
+            );
+        }
+
         m_viewerWindow.draw(
             nullptr,
             m_liveView

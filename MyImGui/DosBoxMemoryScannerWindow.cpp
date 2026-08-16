@@ -774,6 +774,12 @@ namespace MyImGui
                                 ImGuiSelectableFlags_SpanAllColumns
                             ))
                             {
+                                m_lastSelectedAddress =
+                                    address;
+
+                                m_hasSelectedAddress =
+                                    true;
+
                                 if (selected)
                                 {
                                     m_selectedAddresses.erase(
@@ -1041,6 +1047,12 @@ namespace MyImGui
                                 ImGuiSelectableFlags_SpanAllColumns
                             ))
                             {
+                                m_lastSelectedAddress =
+                                    candidate.address;
+
+                                m_hasSelectedAddress =
+                                    true;
+
                                 if (selected)
                                 {
                                     m_selectedAddresses.erase(
@@ -1426,6 +1438,24 @@ namespace MyImGui
         refreshMemory()
     {
         return m_scanner.refreshMemory();
+    }
+
+    bool DosBoxMemoryScannerWindow::takeSelectedAddress(
+        size_t& address
+    )
+    {
+        if (!m_hasSelectedAddress)
+        {
+            return false;
+        }
+
+        address =
+            m_lastSelectedAddress;
+
+        m_hasSelectedAddress =
+            false;
+
+        return true;
     }
 
     void DosBoxMemoryScannerWindow::

@@ -19,6 +19,10 @@ namespace MyImGui
             bool& liveView
         );
 
+        void goToAddress(
+            size_t address
+        );
+
     private:
         DosBoxMemoryReader&
             m_memoryReader;

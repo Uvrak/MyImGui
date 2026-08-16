@@ -34,6 +34,10 @@ namespace MyImGui
 
         bool refreshMemory();
 
+        bool takeSelectedAddress(
+            size_t& address
+        );
+
     private:
         DosBoxMemoryScanner
             m_scanner;
@@ -101,6 +105,9 @@ namespace MyImGui
         bool m_showWriteValuePopup = false;
 
         DosBoxView* m_dosBoxView = nullptr;
+
+        size_t m_lastSelectedAddress = 0;
+        bool m_hasSelectedAddress = false;
     };
 
 
