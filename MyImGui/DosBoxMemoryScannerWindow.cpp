@@ -357,34 +357,6 @@ namespace MyImGui
 
         ImGui::SameLine();
 
-        if (ImGui::Button(
-            "Test Address"
-        ))
-        {
-            size_t address = 0;
-
-            if (m_scanner.getReadTrackingAddress(
-                0,
-                address
-            ))
-            {
-                char text[64];
-
-                std::snprintf(
-                    text,
-                    sizeof(text),
-                    "First read address: 0x%05zX",
-                    address
-                );
-
-                ImGui::SetClipboardText(
-                    text
-                );
-            }
-        }
-
-        ImGui::Separator();
-
         ImGui::Checkbox(
             "Limit Range",
             &m_limitScanRange
@@ -419,13 +391,6 @@ namespace MyImGui
 
         ImGui::Separator();
 
-        ImGui::Text(
-            "Candidates: %zu",
-            m_scanner.
-            candidates().
-            size()
-        );
-
         ImGui::TextWrapped(
             "%s",
             m_scanner.
@@ -439,22 +404,6 @@ namespace MyImGui
         std::vector<int> pinnedIndices;
         
         std::vector<size_t> pinnedOnlyAddresses;
-
-        int address8Count = 0;
-
-        for (const DosBoxMemoryCandidate& candidate :
-            m_scanner.candidates())
-        {
-            if (candidate.address == 0x00008)
-            {
-                ++address8Count;
-            }
-        }
-
-        ImGui::Text(
-            "0x00008 candidates: %d",
-            address8Count
-        );
 
         filteredIndices.reserve(
             static_cast<int>(
@@ -668,6 +617,28 @@ namespace MyImGui
 
         ImGui::NewLine();
 
+        if (!m_scanner.candidates().empty())
+        {
+            if (ImGui::Button(
+                "Pin All"
+            ))
+            {
+                for (const DosBoxMemoryCandidate& candidate :
+                    m_scanner.candidates())
+                {
+                    m_pinnedAddresses.insert(
+                        candidate.address
+                    );
+
+                    m_scanner.pinAddress(
+                        candidate.address
+                    );
+                }
+
+                savePinnedAddresses();
+            }
+        }
+
         if (!m_pinnedAddresses.empty())
         {
             ImGui::SameLine();
@@ -689,6 +660,7 @@ namespace MyImGui
             if (ImGui::Button(
                 "Pin Selected"
             ))
+                ImGui::SameLine();
             {
                 for (size_t address :
                 m_selectedAddresses)
@@ -703,32 +675,6 @@ namespace MyImGui
                 }
 
                 savePinnedAddresses();
-
-                m_selectedAddresses.clear();
-            }
-        }
-
-        if (!m_selectedAddresses.empty())
-        {
-            ImGui::SameLine();
-
-            if (ImGui::Button(
-                "Unpin Selected"
-            ))
-            {
-                for (size_t address :
-                m_selectedAddresses)
-                {
-                    m_pinnedAddresses.erase(
-                        address
-                    );
-
-                    m_scanner.unpinAddress(
-                        address
-                    );
-
-                    savePinnedAddresses();
-                }
 
                 m_selectedAddresses.clear();
             }

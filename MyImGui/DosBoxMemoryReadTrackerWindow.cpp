@@ -28,6 +28,11 @@ namespace MyImGui
         loadSession();
     }
 
+    bool DosBoxMemoryTools::refreshMemory()
+    {
+        return m_scannerWindow.refreshMemory();
+    }
+
     void DosBoxMemoryReadTrackerWindow::draw(
         bool* isOpen
     )
@@ -153,6 +158,15 @@ namespace MyImGui
     
     void DosBoxMemoryReadTrackerWindow::saveSession() const
     {
+
+        if (m_idleReadAddresses.empty() &&
+            m_attackReadAddresses.empty() &&
+            m_attackOnlyReadAddresses.empty() &&
+            m_scanner.candidates().empty())
+        {
+            return;
+        }
+
         if (m_gameId.empty())
         {
             OutputDebugStringA(
@@ -394,6 +408,8 @@ namespace MyImGui
     {
         m_gameId =
             gameId;
+
+        loadSession();
     }
 
     void DosBoxMemoryTools::setGameId(

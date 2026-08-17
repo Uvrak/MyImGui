@@ -12,6 +12,14 @@ namespace ItemExplorer
         m_source = source;
     }
 
+    void ItemExplorerWindow::selectItem(
+        int itemId
+    )
+    {
+        m_selectedItemId =
+            itemId;
+    }
+
     void ItemExplorerWindow::draw(
         bool* isOpen
     )
@@ -66,16 +74,46 @@ namespace ItemExplorer
             m_source->gameName()
         );
 
+        ImGui::Text(
+            "Selected Item ID: %d",
+            m_selectedItemId
+        );
+
         ImGui::Separator();
 
         const auto& items =
             m_source->items();
-
         if (m_viewMode == 0)
         {
-            ImGui::TextUnformatted(
-                "No item selected."
-            );
+            const Item* selectedItem =
+                m_source->findById(
+                    m_selectedItemId
+                );
+
+            if (selectedItem)
+            {
+                ImGui::Text(
+                    "%d - %s",
+                    selectedItem->id,
+                    selectedItem->name.c_str()
+                );
+
+                for (const ItemProperty& property :
+                    selectedItem->properties)
+                {
+                    ImGui::Text(
+                        "%s: %s",
+                        property.name.c_str(),
+                        property.value.c_str()
+                    );
+                }
+            }
+            else
+            {
+                ImGui::TextUnformatted(
+                    "No item selected."
+                );
+            }
         }
         else
         {

@@ -27,6 +27,8 @@ namespace MightAndMagic3
             ) const override;
 
         bool refresh();
+
+        int selectedItemId() const;
     private:
         std::vector<
             ItemExplorer::Item

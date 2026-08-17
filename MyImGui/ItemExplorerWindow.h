@@ -11,6 +11,10 @@ namespace ItemExplorer
             ItemSource* source
         );
 
+        void selectItem(
+            int itemId
+        );
+
         void draw(
             bool* isOpen = nullptr
         );
@@ -20,6 +24,8 @@ namespace ItemExplorer
             nullptr;
 
         int m_viewMode = 0;
+
+        int m_selectedItemId = 0;
 
     };
 }

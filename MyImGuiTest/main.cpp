@@ -317,7 +317,21 @@ int main(int, char**)
 
         memoryTools.draw();
 
+        const bool memoryRefreshOk =
+            memoryTools.refreshMemory();
+
+        ImGui::Text(
+            "Memory refresh: %s",
+            memoryRefreshOk
+            ? "OK"
+            : "FAILED"
+        );
+
         mm3ItemSource.refresh();
+
+        itemExplorerWindow.selectItem(
+            mm3ItemSource.selectedItemId()
+        );
 
         itemExplorerWindow.draw();
 

@@ -280,3 +280,108 @@ Verified example:
 
 Therefore `Bronze` is stored separately from the base item ID.
 Material and potentially other item properties still need to be mapped.
+
+## Party Slot Inventory Item IDs
+
+The MM3 character record size is:
+
+0x12F = 303 bytes
+
+The inventory item-ID array for party slot 1 begins at:
+
+0x2BFEE
+
+The same inventory layout repeats for subsequent party slots
+with a stride of 0x12F bytes.
+
+Confirmed:
+
+Party Slot 1 / Inventory Slot 1:
+0x2BFEE
+
+Party Slot 2 / Inventory Slot 1:
+0x2C11D
+
+0x2C11D - 0x2BFEE = 0x12F
+
+Party Slot 2 / Inventory Slot 1 contained item ID 8,
+which matches the Axe currently stored there.
+
+Therefore the item-ID address can be calculated as:
+
+itemIdAddress =
+    0x2BFEE +
+    partyIndex * 0x12F +
+    inventorySlotIndex
+
+where both partyIndex and inventorySlotIndex are zero-based.
+
+## Selected Party Slot
+
+The currently opened / selected party slot is tracked by two
+byte values.
+
+Primary address:
+
+- `0x2068E`
+
+Mirror / related address:
+
+- `0x304F4`
+
+The values are zero-based:
+
+- Party Slot 1 -> `0`
+- Party Slot 2 -> `1`
+- Party Slot 3 -> `2`
+- Party Slot 4 -> `3`
+
+Both addresses were verified to change together while switching
+between party members.
+
+For tooling, `0x2068E` will be used as the primary selected-party-slot
+address.
+
+Value type:
+
+- `Byte`
+
+### Party Slot Inventory Offset
+
+The MM3 character record size is:
+
+- `0x12F` = 303 bytes
+
+The inventory item-ID array for Party Slot 1 begins at:
+
+- `0x2BFEE`
+
+Party Slot 2 / Inventory Slot 1 was verified at:
+
+- `0x2C11D`
+
+The difference is:
+
+`0x2C11D - 0x2BFEE = 0x12F`
+
+Party Slot 2 / Inventory Slot 1 contained item ID `8` (`Axe`),
+confirming that the inventory item-ID layout repeats with the
+character-record stride.
+
+Therefore an inventory item ID can be resolved using:
+
+`itemIdAddress = 0x2BFEE + (partyIndex * 0x12F) + inventorySlotIndex`
+
+where:
+
+- `partyIndex` is zero-based and read from `0x2068E`
+- `inventorySlotIndex` is zero-based and read from `0x304D0`
+- the resulting item ID is a byte
+
+This gives the complete selection chain:
+
+`0x2068E -> party index`
+
+`0x304D0 -> inventory slot index`
+
+`0x2BFEE + partyIndex * 0x12F + inventorySlotIndex -> item ID`

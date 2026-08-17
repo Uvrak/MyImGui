@@ -151,6 +151,51 @@ namespace MightAndMagic3
             item.name =
                 name;
 
+            if (itemId >= 1 &&
+                itemId <= 33)
+            {
+                constexpr size_t WeaponDiceCountAddress =
+                    0x210DD;
+
+                constexpr size_t WeaponDiceSidesAddress =
+                    0x21126;
+
+                const size_t weaponIndex =
+                    static_cast<size_t>(
+                        itemId - 1
+                        );
+
+                const size_t diceCountAddress =
+                    WeaponDiceCountAddress +
+                    weaponIndex;
+
+                const size_t diceSidesAddress =
+                    WeaponDiceSidesAddress +
+                    weaponIndex;
+
+                if (diceCountAddress < memory.size() &&
+                    diceSidesAddress < memory.size())
+                {
+                    const uint8_t diceCount =
+                        memory[diceCountAddress];
+
+                    const uint8_t diceSides =
+                        memory[diceSidesAddress];
+
+                    item.properties.push_back(
+                        {
+                            "Damage",
+                            std::to_string(
+                                diceCount
+                            ) +
+                            "d" +
+                            std::to_string(
+                                diceSides
+                            )
+                        }
+                    );
+                }
+            }
             m_items.push_back(
                 item
             );
@@ -162,5 +207,73 @@ namespace MightAndMagic3
         }
 
         return !m_items.empty();
+    }
+    
+    int ItemSource::selectedItemId() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        constexpr size_t SelectedInventorySlotAddress =
+            0x304D0;
+
+        constexpr size_t FirstInventoryItemIdsAddress =
+            0x2BFEE;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        if (SelectedPartySlotAddress >= memory.size() ||
+            SelectedInventorySlotAddress + 1 >= memory.size())
+        {
+            return 0;
+        }
+
+        const uint8_t partyIndex =
+            memory[
+                SelectedPartySlotAddress
+            ];
+
+        const uint16_t inventorySlot =
+            static_cast<uint16_t>(
+                memory[
+                    SelectedInventorySlotAddress
+                ]
+                ) |
+            (
+                static_cast<uint16_t>(
+                    memory[
+                        SelectedInventorySlotAddress + 1
+                    ]
+                    ) << 8
+                );
+
+        if (partyIndex >= 8 ||
+            inventorySlot >= 18)
+        {
+            return 0;
+        }
+
+        const size_t itemAddress =
+            FirstInventoryItemIdsAddress +
+            static_cast<size_t>(
+                partyIndex
+                ) *
+            CharacterRecordSize +
+            inventorySlot;
+
+        if (itemAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[
+                itemAddress
+            ]
+            );
     }
 }
