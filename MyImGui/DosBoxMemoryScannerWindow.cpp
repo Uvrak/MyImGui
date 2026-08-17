@@ -112,7 +112,8 @@ namespace MyImGui
                 }
 
                 m_scanner.scan(
-                    DosBoxMemoryScanMode::NewScan
+                    DosBoxMemoryScanMode::NewScan,
+                    m_valueType
                 );
             }
 
@@ -162,6 +163,47 @@ namespace MyImGui
 
             m_toolbarLayout.endItem();
 
+            // Value type
+            const char* valueTypes[] =
+            {
+                "Byte",
+                "Short",
+                "Int"
+            };
+
+            int selectedValueType =
+                static_cast<int>(
+                    m_valueType
+                    );
+
+            m_toolbarLayout.beginItem(
+                ImVec2(
+                    80.0f,
+                    ImGui::GetFrameHeight()
+                )
+            );
+
+            ImGui::SetNextItemWidth(
+                80.0f
+            );
+
+            if (ImGui::Combo(
+                "##ValueType",
+                &selectedValueType,
+                valueTypes,
+                IM_ARRAYSIZE(valueTypes)
+            ))
+            {
+                m_valueType =
+                    static_cast<
+                    DosBoxMemoryValueType
+                    >(
+                        selectedValueType
+                        );
+            }
+
+            m_toolbarLayout.endItem();
+
             // Previous
             
             // Exact value
@@ -177,6 +219,11 @@ namespace MyImGui
 
                 ImGui::SetNextItemWidth(
                     80.0f
+                );
+
+                ImGui::InputInt(
+                    "##ExactValue",
+                    &m_exactValue
                 );
 
                 m_toolbarLayout.endItem();
@@ -210,7 +257,8 @@ namespace MyImGui
             {
                 m_scanner.scan(
                     m_scanMode,
-                    static_cast<uint8_t>(
+                    m_valueType,
+                    static_cast<uint32_t>(
                         m_exactValue
                         )
                 );

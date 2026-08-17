@@ -9,6 +9,20 @@ namespace
     constexpr const char*
         DosBoxMemoryScannerPipeName =
         R"(\\.\pipe\DosBoxMemoryScanner)";
+
+    uint16_t readUInt16(
+        const std::vector<uint8_t>& memory,
+        size_t address
+    )
+    {
+        return
+            static_cast<uint16_t>(
+                memory[address]
+                ) |
+            static_cast<uint16_t>(
+                memory[address + 1]
+                ) << 8;
+    }
 }
 
 namespace MyImGui
@@ -27,7 +41,8 @@ namespace MyImGui
 
     bool DosBoxMemoryScanner::scan(
         DosBoxMemoryScanMode mode,
-        uint8_t exactValue
+        DosBoxMemoryValueType valueType,
+        uint32_t exactValue
     )
     {
         if (!requestSnapshot())
@@ -57,6 +72,7 @@ namespace MyImGui
         {
             initializeCandidates(
                 currentMemory,
+                valueType,
                 mode ==
                 DosBoxMemoryScanMode::ExactValue,
                 exactValue
@@ -73,6 +89,7 @@ namespace MyImGui
 
         refineCandidates(
             mode,
+            valueType,
             exactValue,
             m_previousMemory,
             currentMemory
@@ -87,6 +104,103 @@ namespace MyImGui
                 m_candidates.size()
             ) +
             " candidates.";
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::scanBytePattern(
+        const std::vector<uint8_t>& pattern
+    )
+    {
+        if (pattern.empty())
+        {
+            m_status =
+                "Byte pattern is empty.";
+
+            return false;
+        }
+
+        if (!requestSnapshot())
+        {
+            return false;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        if (memory.size() < pattern.size())
+        {
+            m_status =
+                "Byte pattern is larger than memory.";
+
+            return false;
+        }
+
+        m_candidates.clear();
+
+        const size_t startAddress =
+            m_scanRangeEnabled
+            ? (std::min)(
+                m_scanStartAddress,
+                memory.size()
+                )
+            : 0;
+
+        const size_t endAddress =
+            m_scanRangeEnabled
+            ? (std::min)(
+                m_scanEndAddress + 1,
+                memory.size()
+                )
+            : memory.size();
+
+        if (endAddress < startAddress ||
+            endAddress - startAddress < pattern.size())
+        {
+            m_status =
+                "Scan range is smaller than byte pattern.";
+
+            return false;
+        }
+
+        for (size_t address = startAddress;
+            address + pattern.size() <= endAddress;
+            ++address)
+        {
+            bool matches = true;
+
+            for (size_t i = 0;
+                i < pattern.size();
+                ++i)
+            {
+                if (memory[address + i] !=
+                    pattern[i])
+                {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if (!matches)
+            {
+                continue;
+            }
+
+            m_candidates.push_back(
+                DosBoxMemoryCandidate{
+                    address,
+                    memory[address],
+                    memory[address]
+                }
+            );
+        }
+
+        m_status =
+            "Byte pattern scan found " +
+            std::to_string(
+                m_candidates.size()
+            ) +
+            " matches.";
 
         return true;
     }
@@ -130,8 +244,9 @@ namespace MyImGui
     void DosBoxMemoryScanner::
         initializeCandidates(
             const std::vector<uint8_t>& memory,
+            DosBoxMemoryValueType valueType,
             bool filterExactValue,
-            uint8_t exactValue
+            uint32_t exactValue
         )
     {
         m_candidates.clear();
@@ -161,8 +276,37 @@ namespace MyImGui
             address < endAddress;
             ++address)
         {
+            uint32_t value = 0;
+
+            if (valueType ==
+                DosBoxMemoryValueType::Byte)
+            {
+                value =
+                    memory[address];
+            }
+            else if (valueType ==
+                DosBoxMemoryValueType::Short)
+            {
+                if (address + 1 >= endAddress ||
+                    address + 1 >= memory.size())
+                {
+                    break;
+                }
+
+                value =
+                    readUInt16(
+                        memory,
+                        address
+                    );
+            }
+            else
+            {
+                // Int kommt später.
+                continue;
+            }
+
             if (filterExactValue &&
-                memory[address] != exactValue)
+                value != exactValue)
             {
                 continue;
             }
@@ -170,8 +314,8 @@ namespace MyImGui
             m_candidates.push_back(
                 DosBoxMemoryCandidate{
                     address,
-                    memory[address],
-                    memory[address]
+                    value,
+                    value
                 }
             );
         }
@@ -180,7 +324,8 @@ namespace MyImGui
     void DosBoxMemoryScanner::
         refineCandidates(
             DosBoxMemoryScanMode mode,
-            uint8_t exactValue,
+            DosBoxMemoryValueType valueType,
+            uint32_t exactValue,
             const std::vector<uint8_t>&
             previousMemory,
             const std::vector<uint8_t>&
@@ -198,23 +343,58 @@ namespace MyImGui
         for (const DosBoxMemoryCandidate&
             candidate : m_candidates)
         {
-            if (candidate.address >=
-                previousMemory.size() ||
-                candidate.address >=
-                currentMemory.size())
+            uint32_t previousValue = 0;
+            uint32_t currentValue = 0;
+
+            if (valueType ==
+                DosBoxMemoryValueType::Byte)
             {
+                if (candidate.address >=
+                    previousMemory.size() ||
+                    candidate.address >=
+                    currentMemory.size())
+                {
+                    continue;
+                }
+
+                previousValue =
+                    previousMemory[
+                        candidate.address
+                    ];
+
+                currentValue =
+                    currentMemory[
+                        candidate.address
+                    ];
+            }
+            else if (valueType ==
+                DosBoxMemoryValueType::Short)
+            {
+                if (candidate.address + 1 >=
+                    previousMemory.size() ||
+                    candidate.address + 1 >=
+                    currentMemory.size())
+                {
+                    continue;
+                }
+
+                previousValue =
+                    readUInt16(
+                        previousMemory,
+                        candidate.address
+                    );
+
+                currentValue =
+                    readUInt16(
+                        currentMemory,
+                        candidate.address
+                    );
+            }
+            else
+            {
+                // Int kommt später.
                 continue;
             }
-
-            const uint8_t previousValue =
-                previousMemory[
-                    candidate.address
-                ];
-
-            const uint8_t currentValue =
-                currentMemory[
-                    candidate.address
-                ];
 
             bool accepted = false;
 

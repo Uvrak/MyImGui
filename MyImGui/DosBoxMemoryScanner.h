@@ -21,12 +21,19 @@ namespace MyImGui
         Decreased
     };
 
+    enum class DosBoxMemoryValueType
+    {
+        Byte,
+        Short,
+        Int
+    };
+
     struct DosBoxMemoryCandidate
     {
         size_t address = 0;
 
-        uint8_t previousValue = 0;
-        uint8_t currentValue = 0;
+        uint32_t previousValue = 0;
+        uint32_t currentValue = 0;
     };
 
     class DosBoxMemoryScanner
@@ -38,7 +45,12 @@ namespace MyImGui
 
         bool scan(
             DosBoxMemoryScanMode mode,
-            uint8_t exactValue = 0
+            DosBoxMemoryValueType valueType,
+            uint32_t exactValue = 0
+        );
+
+        bool scanBytePattern(
+            const std::vector<uint8_t>& pattern
         );
 
         void reset();
@@ -89,17 +101,17 @@ namespace MyImGui
 
         void initializeCandidates(
             const std::vector<uint8_t>& memory,
+            DosBoxMemoryValueType valueType,
             bool filterExactValue,
-            uint8_t exactValue
+            uint32_t exactValue
         );
 
         void refineCandidates(
             DosBoxMemoryScanMode mode,
-            uint8_t exactValue,
-            const std::vector<uint8_t>&
-            previousMemory,
-            const std::vector<uint8_t>&
-            currentMemory
+            DosBoxMemoryValueType valueType,
+            uint32_t exactValue,
+            const std::vector<uint8_t>& previousMemory,
+            const std::vector<uint8_t>& currentMemory
         );
 
         NamedPipeClient m_pipeClient;

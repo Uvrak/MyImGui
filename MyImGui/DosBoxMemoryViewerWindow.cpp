@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <sstream>
 
 #include "imgui.h"
 
@@ -63,8 +64,38 @@ namespace MyImGui
             memory.size()
         );
 
+        const char* searchTypes[] =
+        {
+            "String",
+            "Byte Pattern"
+        };
+
+        int selectedSearchType =
+            static_cast<int>(
+                m_searchType
+                );
+
+        ImGui::SetNextItemWidth(
+            120.0f
+        );
+
+        if (ImGui::Combo(
+            "##SearchType",
+            &selectedSearchType,
+            searchTypes,
+            IM_ARRAYSIZE(searchTypes)
+        ))
+        {
+            m_searchType =
+                static_cast<MemorySearchType>(
+                    selectedSearchType
+                    );
+        }
+
+        ImGui::SameLine();
+
         ImGui::InputText(
-            "Search",
+            "##Search",
             m_searchText,
             sizeof(m_searchText)
         );
@@ -81,25 +112,129 @@ namespace MyImGui
         ))
         {
             m_hasSearchResult = false;
+            m_searchPerformed = true;
 
-            const std::string searchText =
-                m_searchText;
+            std::vector<int> pattern;
 
-            if (!searchText.empty())
+            if (m_searchType ==
+                MemorySearchType::String)
+            {
+                const std::string searchText =
+                    m_searchText;
+
+                for (char character : searchText)
+                {
+                    pattern.push_back(
+                        static_cast<uint8_t>(
+                            character
+                            )
+                    );
+                }
+            }
+            else
+            {
+                std::istringstream stream(
+                    m_searchText
+                );
+
+                std::string byteText;
+
+                while (stream >> byteText)
+                {
+                    if (byteText == "??")
+                    {
+                        pattern.push_back(-1);
+                        continue;
+                    }
+
+                    if (byteText.starts_with("??{") &&
+                        byteText.ends_with("}"))
+                    {
+                        const std::string countText =
+                            byteText.substr(
+                                3,
+                                byteText.size() - 4
+                            );
+
+                        if (countText == "N" ||
+                            countText == "n")
+                        {
+                            for (int i = 0;
+                                i < m_patternN;
+                                ++i)
+                            {
+                                pattern.push_back(-1);
+                            }
+
+                            continue;
+                        }
+
+                        char* end = nullptr;
+
+                        const unsigned long count =
+                            std::strtoul(
+                                countText.c_str(),
+                                &end,
+                                10
+                            );
+
+                        if (end == countText.c_str() ||
+                            *end != '\0' )
+                        {
+                            pattern.clear();
+                            break;
+                        }
+
+                        for (unsigned long i = 0;
+                            i < count;
+                            ++i)
+                        {
+                            pattern.push_back(-1);
+                        }
+
+                        continue;
+                    }
+                    char* end = nullptr;
+
+                    const unsigned long value =
+                        std::strtoul(
+                            byteText.c_str(),
+                            &end,
+                            16
+                        );
+
+                    if (end == byteText.c_str() ||
+                        *end != '\0' ||
+                        value > 0xFF)
+                    {
+                        pattern.clear();
+                        break;
+                    }
+
+                    pattern.push_back(
+                        static_cast<uint8_t>(
+                            value
+                            )
+                    );
+                }
+            }
+
+            if (!pattern.empty())
             {
                 for (size_t address = 0;
-                    address + searchText.size() <= memory.size();
+                    address + pattern.size() <= memory.size();
                     ++address)
                 {
                     bool match = true;
 
                     for (size_t i = 0;
-                        i < searchText.size();
+                        i < pattern.size();
                         ++i)
                     {
-                        if (memory[address + i] !=
+                        if (pattern[i] != -1 &&
+                            memory[address + i] !=
                             static_cast<uint8_t>(
-                                searchText[i]
+                                pattern[i]
                                 ))
                         {
                             match = false;
@@ -118,6 +253,90 @@ namespace MyImGui
             }
         }
 
+        if (m_searchType ==
+            MemorySearchType::BytePattern)
+        {
+            ImGui::TextUnformatted("N");
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(70.0f);
+            ImGui::InputInt(
+                "##PatternN",
+                &m_patternN
+            );
+
+            ImGui::SameLine();
+            ImGui::TextUnformatted("From");
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(70.0f);
+            ImGui::InputInt(
+                "##PatternFrom",
+                &m_patternFrom
+            );
+
+            ImGui::SameLine();
+            ImGui::TextUnformatted("To");
+            ImGui::SameLine();
+
+            ImGui::SameLine();
+
+            if (ImGui::Button(
+                "Search Range##PatternRange"
+            ))
+            {
+                m_hasSearchResult = false;
+                m_searchPerformed = true;
+
+                for (int n = m_patternFrom;
+                    n <= m_patternTo;
+                    ++n)
+                {
+                    size_t resultAddress = 0;
+
+                    if (searchBytePattern(
+                        n,
+                        resultAddress
+                    ))
+                    {
+                        m_patternN = n;
+
+                        m_searchResult =
+                            resultAddress;
+
+                        m_hasSearchResult =
+                            true;
+
+                        m_scrollToSearchResult =
+                            true;
+
+                        break;
+                    }
+                }
+            }
+
+            ImGui::SetNextItemWidth(70.0f);
+            ImGui::InputInt(
+                "##PatternTo",
+                &m_patternTo
+            );
+
+            if (m_patternN < 0)
+            {
+                m_patternN = 0;
+            }
+
+            if (m_patternFrom < 0)
+            {
+                m_patternFrom = 0;
+            }
+
+            if (m_patternTo < m_patternFrom)
+            {
+                m_patternTo = m_patternFrom;
+            }
+        }
+
         ImGui::InputText(
             "Address",
             m_addressText,
@@ -127,6 +346,11 @@ namespace MyImGui
         if (ImGui::IsItemActive())
         {
             m_memoryViewActive = false;
+        }
+
+        if (ImGui::IsItemDeactivated())
+        {
+            m_memoryViewActive = true;
         }
 
         ImGui::SameLine();
@@ -177,6 +401,10 @@ namespace MyImGui
                 m_searchResult
             );
         }
+        else if (m_searchPerformed)
+        {
+            ImGui::Text("Not found");
+        }
 
         if (m_hasSelectedAddress)
         {
@@ -209,7 +437,9 @@ namespace MyImGui
         ))
         {
             ImGui::TableSetupColumn(
-                "Address"
+                "Address",
+                ImGuiTableColumnFlags_WidthFixed,
+                75.0f
             );
 
             for (int column = 0;
@@ -495,5 +725,133 @@ namespace MyImGui
         m_searchResult = address;
         m_hasSearchResult = true;
         m_scrollToSearchResult = true;
+    }
+    
+    bool DosBoxMemoryViewerWindow::searchBytePattern(
+        int patternN,
+        size_t& resultAddress
+    )
+    {
+        std::vector<int> pattern;
+
+        std::istringstream stream(
+            m_searchText
+        );
+
+        std::string byteText;
+
+        while (stream >> byteText)
+        {
+            if (byteText == "??")
+            {
+                pattern.push_back(-1);
+                continue;
+            }
+
+            if (byteText.starts_with("??{") &&
+                byteText.ends_with("}"))
+            {
+                const std::string countText =
+                    byteText.substr(
+                        3,
+                        byteText.size() - 4
+                    );
+
+                if (countText == "N" ||
+                    countText == "n")
+                {
+                    for (int i = 0;
+                        i < patternN;
+                        ++i)
+                    {
+                        pattern.push_back(-1);
+                    }
+
+                    continue;
+                }
+
+                char* end = nullptr;
+
+                const unsigned long count =
+                    std::strtoul(
+                        countText.c_str(),
+                        &end,
+                        10
+                    );
+
+                if (end == countText.c_str() ||
+                    *end != '\0')
+                {
+                    return false;
+                }
+
+                for (unsigned long i = 0;
+                    i < count;
+                    ++i)
+                {
+                    pattern.push_back(-1);
+                }
+
+                continue;
+            }
+
+            char* end = nullptr;
+
+            const unsigned long value =
+                std::strtoul(
+                    byteText.c_str(),
+                    &end,
+                    16
+                );
+
+            if (end == byteText.c_str() ||
+                *end != '\0' ||
+                value > 0xFF)
+            {
+                return false;
+            }
+
+            pattern.push_back(
+                static_cast<uint8_t>(value)
+            );
+        }
+
+        if (pattern.empty())
+        {
+            return false;
+        }
+
+        const auto& memory =
+            m_memoryReader.memory();
+
+        for (size_t address = 0;
+            address + pattern.size() <= memory.size();
+            ++address)
+        {
+            bool match = true;
+
+            for (size_t i = 0;
+                i < pattern.size();
+                ++i)
+            {
+                if (pattern[i] != -1 &&
+                    memory[address + i] !=
+                    static_cast<uint8_t>(
+                        pattern[i]
+                        ))
+                {
+                    match = false;
+                    break;
+                }
+            }
+
+            if (match)
+            {
+                resultAddress = address;
+                return true;
+            }
+        }
+
+        return false;
     }
 }

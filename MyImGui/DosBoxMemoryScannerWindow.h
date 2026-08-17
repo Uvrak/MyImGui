@@ -93,6 +93,7 @@ namespace MyImGui
         size_t m_foundAddress = 0;
         bool m_hasFoundAddress = false;
         bool m_addressSearchAttempted = false;
+        bool m_searchPerformed = false;
         std::string m_gameId;
         std::string pinnedAddressesFilePath() const;
 
@@ -113,7 +114,9 @@ namespace MyImGui
 
         size_t m_lastSelectedAddress = 0;
         bool m_hasSelectedAddress = false;
-    };
 
+        DosBoxMemoryValueType m_valueType =
+            DosBoxMemoryValueType::Byte;
+    };
 
 }

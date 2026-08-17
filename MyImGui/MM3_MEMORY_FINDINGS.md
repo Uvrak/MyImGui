@@ -199,3 +199,84 @@ Observed category boundary:
 - Item ID 34 onward: Armor begins
 
 Further category boundaries still need to be mapped.
+
+### Selected inventory slot
+
+Two 16-bit values track the currently selected inventory slot:
+
+- `0x304D0`
+- `0x304D2`
+
+Both are 0-based and were observed to move identically:
+
+- Slot 1 -> 0
+- Slot 2 -> 1
+- Slot 5 -> 4
+- Slot 9 -> 8
+
+For tooling, `0x304D0` is used as the primary selected-slot address.
+`0x304D2` appears to mirror the same value; exact purpose still unknown.
+
+## Inventory Selection / Item IDs
+
+The currently selected inventory slot is stored as a 16-bit,
+zero-based value.
+
+Primary address:
+
+- `0x304D0`
+
+Mirror / related address:
+
+- `0x304D2`
+
+Observed values:
+
+- Slot 1 -> 0
+- Slot 2 -> 1
+- Slot 5 -> 4
+- Slot 9 -> 8
+
+Both addresses were observed to track the selected slot identically.
+For tooling, `0x304D0` will be used as the primary selected-slot value.
+
+Writing a different value to these addresses did not visibly change
+the selected item in the game. They should therefore currently be
+treated as read-only UI state.
+
+
+### Inventory Item IDs
+
+The inventory item IDs form a contiguous byte array beginning at:
+
+- `0x2BFEE`
+
+The address of the item ID for the selected slot is:
+
+`itemIdAddress = 0x2BFEE + selectedSlot`
+
+where `selectedSlot` is the zero-based value read from `0x304D0`.
+
+Verified examples:
+
+- Slot 1: `0x2BFEE` -> `5` -> Messer
+- Slot 2: `0x2BFEF` -> `43` (`0x2B`) -> Helm
+- Slot 10: `0x2BFF7` -> `7` -> Stock
+
+This confirms that the selected inventory item can be resolved as:
+
+`0x304D0 -> selected slot -> 0x2BFEE + slot -> item ID`
+
+
+### Item Properties
+
+The item ID identifies the base item, but not necessarily the complete
+displayed item.
+
+Verified example:
+
+- Item ID `7` = Stock
+- The inventory displays `Bronze Stock`
+
+Therefore `Bronze` is stored separately from the base item ID.
+Material and potentially other item properties still need to be mapped.

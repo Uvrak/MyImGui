@@ -7,6 +7,12 @@
 
 namespace MyImGui
 {
+    enum class MemorySearchType
+    {
+        String,
+        BytePattern
+    };
+
     class DosBoxMemoryViewerWindow
     {
     public:
@@ -30,10 +36,24 @@ namespace MyImGui
         DosBoxMemoryScanner
             m_memoryScanner;
 
+        MemorySearchType m_searchType =
+            MemorySearchType::String;
+
         char m_searchText[128] = {};
+
+        bool searchBytePattern(
+            int patternN,
+            size_t& resultAddress
+        );
+        
+        int m_patternN = 0;
+        int m_patternFrom = 0;
+        int m_patternTo = 64;
+
         size_t m_searchResult = 0;
         bool m_hasSearchResult = false;
         bool m_scrollToSearchResult = false;
+        bool m_searchPerformed = false;
         
         char m_addressText[32] = {};
 
