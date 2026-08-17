@@ -355,6 +355,36 @@ namespace MyImGui
 
         ImGui::Separator();
 
+        ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Test Address"
+        ))
+        {
+            size_t address = 0;
+
+            if (m_scanner.getReadTrackingAddress(
+                0,
+                address
+            ))
+            {
+                char text[64];
+
+                std::snprintf(
+                    text,
+                    sizeof(text),
+                    "First read address: 0x%05zX",
+                    address
+                );
+
+                ImGui::SetClipboardText(
+                    text
+                );
+            }
+        }
+
+        ImGui::Separator();
+
         ImGui::Checkbox(
             "Limit Range",
             &m_limitScanRange
@@ -1574,6 +1604,12 @@ namespace MyImGui
             false;
 
         return true;
+    }
+
+    DosBoxMemoryScanner&
+        DosBoxMemoryScannerWindow::scanner()
+    {
+        return m_scanner;
     }
 
     void DosBoxMemoryScannerWindow::

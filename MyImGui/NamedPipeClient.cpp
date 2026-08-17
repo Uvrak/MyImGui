@@ -34,7 +34,7 @@ namespace MyImGui
             return false;
         }
 
-        char buffer[256] = {};
+        char buffer[8192] = {};
         DWORD bytesRead = 0;
 
         const BOOL result =

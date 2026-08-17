@@ -2,6 +2,7 @@
 
 #include "DosBoxMemoryScannerWindow.h"
 #include "DosBoxMemoryViewerWindow.h"
+#include "DosBoxMemoryReadTrackerWindow.h"
 
 #include "imgui.h"
 
@@ -37,5 +38,8 @@ namespace MyImGui
 
         DosBoxMemoryViewerWindow
             m_viewerWindow;
+
+        DosBoxMemoryReadTrackerWindow
+            m_readTrackerWindow;
     };
 }              

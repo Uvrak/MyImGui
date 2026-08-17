@@ -15,6 +15,9 @@ namespace MyImGui
             gameId,
             dosBoxView
         ),
+        m_readTrackerWindow(
+            m_scannerWindow.scanner()
+        ),
         m_viewerWindow(
             m_memoryReader
         )
@@ -49,6 +52,10 @@ namespace MyImGui
         m_scannerWindow.draw(
             nullptr,
             m_liveView
+        );
+
+        m_readTrackerWindow.draw(
+            nullptr
         );
 
         size_t selectedAddress = 0;

@@ -257,13 +257,6 @@ namespace MyImGui
             MemorySearchType::BytePattern)
         {
             ImGui::TextUnformatted("N");
-            ImGui::SameLine();
-
-            ImGui::SetNextItemWidth(70.0f);
-            ImGui::InputInt(
-                "##PatternN",
-                &m_patternN
-            );
 
             ImGui::SameLine();
             ImGui::TextUnformatted("From");
@@ -278,6 +271,12 @@ namespace MyImGui
             ImGui::SameLine();
             ImGui::TextUnformatted("To");
             ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(70.0f);
+            ImGui::InputInt(
+                "##PatternN",
+                &m_patternN
+            );
 
             ImGui::SameLine();
 

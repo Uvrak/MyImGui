@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <sstream>
 
 namespace
 {
@@ -586,6 +587,314 @@ namespace MyImGui
 
         return true;
     }
+    
+    bool DosBoxMemoryScanner::startReadTracking()
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:START",
+            response
+        ))
+        {
+            m_status =
+                "Could not start read tracking.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Read tracking start failed: " +
+                response;
+
+            return false;
+        }
+
+        m_status =
+            "Read tracking started.";
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::stopReadTracking()
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:STOP",
+            response
+        ))
+        {
+            m_status =
+                "Could not stop read tracking.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Read tracking stop failed: " +
+                response;
+
+            return false;
+        }
+
+        m_status =
+            "Read tracking stopped.";
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::getReadTrackingCount(
+        size_t& count
+    )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:COUNT",
+            response
+        ))
+        {
+            m_status =
+                "Could not get read tracking count.";
+
+            return false;
+        }
+
+        try
+        {
+            count =
+                static_cast<size_t>(
+                    std::stoull(response)
+                    );
+        }
+        catch (...)
+        {
+            m_status =
+                "Invalid read tracking count: " +
+                response;
+
+            return false;
+        }
+
+        m_status =
+            "Read tracking count: " +
+            std::to_string(count);
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::getReadTrackingAddress(
+        size_t index,
+        size_t& address
+    )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:ADDRESS:" +
+            std::to_string(index);
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not get read tracking address.";
+
+            return false;
+        }
+
+        try
+        {
+            address =
+                static_cast<size_t>(
+                    std::stoull(response)
+                    );
+        }
+        catch (...)
+        {
+            m_status =
+                "Invalid read tracking address: " +
+                response;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::getReadTrackingAddressBlock(
+        size_t start,
+        size_t count,
+        std::vector<size_t>& addresses
+    )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:ADDRESSES:" +
+            std::to_string(start) +
+            ":" +
+            std::to_string(count);
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not get read tracking address block.";
+
+            return false;
+        }
+
+        if (response.rfind(
+            "ERROR",
+            0
+        ) == 0)
+        {
+            m_status =
+                "Read tracking address block failed: " +
+                response;
+
+            return false;
+        }
+
+        addresses.clear();
+
+        std::stringstream stream(
+            response
+        );
+
+        std::string item;
+
+        while (std::getline(
+            stream,
+            item,
+            ','
+        ))
+        {
+            if (item.empty())
+            {
+                continue;
+            }
+
+            try
+            {
+                addresses.push_back(
+                    static_cast<size_t>(
+                        std::stoull(item)
+                        )
+                );
+            }
+            catch (...)
+            {
+                addresses.clear();
+
+                m_status =
+                    "Invalid read tracking address block.";
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::getReadTrackingAddresses(
+        std::vector<size_t>& addresses
+    )
+    {
+        size_t count = 0;
+
+        if (!getReadTrackingCount(
+            count
+        ))
+        {
+            return false;
+        }
+
+        addresses.clear();
+        addresses.reserve(
+            count
+        );
+
+        constexpr size_t blockSize = 64;
+
+        for (size_t start = 0;
+            start < count;
+            start += blockSize)
+        {
+            std::vector<size_t> block;
+
+            if (!getReadTrackingAddressBlock(
+                start,
+                blockSize,
+                block
+            ))
+            {
+                addresses.clear();
+
+                return false;
+            }
+
+            addresses.insert(
+                addresses.end(),
+                block.begin(),
+                block.end()
+            );
+        }
+
+        m_status =
+            "Read tracking addresses loaded: " +
+            std::to_string(
+                addresses.size()
+            );
+
+        return true;
+    }
+    
+    void DosBoxMemoryScanner::setCandidatesFromAddresses(
+        const std::vector<size_t>& addresses
+    )
+    {
+        m_candidates.clear();
+
+        m_candidates.reserve(
+            addresses.size()
+        );
+
+        for (const size_t address :
+        addresses)
+        {
+            DosBoxMemoryCandidate candidate;
+
+            candidate.address =
+                address;
+
+            candidate.previousValue = 0;
+            candidate.currentValue = 0;
+
+            m_candidates.push_back(
+                candidate
+            );
+        }
+
+        refreshValues();
+
+        m_status =
+            "Read tracking candidates: " +
+            std::to_string(
+                m_candidates.size()
+            );
+    }
+
     void DosBoxMemoryScanner::refreshValues()
     {
         if (!requestSnapshot())
@@ -609,7 +918,7 @@ namespace MyImGui
             }
         }
     }
-    
+
     void DosBoxMemoryScanner::setScanRange(
         size_t startAddress,
         size_t endAddress
@@ -630,4 +939,5 @@ namespace MyImGui
         m_scanRangeEnabled =
             false;
     }
+
 }

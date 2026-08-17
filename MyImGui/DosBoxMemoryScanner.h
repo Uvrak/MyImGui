@@ -87,14 +87,42 @@ namespace MyImGui
             uint8_t value
         );
 
+        bool startReadTracking();
+        bool stopReadTracking();
+
+        bool getReadTrackingCount(
+            size_t& count
+        );
+
+        bool getReadTrackingAddress(
+            size_t index,
+            size_t& address
+        );
+
+        bool getReadTrackingAddressBlock(
+            size_t start,
+            size_t count,
+            std::vector<size_t>& addresses
+        );
+
+        bool getReadTrackingAddresses(
+            std::vector<size_t>& addresses
+        );
+
+        void setCandidatesFromAddresses(
+            const std::vector<size_t>& addresses
+        );
+
         void refreshValues();
-        
+
         void setScanRange(
             size_t startAddress,
             size_t endAddress
         );
 
         void clearScanRange();
+
+
 
     private:
         bool requestSnapshot();

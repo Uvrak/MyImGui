@@ -38,6 +38,8 @@ namespace MyImGui
             size_t& address
         );
 
+        DosBoxMemoryScanner& scanner();
+
     private:
         DosBoxMemoryScanner
             m_scanner;
