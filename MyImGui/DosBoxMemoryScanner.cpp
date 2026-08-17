@@ -864,6 +864,17 @@ namespace MyImGui
         const std::vector<size_t>& addresses
     )
     {
+        if (!requestSnapshot())
+        {
+            return;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        m_previousMemory =
+            memory;
+
         m_candidates.clear();
 
         m_candidates.reserve(
@@ -873,20 +884,22 @@ namespace MyImGui
         for (const size_t address :
         addresses)
         {
-            DosBoxMemoryCandidate candidate;
+            if (address >= memory.size())
+            {
+                continue;
+            }
 
-            candidate.address =
-                address;
-
-            candidate.previousValue = 0;
-            candidate.currentValue = 0;
+            const uint8_t value =
+                memory[address];
 
             m_candidates.push_back(
-                candidate
+                DosBoxMemoryCandidate{
+                    address,
+                    value,
+                    value
+                }
             );
         }
-
-        refreshValues();
 
         m_status =
             "Read tracking candidates: " +

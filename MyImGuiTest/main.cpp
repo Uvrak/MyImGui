@@ -351,6 +351,8 @@ int main(int, char**)
         g_SwapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
     }
 
+    memoryTools.saveSession();
+
     ClipCursor(
         nullptr
     );

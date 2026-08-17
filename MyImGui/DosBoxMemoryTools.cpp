@@ -16,21 +16,18 @@ namespace MyImGui
             dosBoxView
         ),
         m_readTrackerWindow(
-            m_scannerWindow.scanner()
+            m_scannerWindow.scanner(),
+            gameId
         ),
         m_viewerWindow(
             m_memoryReader
         )
     {}
 
-    void DosBoxMemoryTools::setGameId(
+    void setGameId(
         const std::string& gameId
-    )
-    {
-        m_scannerWindow.setGameId(
-            gameId
-        );
-    }
+    );
+    
 
     void DosBoxMemoryTools::draw()
     {

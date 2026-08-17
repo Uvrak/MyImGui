@@ -26,6 +26,7 @@ namespace MyImGui
 
         DosBoxMemoryReader& memoryReader();
 
+        void saveSession();
     private:
         bool m_liveView = false;
         double m_lastLiveRefresh = 0.0;
