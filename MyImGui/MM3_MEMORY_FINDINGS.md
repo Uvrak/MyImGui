@@ -445,3 +445,67 @@ Confirmed material IDs:
 20 = Saphir
 21 = Diamant
 22 = Obsidian
+
+## Item Materials
+
+Inventory item materials are stored as numeric material IDs.
+
+Verified examples:
+
+- Material ID 4  = Bronze
+- Material ID 13 = Lapis
+
+For Party 1, Inventory Slot 7, the material byte was verified at:
+
+- `0x2BFCE` = Party 1 Inventory Slot 7 Material
+
+The material names were also found as a string table in MM3 memory.
+
+### Material IDs and modifiers
+
+| ID | Material | Hit | Damage | AC |
+|---:|---|---:|---:|---:|
+| 1 | Holz | -3 | -3 | -3 |
+| 2 | Leder | -4 | -6 | 0 |
+| 3 | Messing | +3 | -4 | -2 |
+| 4 | Bronze | +2 | -2 | -1 |
+| 5 | Eisen | +1 | +2 | +1 |
+| 6 | Silber | +2 | +4 | +2 |
+| 7 | Stahl | +3 | +6 | +4 |
+| 8 | Gold | +4 | +8 | +6 |
+| 9 | Platin | +6 | +10 | +8 |
+| 10 | Glas | 0 | 0 | 0 |
+| 11 | Korallen | +1 | +1 | +1 |
+| 12 | Kristall | +1 | +1 | +1 |
+| 13 | Lapis | +2 | +2 | +2 |
+| 14 | Perlen | +2 | +2 | +2 |
+| 15 | Bernstein | +3 | +3 | +3 |
+| 16 | Ebenholz | +4 | +4 | +4 |
+| 17 | Quarz | +5 | +5 | +5 |
+| 18 | Rubin | +6 | +10 | +10 |
+| 19 | Smaragd | +7 | +20 | +12 |
+| 20 | Saphir | +8 | +30 | +14 |
+| 21 | Diamant | +9 | +40 | +16 |
+| 22 | Obsidian | +10 | +50 | +20 |
+
+### Material modifier tables in MM3 memory
+
+Three material modifier tables were located:
+
+- `0x20FA2` = Hit modifier table
+- `0x20FB9` = Damage modifier table
+- `0x20FD0` = AC modifier table
+
+Each table contains 22 material values.
+
+The distance between the starts of the tables is `0x17` (23 bytes), so
+there is one additional byte between consecutive material tables that is
+not part of the 22 material entries.
+
+Negative modifiers are stored as signed byte values. Examples:
+
+- `FD` = -3
+- `FC` = -4
+- `FA` = -6
+- `FE` = -2
+- `FF` = -1

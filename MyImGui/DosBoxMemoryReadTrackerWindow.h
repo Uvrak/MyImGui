@@ -42,5 +42,10 @@ namespace MyImGui
 
         std::vector<size_t>
             m_attackOnlyReadAddresses;
+
+        std::vector<size_t>
+            m_previousAttackOnlyReadAddresses;
+
+        size_t m_readTrackingCount = 0;
 	};
 }

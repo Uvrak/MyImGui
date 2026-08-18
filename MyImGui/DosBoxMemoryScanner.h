@@ -90,6 +90,7 @@ namespace MyImGui
 
         bool startReadTracking();
         bool stopReadTracking();
+        bool clearReadTracking();
 
         bool getReadTrackingCount(
             size_t& count
@@ -105,7 +106,6 @@ namespace MyImGui
             size_t count,
             std::vector<size_t>& addresses
         );
-
         bool getReadTrackingAddresses(
             std::vector<size_t>& addresses
         );

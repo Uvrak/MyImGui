@@ -653,6 +653,36 @@ namespace MyImGui
         return true;
     }
 
+    bool DosBoxMemoryScanner::clearReadTracking()
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:CLEAR",
+            response
+        ))
+        {
+            m_status =
+                "Could not clear read tracking.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Read tracking clear failed: " +
+                response;
+
+            return false;
+        }
+
+        m_status =
+            "Read tracking cleared.";
+
+        return true;
+    }
+
     bool DosBoxMemoryScanner::getReadTrackingCount(
         size_t& count
     )

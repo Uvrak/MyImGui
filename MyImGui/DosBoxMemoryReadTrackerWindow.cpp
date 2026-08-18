@@ -75,26 +75,56 @@ namespace MyImGui
         ImGui::SameLine();
 
         if (ImGui::Button(
+            "Clear Read Tracking"
+        ))
+        {
+            m_scanner.clearReadTracking();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(
             "Read Count"
         ))
         {
-            size_t count = 0;
-
             m_scanner.getReadTrackingCount(
-                count
+                m_readTrackingCount
             );
+        }
+
+        ImGui::Text(
+            "Read tracking count: %zu",
+            m_readTrackingCount
+        );
+
+        if (ImGui::Button(
+            "Begin Idle"
+        ))
+        {
+            m_scanner.clearReadTracking();
+            m_scanner.startReadTracking();
         }
 
         if (ImGui::Button(
             "Capture Idle"
         ))
         {
+            m_scanner.stopReadTracking();
+
             m_scanner.getReadTrackingAddresses(
                 m_idleReadAddresses
             );
         }
 
         ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Begin Attack"
+        ))
+        {
+            m_scanner.clearReadTracking();
+            m_scanner.startReadTracking();
+        }
 
         if (ImGui::Button(
             "Capture Attack"
@@ -104,6 +134,7 @@ namespace MyImGui
                 m_attackReadAddresses
             );
         }
+
         if (ImGui::Button(
             "Compare"
         ))
@@ -126,6 +157,40 @@ namespace MyImGui
                     );
                 }
             }
+            m_scanner.setCandidatesFromAddresses(
+                m_attackOnlyReadAddresses
+            );
+        }
+
+        if (ImGui::Button(
+            "Intersect Attack Only"
+        ))
+        {
+            std::unordered_set<size_t> currentAddresses(
+                m_attackOnlyReadAddresses.begin(),
+                m_attackOnlyReadAddresses.end()
+            );
+
+            std::vector<size_t> intersection;
+
+            for (size_t address :
+            m_previousAttackOnlyReadAddresses)
+            {
+                if (currentAddresses.contains(
+                    address
+                ))
+                {
+                    intersection.push_back(
+                        address
+                    );
+                }
+            }
+
+            m_attackOnlyReadAddresses =
+                std::move(
+                    intersection
+                );
+
             m_scanner.setCandidatesFromAddresses(
                 m_attackOnlyReadAddresses
             );
