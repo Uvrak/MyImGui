@@ -62,9 +62,10 @@ namespace MyImGui
 
             return false;
         }
-
         if (mode ==
             DosBoxMemoryScanMode::NewScan ||
+            mode ==
+            DosBoxMemoryScanMode::UnknownInitialValue ||
             (
                 mode ==
                 DosBoxMemoryScanMode::ExactValue &&
@@ -429,6 +430,10 @@ namespace MyImGui
                 accepted =
                     currentValue <
                     previousValue;
+                break;
+            
+            case DosBoxMemoryScanMode::UnknownInitialValue:
+                accepted = true;
                 break;
 
             case DosBoxMemoryScanMode::NewScan:

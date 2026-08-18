@@ -385,3 +385,63 @@ This gives the complete selection chain:
 `0x304D0 -> inventory slot index`
 
 `0x2BFEE + partyIndex * 0x12F + inventorySlotIndex -> item ID`
+
+MM3 Inventory Material
+
+Party Slot 1 material array:
+0x2BFC8 - 0x2BFD9
+
+18 bytes, one byte per inventory slot.
+
+Address formula:
+
+materialAddress =
+    0x2BFC8 +
+    partyIndex * 0x12F +
+    inventorySlotIndex
+
+partyIndex and inventorySlotIndex are zero-based.
+
+Confirmed:
+
+Inventory Slot 7:
+0x2BFCE = 0x04
+Bronze Stock
+
+Inventory Slot 8:
+0x2BFCF = 0x0D
+Lapis Knüppel
+
+Write verification:
+
+Writing 0x0D to 0x2BFCE changed:
+Bronze Stock -> Lapis Stock
+
+The inventory display required a refresh before the changed
+material became visible.
+
+Material IDs are 1-based.
+
+Confirmed material IDs:
+1  = Holz
+2  = Leder
+3  = Messing
+4  = Bronze
+5  = Eisen
+6  = Silber
+7  = Stahl
+8  = Gold
+9  = Platin
+10 = Glas
+11 = Korallen
+12 = Kristall
+13 = Lapis
+14 = Perlen
+15 = Bernstein
+16 = Ebenholz
+17 = Quarz
+18 = Rubin
+19 = Smaragd
+20 = Saphir
+21 = Diamant
+22 = Obsidian

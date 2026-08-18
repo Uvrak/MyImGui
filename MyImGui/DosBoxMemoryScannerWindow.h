@@ -85,6 +85,9 @@ namespace MyImGui
         void loadPinnedAddresses();
         void savePinnedAddresses() const;
 
+        void loadScannerSettings();
+        void saveScannerSettings() const;
+
         std::unordered_map<size_t, std::string>
             m_pinnedDescriptions;
 
@@ -98,6 +101,7 @@ namespace MyImGui
         bool m_searchPerformed = false;
         std::string m_gameId;
         std::string pinnedAddressesFilePath() const;
+        std::string scannerSettingsFilePath() const;
 
         char m_descriptionBuffer[256] = {};
         size_t m_descriptionAddress = 0;

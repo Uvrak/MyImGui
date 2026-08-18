@@ -24,6 +24,7 @@ namespace MyImGui
         m_dosBoxView(dosBoxView)
     {
         loadPinnedAddresses();
+        loadScannerSettings();
     }
 
     void DosBoxMemoryScannerWindow::draw(
@@ -111,9 +112,14 @@ namespace MyImGui
                     m_scanner.clearScanRange();
                 }
 
+                m_scanner.reset();
+
                 m_scanner.scan(
-                    DosBoxMemoryScanMode::NewScan,
-                    m_valueType
+                    m_scanMode,
+                    m_valueType,
+                    static_cast<uint32_t>(
+                        m_exactValue
+                        )
                 );
             }
 
@@ -122,13 +128,14 @@ namespace MyImGui
 
             // Scan mode
             const char* scanModes[] =
-            {
-                "Exact Value",
-                "Changed",
-                "Unchanged",
-                "Increased",
-                "Decreased"
-            };
+{
+    "Unknown Initial Value",
+    "Exact Value",
+    "Changed",
+    "Unchanged",
+    "Increased",
+    "Decreased"
+};
 
             int selectedMode =
                 static_cast<int>(
@@ -159,6 +166,8 @@ namespace MyImGui
                     >(
                         selectedMode + 1
                         );
+
+                saveScannerSettings();
             }
 
             m_toolbarLayout.endItem();
@@ -200,6 +209,8 @@ namespace MyImGui
                     >(
                         selectedValueType
                         );
+
+                saveScannerSettings();
             }
 
             m_toolbarLayout.endItem();
@@ -221,24 +232,14 @@ namespace MyImGui
                     80.0f
                 );
 
-                ImGui::InputInt(
+                if (ImGui::InputInt(
                     "##ExactValue",
                     &m_exactValue
-                );
-
-                m_toolbarLayout.endItem();
-
-                if (m_exactValue < 0)
+                ))
                 {
-                    m_exactValue = 0;
-                }
-
-                if (m_exactValue > 255)
-                {
-                    m_exactValue = 255;
+                    saveScannerSettings();
                 }
             }
-
 
             // Next Scan
             const ImVec2 nextScanSize(
@@ -344,6 +345,8 @@ namespace MyImGui
 
                 m_filterDifference = false;
                 m_differenceValue = 0;
+
+                saveScannerSettings();
             }
 
             m_toolbarLayout.endItem();
@@ -357,10 +360,13 @@ namespace MyImGui
 
         ImGui::SameLine();
 
-        ImGui::Checkbox(
+        if (ImGui::Checkbox(
             "Limit Range",
             &m_limitScanRange
-        );
+        ))
+        {
+            saveScannerSettings();
+        }
 
         if (m_limitScanRange)
         {
@@ -370,11 +376,15 @@ namespace MyImGui
                 120.0f
             );
 
-            ImGui::InputText(
+            if (ImGui::InputText(
                 "Start",
                 m_scanStartAddress,
-                sizeof(m_scanStartAddress)
-            );
+                sizeof(m_scanStartAddress),
+                ImGuiInputTextFlags_EnterReturnsTrue
+            ))
+            {
+                saveScannerSettings();
+            }
 
             ImGui::SameLine();
 
@@ -382,11 +392,15 @@ namespace MyImGui
                 120.0f
             );
 
-            ImGui::InputText(
+            if (ImGui::InputText(
                 "End",
                 m_scanEndAddress,
-                sizeof(m_scanEndAddress)
-            );
+                sizeof(m_scanEndAddress),
+                ImGuiInputTextFlags_EnterReturnsTrue
+            ))
+            {
+                saveScannerSettings();
+            }
         }
 
         ImGui::Separator();
@@ -680,11 +694,13 @@ namespace MyImGui
             }
         }
 
-        ImGui::Separator();
-        ImGui::Checkbox(
+        if (ImGui::Checkbox(
             "Descriptions first",
             &m_descriptionsFirst
-        );
+        ))
+        {
+            saveScannerSettings();
+        }
 
         ImGui::Text(
             "Known descriptions: %zu",
@@ -729,10 +745,13 @@ namespace MyImGui
 
                 ImGui::TableSetColumnIndex(1);
 
-                ImGui::Checkbox(
+                if (ImGui::Checkbox(
                     "##FilterPrevious",
                     &m_filterPrevious
-                );
+                ))
+                {
+                    saveScannerSettings();
+                }
 
                 ImGui::SameLine();
 
@@ -740,17 +759,23 @@ namespace MyImGui
                     80.0f
                 );
 
-                ImGui::InputInt(
+                if (ImGui::InputInt(
                     "##PreviousValue",
                     &m_previousValue
-                );
+                ))
+                {
+                    saveScannerSettings();
+                }
 
                 ImGui::TableSetColumnIndex(2);
 
-                ImGui::Checkbox(
+                if (ImGui::Checkbox(
                     "##FilterCurrent",
                     &m_filterCurrent
-                );
+                ))
+                {
+                    saveScannerSettings();
+                }
 
                 ImGui::SameLine();
 
@@ -758,17 +783,23 @@ namespace MyImGui
                     80.0f
                 );
 
-                ImGui::InputInt(
+                if (ImGui::InputInt(
                     "##CurrentValue",
                     &m_currentValue
-                );
+                ))
+                {
+                    saveScannerSettings();
+                }
 
                 ImGui::TableSetColumnIndex(3);
 
-                ImGui::Checkbox(
+                if (ImGui::Checkbox(
                     "##FilterDifference",
                     &m_filterDifference
-                );
+                ))
+                {
+                    saveScannerSettings();
+                }
 
                 ImGui::SameLine();
 
@@ -776,10 +807,13 @@ namespace MyImGui
                     80.0f
                 );
 
-                ImGui::InputInt(
+                if (ImGui::InputInt(
                     "##DifferenceValue",
                     &m_differenceValue
-                );              
+                ))
+                {
+                    saveScannerSettings();
+                }
 
                 ImGuiListClipper clipper;
 
@@ -1399,18 +1433,21 @@ namespace MyImGui
 
                         ImGui::TableSetColumnIndex(2);
 
-                        uint8_t liveCurrentValue =
+                        uint8_t displayedCurrentValue =
                             candidate.currentValue;
 
-                        m_scanner.readCurrentValue(
-                            candidate.address,
-                            liveCurrentValue
-                        );
+                        if (liveView)
+                        {
+                            m_scanner.readCurrentValue(
+                                candidate.address,
+                                displayedCurrentValue
+                            );
+                        }
 
                         ImGui::Text(
                             "%u",
                             static_cast<unsigned int>(
-                                liveCurrentValue
+                                displayedCurrentValue
                                 )
                         );
 
@@ -1497,6 +1534,15 @@ namespace MyImGui
             ".cfg";
     }
 
+    std::string DosBoxMemoryScannerWindow::
+        scannerSettingsFilePath() const
+    {
+        return
+            "settings/memory_scanner_" +
+            m_gameId +
+            ".cfg";
+    }
+
     bool DosBoxMemoryScannerWindow::hasDescription(
         size_t address
     ) const
@@ -1526,6 +1572,7 @@ namespace MyImGui
         m_scanner.clearPinnedAddresses();
 
         loadPinnedAddresses();
+        loadScannerSettings();
     }
 
     bool DosBoxMemoryScannerWindow::
@@ -1689,5 +1736,190 @@ namespace MyImGui
                 << description
                 << '\n';
         }
+    }
+    
+    void DosBoxMemoryScannerWindow::
+        loadScannerSettings()
+    {
+        std::ifstream file(
+            scannerSettingsFilePath()
+        );
+
+        if (!file.is_open())
+        {
+            return;
+        }
+
+        std::string line;
+
+        while (std::getline(
+            file,
+            line
+        ))
+        {
+            const size_t separator =
+                line.find('=');
+
+            if (separator ==
+                std::string::npos)
+            {
+                continue;
+            }
+
+            const std::string key =
+                line.substr(
+                    0,
+                    separator
+                );
+
+            const std::string value =
+                line.substr(
+                    separator + 1
+                );
+
+            if (key == "ScanMode")
+            {
+                m_scanMode =
+                    static_cast<DosBoxMemoryScanMode>(
+                        std::stoi(value)
+                        );
+            }
+            else if (key == "ValueType")
+            {
+                m_valueType =
+                    static_cast<DosBoxMemoryValueType>(
+                        std::stoi(value)
+                        );
+            }
+            else if (key == "ExactValue")
+            {
+                m_exactValue =
+                    std::stoi(value);
+            }
+            else if (key == "LimitRange")
+            {
+                m_limitScanRange =
+                    std::stoi(value) != 0;
+            }
+            else if (key == "RangeStart")
+            {
+                std::snprintf(
+                    m_scanStartAddress,
+                    sizeof(m_scanStartAddress),
+                    "%s",
+                    value.c_str()
+                );
+            }
+            else if (key == "RangeEnd")
+            {
+                std::snprintf(
+                    m_scanEndAddress,
+                    sizeof(m_scanEndAddress),
+                    "%s",
+                    value.c_str()
+                );
+            }
+            else if (key == "FilterPrevious")
+            {
+                m_filterPrevious =
+                    std::stoi(value) != 0;
+            }
+            else if (key == "PreviousValue")
+            {
+                m_previousValue =
+                    std::stoi(value);
+            }
+            else if (key == "FilterCurrent")
+            {
+                m_filterCurrent =
+                    std::stoi(value) != 0;
+            }
+            else if (key == "CurrentValue")
+            {
+                m_currentValue =
+                    std::stoi(value);
+            }
+            else if (key == "FilterDifference")
+            {
+                m_filterDifference =
+                    std::stoi(value) != 0;
+            }
+            else if (key == "DifferenceValue")
+            {
+                m_differenceValue =
+                    std::stoi(value);
+            }
+            else if (key == "DescriptionsFirst")
+            {
+                m_descriptionsFirst =
+                    std::stoi(value) != 0;
+            }
+        }
+    }
+
+    void DosBoxMemoryScannerWindow::
+        saveScannerSettings() const
+    {
+        std::ofstream file(
+            scannerSettingsFilePath()
+        );
+
+        if (!file.is_open())
+        {
+            return;
+        }
+
+        file
+            << "ScanMode="
+            << static_cast<int>(m_scanMode)
+            << '\n'
+
+            << "ValueType="
+            << static_cast<int>(m_valueType)
+            << '\n'
+
+            << "ExactValue="
+            << m_exactValue
+            << '\n'
+
+            << "LimitRange="
+            << (m_limitScanRange ? 1 : 0)
+            << '\n'
+
+            << "RangeStart="
+            << m_scanStartAddress
+            << '\n'
+
+            << "RangeEnd="
+            << m_scanEndAddress
+            << '\n'
+
+            << "FilterPrevious="
+            << (m_filterPrevious ? 1 : 0)
+            << '\n'
+
+            << "PreviousValue="
+            << m_previousValue
+            << '\n'
+
+            << "FilterCurrent="
+            << (m_filterCurrent ? 1 : 0)
+            << '\n'
+
+            << "CurrentValue="
+            << m_currentValue
+            << '\n'
+
+            << "FilterDifference="
+            << (m_filterDifference ? 1 : 0)
+            << '\n'
+
+            << "DifferenceValue="
+            << m_differenceValue
+            << '\n'
+
+            << "DescriptionsFirst="
+            << (m_descriptionsFirst ? 1 : 0)
+            << '\n';
     }
 }

@@ -14,6 +14,7 @@ namespace MyImGui
     enum class DosBoxMemoryScanMode
     {
         NewScan,
+        UnknownInitialValue,
         ExactValue,
         Changed,
         Unchanged,
