@@ -56,6 +56,11 @@ namespace MyImGui
 
         void reset();
 
+        bool readPreviousValue(
+            size_t address,
+            uint8_t& value
+        ) const;
+
         const std::vector<
             DosBoxMemoryCandidate
         >& candidates() const;

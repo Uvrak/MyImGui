@@ -28,6 +28,10 @@ namespace MyImGui
             bool& liveView
         );
 
+        void pinAddresses(
+            const std::vector<size_t>& addresses
+        );
+
         void setGameId(
             const std::string& gameId
         );

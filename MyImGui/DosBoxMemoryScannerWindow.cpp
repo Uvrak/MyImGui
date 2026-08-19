@@ -7,6 +7,7 @@
 #include <sstream>
 #include <filesystem>
 #include <algorithm>
+#include <vector>
 
 #include "imgui.h"
 
@@ -556,10 +557,46 @@ namespace MyImGui
         ImGui::SameLine();
 
         if (ImGui::Button(
-            "Find"
-        ) || addressEnter)
+    "Find"
+) || addressEnter)
+{
+    m_addressSearchAttempted = true;
+
+    char* end = nullptr;
+
+    const unsigned long long address =
+        std::strtoull(
+            m_addressSearch,
+            &end,
+            0
+        );
+
+    if (end != m_addressSearch &&
+        *end == '\0')
+    {
+        m_foundAddress =
+            static_cast<size_t>(
+                address
+            );
+
+        m_hasFoundAddress = true;
+
+        pinAddresses(
+            std::vector<size_t>{
+                m_foundAddress
+            }
+        );
+    }
+    else
+    {
+        m_hasFoundAddress = false;
+    }
+}
+
+        if (ImGui::Button(
+            "Pin Address"
+        ))
         {
-            m_addressSearchAttempted = true;
             char* end = nullptr;
 
             const unsigned long long address =
@@ -572,49 +609,22 @@ namespace MyImGui
             if (end != m_addressSearch &&
                 *end == '\0')
             {
-                m_foundAddress =
+                const size_t parsedAddress =
                     static_cast<size_t>(
                         address
                         );
 
-                m_hasFoundAddress = true;
-            }
-            else
-            {
-                m_hasFoundAddress = false;
-            }
-
-            bool foundCandidate = false;
-
-            for (const DosBoxMemoryCandidate&
-                candidate :
-                m_scanner.candidates())
-            {
-                if (candidate.address ==
-                    m_foundAddress)
-                {
-                    foundCandidate = true;
-                    break;
-                }
-            }
-
-            m_hasFoundAddress =
-                foundCandidate;
-
-            if (foundCandidate)
-            {
                 m_pinnedAddresses.insert(
-                    m_foundAddress
+                    parsedAddress
                 );
 
                 m_scanner.pinAddress(
-                    m_foundAddress
+                    parsedAddress
                 );
 
-				savePinnedAddresses();
+                savePinnedAddresses();
             }
         }
-
         ImGui::SameLine();
 
         if (m_addressSearchAttempted)
@@ -727,15 +737,21 @@ namespace MyImGui
                 );
 
                 ImGui::TableSetupColumn(
-                    "Previous"
+                    "Previous",
+                    ImGuiTableColumnFlags_WidthFixed,
+                    105.0f
                 );
 
                 ImGui::TableSetupColumn(
-                    "Current"
+                    "Current",
+                    ImGuiTableColumnFlags_WidthFixed,
+                    105.0f
                 );
 
                 ImGui::TableSetupColumn(
-                    "Difference"
+                    "Difference",
+                    ImGuiTableColumnFlags_WidthFixed,
+                    105.0f
                 );
 
                 ImGui::TableHeadersRow();
@@ -756,7 +772,7 @@ namespace MyImGui
                 ImGui::SameLine();
 
                 ImGui::SetNextItemWidth(
-                    80.0f
+                    110.0f
                 );
 
                 if (ImGui::InputInt(
@@ -780,7 +796,7 @@ namespace MyImGui
                 ImGui::SameLine();
 
                 ImGui::SetNextItemWidth(
-                    80.0f
+                    110.0f
                 );
 
                 if (ImGui::InputInt(
@@ -790,6 +806,8 @@ namespace MyImGui
                 {
                     saveScannerSettings();
                 }
+
+                ImGui::TableSetColumnIndex(3);
 
                 ImGui::TableSetColumnIndex(3);
 
@@ -804,7 +822,7 @@ namespace MyImGui
                 ImGui::SameLine();
 
                 ImGui::SetNextItemWidth(
-                    80.0f
+                    110.0f
                 );
 
                 if (ImGui::InputInt(
@@ -854,7 +872,14 @@ namespace MyImGui
                                     index
                                 ];
 
+                            uint8_t previousValue = 0;
                             uint8_t currentValue = 0;
+
+                            const bool hasPreviousValue =
+                                m_scanner.readPreviousValue(
+                                    address,
+                                    previousValue
+                                );
 
                             m_scanner.readCurrentValue(
                                 address,
@@ -1091,7 +1116,19 @@ namespace MyImGui
                             }
                             ImGui::TableSetColumnIndex(1);
 
-                            ImGui::TextUnformatted("-");
+                            if (hasPreviousValue)
+                            {
+                                ImGui::Text(
+                                    "%u",
+                                    static_cast<unsigned int>(
+                                        previousValue
+                                        )
+                                );
+                            }
+                            else
+                            {
+                                ImGui::TextUnformatted("-");
+                            }
 
                             ImGui::TableSetColumnIndex(2);
 
@@ -1112,7 +1149,25 @@ namespace MyImGui
 
                             ImGui::TableSetColumnIndex(3);
 
-                            ImGui::TextUnformatted("-");
+                            if (hasPreviousValue)
+                            {
+                                const int difference =
+                                    static_cast<int>(
+                                        liveCurrentValue
+                                        ) -
+                                    static_cast<int>(
+                                        previousValue
+                                        );
+
+                                ImGui::Text(
+                                    "%d",
+                                    difference
+                                );
+                            }
+                            else
+                            {
+                                ImGui::TextUnformatted("-");
+                            }
 
                             continue;
                         }
@@ -1523,6 +1578,30 @@ namespace MyImGui
             }
 
         ImGui::End();
+    }
+
+    void DosBoxMemoryScannerWindow::pinAddresses(
+        const std::vector<size_t>& addresses
+    )
+    {
+        for (const size_t address :
+        addresses)
+        {
+            m_pinnedAddresses.insert(
+                address
+            );
+
+            m_scanner.pinAddress(
+                address
+            );
+
+            m_pinnedDescriptions.try_emplace(
+                address,
+                ""
+            );
+        }
+
+        savePinnedAddresses();
     }
 
     std::string DosBoxMemoryScannerWindow::

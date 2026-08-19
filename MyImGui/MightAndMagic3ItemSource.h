@@ -29,6 +29,15 @@ namespace MightAndMagic3
         bool refresh();
 
         int selectedItemId() const;
+
+        std::string selectedItemName() const override;
+
+        int selectedMaterialId() const;
+
+        std::string materialName(
+            int materialId
+        ) const;
+
     private:
         std::vector<
             ItemExplorer::Item
@@ -40,6 +49,5 @@ namespace MightAndMagic3
         std::string readString(
             size_t address
         ) const;
-        
     };
 }

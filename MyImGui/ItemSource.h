@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 
 #include "Item.h"
 
@@ -19,5 +20,10 @@ namespace ItemExplorer
         virtual const Item* findById(
             int id
         ) const = 0;
+
+        virtual std::string selectedItemName() const
+        {
+            return {};
+        }
     };
 }

@@ -92,10 +92,15 @@ namespace ItemExplorer
 
             if (selectedItem)
             {
+                const std::string selectedItemName =
+                    m_source->selectedItemName();
+
                 ImGui::Text(
                     "%d - %s",
                     selectedItem->id,
-                    selectedItem->name.c_str()
+                    selectedItemName.empty()
+                    ? selectedItem->name.c_str()
+                    : selectedItemName.c_str()
                 );
 
                 for (const ItemProperty& property :

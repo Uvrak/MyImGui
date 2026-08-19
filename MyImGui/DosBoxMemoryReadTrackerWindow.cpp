@@ -2,6 +2,7 @@
 #include "DosBoxMemoryReadTrackerWindow.h"
 
 #include "DosBoxMemoryScanner.h"
+#include "DosBoxMemoryScannerWindow.h"
 
 #include <unordered_set>
 #include <fstream>
@@ -16,10 +17,14 @@ namespace MyImGui
     DosBoxMemoryReadTrackerWindow::
         DosBoxMemoryReadTrackerWindow(
             DosBoxMemoryScanner& scanner,
+            DosBoxMemoryScannerWindow& scannerWindow,
             const std::string& gameId
         )
         : m_scanner(
             scanner
+        ),
+        m_scannerWindow(
+            scannerWindow
         ),
         m_gameId(
             gameId
@@ -101,6 +106,9 @@ namespace MyImGui
             "Begin Idle"
         ))
         {
+            m_previousAttackOnlyReadAddresses =
+                m_attackOnlyReadAddresses;
+
             m_scanner.clearReadTracking();
             m_scanner.startReadTracking();
         }
@@ -139,6 +147,9 @@ namespace MyImGui
             "Compare"
         ))
         {
+            m_previousAttackOnlyReadAddresses =
+                m_attackOnlyReadAddresses;
+
             m_attackOnlyReadAddresses.clear();
 
             const std::unordered_set<size_t> idleAddresses(
@@ -206,10 +217,74 @@ namespace MyImGui
             m_attackReadAddresses.size()
         );
 
+
+
         ImGui::Text(
             "Attack only: %zu",
             m_attackOnlyReadAddresses.size()
         );
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Previous - Current"))
+        {
+            std::vector<size_t> difference;
+
+            for (const size_t address :
+            m_previousAttackOnlyReadAddresses)
+            {
+                if (std::find(
+                    m_attackOnlyReadAddresses.begin(),
+                    m_attackOnlyReadAddresses.end(),
+                    address
+                ) == m_attackOnlyReadAddresses.end())
+                {
+                    difference.push_back(address);
+                }
+            }
+
+            m_attackOnlyReadAddresses =
+                std::move(difference);
+        }
+
+        if (ImGui::Button(
+            "Pin Attack Only"
+        ))
+        {
+            m_scannerWindow.pinAddresses(
+                m_attackOnlyReadAddresses
+            );
+        }
+
+        if (ImGui::Button(
+            "Pin Previous Attack Only"
+        ))
+        {
+            m_scannerWindow.pinAddresses(
+                m_previousAttackOnlyReadAddresses
+            );
+        }
+
+        ImGui::Text(
+            "Previous attack only: %zu",
+            m_previousAttackOnlyReadAddresses.size()
+        );
+
+        if (m_attackOnlyReadAddresses.size() <= 20)
+        {
+            ImGui::Separator();
+            ImGui::Text("Attack only addresses:");
+
+            for (const size_t address :
+            m_attackOnlyReadAddresses)
+            {
+                ImGui::Text(
+                    "%zu  (0x%zX)",
+                    address,
+                    address
+                );
+            }
+        }
 
         ImGui::Separator();
 
@@ -220,13 +295,14 @@ namespace MyImGui
 
         ImGui::End();
     }
-    
+
     void DosBoxMemoryReadTrackerWindow::saveSession() const
     {
 
         if (m_idleReadAddresses.empty() &&
             m_attackReadAddresses.empty() &&
             m_attackOnlyReadAddresses.empty() &&
+            m_previousAttackOnlyReadAddresses.empty() &&
             m_scanner.candidates().empty())
         {
             return;
@@ -337,6 +413,21 @@ namespace MyImGui
                 '\n';
         }
 
+        file <<
+            "PreviousAttackOnly\n";
+
+        file <<
+            m_previousAttackOnlyReadAddresses.size() <<
+            '\n';
+
+        for (const size_t address :
+        m_previousAttackOnlyReadAddresses)
+        {
+            file <<
+                address <<
+                '\n';
+        }
+
 
     }
     
@@ -357,14 +448,53 @@ namespace MyImGui
             m_gameId +
             ".cfg";
 
+        OutputDebugStringA(
+            "loadSession: "
+        );
+
+        OutputDebugStringA(
+            filename.c_str()
+        );
+
+        OutputDebugStringA(
+            "\n"
+        );
+
+        char cwd[MAX_PATH]{};
+
+        GetCurrentDirectoryA(
+            MAX_PATH,
+            cwd
+        );
+
+        OutputDebugStringA(
+            "Current directory: "
+        );
+
+        OutputDebugStringA(
+            cwd
+        );
+
+        OutputDebugStringA(
+            "\n"
+        );
+
         std::ifstream file(
             filename
         );
 
         if (!file)
         {
+            OutputDebugStringA(
+                "loadSession FAILED: could not open file\n"
+            );
+
             return;
         }
+
+        OutputDebugStringA(
+            "loadSession OK: file opened\n"
+        );
 
         std::string header;
 
@@ -373,12 +503,27 @@ namespace MyImGui
             header
         );
 
+        OutputDebugStringA(
+            "loadSession header: "
+        );
+
+        OutputDebugStringA(
+            header.c_str()
+        );
+
+        OutputDebugStringA(
+            "\n"
+        );
+
         if (header !=
             "GridBuilderMemoryReadSession 1")
         {
+            OutputDebugStringA(
+                "loadSession FAILED: bad header\n"
+            );
+
             return;
         }
-
         auto readAddresses =
             [&file](
                 const char* expectedSection,
@@ -432,32 +577,101 @@ namespace MyImGui
             m_idleReadAddresses
         ))
         {
+            OutputDebugStringA(
+                "loadSession FAILED: Idle\n"
+            );
+
             return;
         }
+
+        OutputDebugStringA(
+            "loadSession OK: Idle\n"
+        );
 
         if (!readAddresses(
             "Attack",
             m_attackReadAddresses
         ))
         {
+            OutputDebugStringA(
+                "loadSession FAILED: Attack\n"
+            );
+
             return;
         }
+
+        OutputDebugStringA(
+            "loadSession OK: Attack\n"
+        );
 
         if (!readAddresses(
             "AttackOnly",
             m_attackOnlyReadAddresses
         ))
         {
+            OutputDebugStringA(
+                "loadSession FAILED: AttackOnly\n"
+            );
+
             return;
         }
+
+        OutputDebugStringA(
+            "loadSession OK: AttackOnly\n"
+        );
 
         if (!readAddresses(
             "Candidates",
             candidates
         ))
         {
+            OutputDebugStringA(
+                "loadSession FAILED: Candidates\n"
+            );
+
             return;
         }
+
+        std::string optionalSection;
+
+        if (file >> optionalSection)
+        {
+            if (optionalSection ==
+                "PreviousAttackOnly")
+            {
+                size_t count = 0;
+
+                if (file >> count)
+                {
+                    m_previousAttackOnlyReadAddresses.clear();
+
+                    m_previousAttackOnlyReadAddresses.reserve(
+                        count
+                    );
+
+                    for (size_t i = 0;
+                        i < count;
+                        ++i)
+                    {
+                        size_t address = 0;
+
+                        if (!(file >> address))
+                        {
+                            m_previousAttackOnlyReadAddresses.clear();
+                            break;
+                        }
+
+                        m_previousAttackOnlyReadAddresses.push_back(
+                            address
+                        );
+                    }
+                }
+            }
+        }
+
+        OutputDebugStringA(
+            "loadSession OK: Candidates\n"
+        );
 
         if (!candidates.empty())
         {

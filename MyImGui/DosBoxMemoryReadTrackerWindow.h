@@ -7,12 +7,14 @@
 namespace MyImGui
 {
     class DosBoxMemoryScanner;
+    class DosBoxMemoryScannerWindow;
 
     class DosBoxMemoryReadTrackerWindow
     {
     public:
         DosBoxMemoryReadTrackerWindow(
             DosBoxMemoryScanner& scanner,
+            DosBoxMemoryScannerWindow& scannerWindow,
             const std::string& gameId
         );
 
@@ -30,6 +32,9 @@ namespace MyImGui
     private:
         DosBoxMemoryScanner&
             m_scanner;
+
+        DosBoxMemoryScannerWindow&
+            m_scannerWindow;
 
         std::string
             m_gameId;

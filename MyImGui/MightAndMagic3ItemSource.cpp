@@ -151,6 +151,7 @@ namespace MightAndMagic3
             item.name =
                 name;
 
+
             if (itemId >= 1 &&
                 itemId <= 33)
             {
@@ -275,5 +276,245 @@ namespace MightAndMagic3
                 itemAddress
             ]
             );
+    }
+
+    std::string ItemSource::selectedItemName() const
+    {
+        const int itemId =
+            selectedItemId();
+
+        const ItemExplorer::Item* item =
+            findById(
+                itemId
+            );
+
+        if (!item)
+        {
+            return {};
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        constexpr size_t SelectedInventorySlotAddress =
+            0x304D0;
+
+        constexpr size_t FirstMaterialAddress =
+            0x2BFC8;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        if (SelectedPartySlotAddress >= memory.size() ||
+            SelectedInventorySlotAddress + 1 >= memory.size())
+        {
+            return item->name;
+        }
+
+        const uint8_t partyIndex =
+            memory[
+                SelectedPartySlotAddress
+            ];
+
+        const uint16_t inventorySlot =
+            static_cast<uint16_t>(
+                memory[
+                    SelectedInventorySlotAddress
+                ]
+                ) |
+            (
+                static_cast<uint16_t>(
+                    memory[
+                        SelectedInventorySlotAddress + 1
+                    ]
+                    ) << 8
+                );
+
+        if (partyIndex >= 8 ||
+            inventorySlot >= 18)
+        {
+            return item->name;
+        }
+
+        const size_t materialAddress =
+            FirstMaterialAddress +
+            static_cast<size_t>(
+                partyIndex
+                ) *
+            CharacterRecordSize +
+            inventorySlot;
+
+        if (materialAddress >= memory.size())
+        {
+            return item->name;
+        }
+
+        const uint8_t materialId =
+            memory[
+                materialAddress
+            ];
+
+        if (materialId == 0 ||
+            materialId > 22)
+        {
+            return item->name;
+        }
+
+        size_t address =
+            0x26250;
+
+        for (int id = 1;
+            id < materialId;
+            ++id)
+        {
+            const std::string name =
+                readString(
+                    address
+                );
+
+            if (name.empty())
+            {
+                return item->name;
+            }
+
+            address +=
+                name.size() + 1;
+        }
+
+        std::string material =
+            readString(
+                address
+            );
+
+        while (!material.empty() &&
+            material.back() == ' ')
+        {
+            material.pop_back();
+        }
+
+        if (material.empty())
+        {
+            return item->name;
+        }
+
+        return material +
+            " " +
+            item->name;
+    }
+
+    int ItemSource::selectedMaterialId() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        constexpr size_t SelectedInventorySlotAddress =
+            0x304D0;
+
+        constexpr size_t FirstMaterialAddress =
+            0x2BFC8;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        if (SelectedPartySlotAddress >= memory.size() ||
+            SelectedInventorySlotAddress + 1 >= memory.size())
+        {
+            return 0;
+        }
+
+        const uint8_t partyIndex =
+            memory[
+                SelectedPartySlotAddress
+            ];
+
+        const uint16_t inventorySlot =
+            static_cast<uint16_t>(
+                memory[
+                    SelectedInventorySlotAddress
+                ]
+                ) |
+            (
+                static_cast<uint16_t>(
+                    memory[
+                        SelectedInventorySlotAddress + 1
+                    ]
+                    ) << 8
+                );
+
+        if (partyIndex >= 8 ||
+            inventorySlot >= 18)
+        {
+            return 0;
+        }
+
+        const size_t materialAddress =
+            FirstMaterialAddress +
+            static_cast<size_t>(
+                partyIndex
+                ) *
+            CharacterRecordSize +
+            inventorySlot;
+
+        if (materialAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[
+                materialAddress
+            ]
+            );
+    }
+
+    std::string ItemSource::materialName(
+        int materialId
+    ) const
+    {
+        if (materialId <= 0 ||
+            materialId > 22)
+        {
+            return {};
+        }
+
+        size_t address =
+            0x26250;
+
+        for (int id = 1;
+            id < materialId;
+            ++id)
+        {
+            const std::string name =
+                readString(
+                    address
+                );
+
+            if (name.empty())
+            {
+                return {};
+            }
+
+            address +=
+                name.size() + 1;
+        }
+
+        std::string result =
+            readString(
+                address
+            );
+
+        while (!result.empty() &&
+            result.back() == ' ')
+        {
+            result.pop_back();
+        }
+
+        return result;
     }
 }

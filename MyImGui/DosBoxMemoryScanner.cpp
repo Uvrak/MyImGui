@@ -478,6 +478,22 @@ namespace MyImGui
             "Scanner reset.";
     }
 
+    bool DosBoxMemoryScanner::readPreviousValue(
+        size_t address,
+        uint8_t& value
+    ) const
+    {
+        if (address >= m_previousMemory.size())
+        {
+            return false;
+        }
+
+        value =
+            m_previousMemory[address];
+
+        return true;
+    }
+
     const std::vector<
         DosBoxMemoryCandidate
     >& DosBoxMemoryScanner::
@@ -540,9 +556,19 @@ namespace MyImGui
 
     bool DosBoxMemoryScanner::refreshMemory()
     {
+        const std::vector<uint8_t>
+            previousMemory =
+            m_memoryReader.memory();
+
         if (!requestSnapshot())
         {
             return false;
+        }
+
+        if (!previousMemory.empty())
+        {
+            m_previousMemory =
+                previousMemory;
         }
 
         m_status =
@@ -550,6 +576,7 @@ namespace MyImGui
 
         return true;
     }
+
     bool DosBoxMemoryScanner::writeValue(
         size_t address,
         uint8_t value
@@ -945,6 +972,13 @@ namespace MyImGui
 
     void DosBoxMemoryScanner::refreshValues()
     {
+        for (DosBoxMemoryCandidate& candidate :
+            m_candidates)
+        {
+            candidate.previousValue =
+                candidate.currentValue;
+        }
+
         if (!requestSnapshot())
         {
             return;

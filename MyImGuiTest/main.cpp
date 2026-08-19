@@ -206,6 +206,10 @@ int main(int, char**)
             &dosBoxView
         );
 
+    memoryTools.setGameId(
+        "MM3.EXE"
+    );
+
     if (dosBoxFound)
     {
         externalWindow.setBounds(

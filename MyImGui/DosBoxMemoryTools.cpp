@@ -17,6 +17,7 @@ namespace MyImGui
         ),
         m_readTrackerWindow(
             m_scannerWindow.scanner(),
+            m_scannerWindow,
             gameId
         ),
         m_viewerWindow(
