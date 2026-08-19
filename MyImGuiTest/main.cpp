@@ -51,6 +51,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 // Main code
 int main(int, char**)
 {
+    MyImGui::MyImGuiSettings settings;
     // Make process DPI aware and obtain main monitor scale
     ImGui_ImplWin32_EnableDpiAwareness();
     float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY));
@@ -58,7 +59,8 @@ int main(int, char**)
     // Create application window
     WNDCLASSEXW wc = { sizeof(wc), CS_CLASSDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr };
     ::RegisterClassExW(&wc);
-    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX11 Example", WS_OVERLAPPEDWINDOW, 100, 100, (int)(1280 * main_scale), (int)(800 * main_scale), nullptr, nullptr, wc.hInstance, nullptr);
+    HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"Dear ImGui DirectX11 Example", WS_OVERLAPPEDWINDOW, settings.windowX(), settings.windowY(), settings.windowWidth(),
+        settings.windowHeight(), nullptr, nullptr, wc.hInstance, nullptr);
 
     // Initialize Direct3D
     if (!CreateDeviceD3D(hwnd))
@@ -132,8 +134,6 @@ int main(int, char**)
     dosBoxController.closeExistingInstances();
 
     MyImGui::MainMenu mainMenu;
-
-    MyImGui::MyImGuiSettings settings;
 
     MyImGui::MyImGuiSettingsWindow
         settingsWindow(
@@ -232,6 +232,12 @@ int main(int, char**)
     // Main loop
     bool done = false;
     
+    bool autoStartPending =
+        dosBoxFound;
+
+    ULONGLONG autoStartAt =
+        GetTickCount64() + 1500;
+
     while (!done)
     {
         // Poll and handle messages (inputs, window resize, etc.)
@@ -244,6 +250,54 @@ int main(int, char**)
             if (msg.message == WM_QUIT)
                 done = true;
         }
+
+        if (autoStartPending &&
+            GetTickCount64() >= autoStartAt)
+        {
+            dosBoxController.setKeyboardLayout(
+                NamedPipeClient,
+                MyImGui::KeyboardLayout::German
+            );
+
+            Sleep(200);
+
+            dosBoxController.sendDosText(
+                NamedPipeClient,
+                "MOUNT C \"C:\\GOG Galaxy\\Games\\Might and Magic 3\""
+            );
+
+            dosBoxController.sendDosKey(
+                NamedPipeClient,
+                "ENTER"
+            );
+
+            Sleep(200);
+
+            dosBoxController.sendDosText(
+                NamedPipeClient,
+                "C:"
+            );
+
+            dosBoxController.sendDosKey(
+                NamedPipeClient,
+                "ENTER"
+            );
+
+            Sleep(200);
+
+            dosBoxController.sendDosText(
+                NamedPipeClient,
+                "MM3"
+            );
+
+            dosBoxController.sendDosKey(
+                NamedPipeClient,
+                "ENTER"
+            );
+
+            autoStartPending = false;
+        }
+
         if (done)
             break;
 
@@ -258,9 +312,35 @@ int main(int, char**)
         // Handle window resize (we don't resize directly in the WM_SIZE handler)
         if (g_ResizeWidth != 0 && g_ResizeHeight != 0)
         {
+            RECT windowRect{};
+
+            if (::GetWindowRect(
+                hwnd,
+                &windowRect
+            ))
+            {
+                settings.setWindowPlacement(
+                    windowRect.left,
+                    windowRect.top,
+                    windowRect.right - windowRect.left,
+                    windowRect.bottom - windowRect.top
+                );
+            }
+
             CleanupRenderTarget();
-            g_pSwapChain->ResizeBuffers(0, g_ResizeWidth, g_ResizeHeight, DXGI_FORMAT_UNKNOWN, 0);
-            g_ResizeWidth = g_ResizeHeight = 0;
+
+            g_pSwapChain->ResizeBuffers(
+                0,
+                g_ResizeWidth,
+                g_ResizeHeight,
+                DXGI_FORMAT_UNKNOWN,
+                0
+            );
+
+            g_ResizeWidth =
+                g_ResizeHeight =
+                0;
+
             CreateRenderTarget();
         }
 
@@ -365,7 +445,29 @@ int main(int, char**)
         g_SwapChainOccluded = (hr == DXGI_STATUS_OCCLUDED);
     }
 
-    memoryTools.saveSession();
+    
+RECT windowRect{};
+
+if (::GetWindowRect(
+    hwnd,
+    &windowRect
+))
+{
+    settings.setWindowPlacement(
+        windowRect.left,
+        windowRect.top,
+        windowRect.right - windowRect.left,
+        windowRect.bottom - windowRect.top
+    );
+}
+
+printf(
+    "Saving window size: %d x %d\n",
+    settings.windowWidth(),
+    settings.windowHeight()
+);
+
+memoryTools.saveSession();
 
     ClipCursor(
         nullptr

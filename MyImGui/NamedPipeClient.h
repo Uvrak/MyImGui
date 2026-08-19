@@ -35,7 +35,7 @@ namespace MyImGui
         );
 
         void disconnect();
-
+   
     private:
         bool connect(
             DWORD access
