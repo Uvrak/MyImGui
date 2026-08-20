@@ -25,5 +25,15 @@ namespace ItemExplorer
         {
             return {};
         }
+
+        virtual int selectedCharacterLevel() const
+        {
+            return 0;
+        }
+
+        virtual int selectedCharacterAccuracy() const
+        {
+            return 0;
+        }
     };
 }

@@ -263,7 +263,7 @@ int main(int, char**)
                 MyImGui::KeyboardLayout::German
             );
 
-            Sleep(200);
+            Sleep(500);
 
             dosBoxController.sendDosText(
                 NamedPipeClient,

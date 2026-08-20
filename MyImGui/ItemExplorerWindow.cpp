@@ -79,6 +79,26 @@ namespace ItemExplorer
             m_selectedItemId
         );
 
+        const int characterLevel =
+            m_source->selectedCharacterLevel();
+
+        const int characterAccuracy =
+            m_source->selectedCharacterAccuracy();
+
+        if (characterLevel > 0)
+        {
+            ImGui::Text(
+                "Character Level: %d",
+                characterLevel
+            );
+        }
+
+		ImGui::SameLine();
+
+        ImGui::Text(
+            "Character Accuracy: %d",
+            characterAccuracy
+        );
         ImGui::Separator();
 
         const auto& items =

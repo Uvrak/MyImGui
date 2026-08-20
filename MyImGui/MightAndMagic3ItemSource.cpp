@@ -405,6 +405,110 @@ namespace MightAndMagic3
             item->name;
     }
 
+    int ItemSource::selectedCharacterLevel() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        constexpr size_t FirstCharacterAddress =
+            0x2BF00;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        constexpr size_t LevelOffset =
+            0x35;
+
+        if (SelectedPartySlotAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        const uint8_t partyIndex =
+            memory[
+                SelectedPartySlotAddress
+            ];
+
+        if (partyIndex >= 6)
+        {
+            return 0;
+        }
+
+        const size_t levelAddress =
+            FirstCharacterAddress +
+            static_cast<size_t>(
+                partyIndex
+                ) *
+            CharacterRecordSize +
+            LevelOffset;
+
+        if (levelAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[
+                levelAddress
+            ]
+            );
+    }
+
+    int ItemSource::selectedCharacterAccuracy() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        constexpr size_t FirstCharacterAddress =
+            0x2BF00;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        constexpr size_t AccuracyOffset =
+            0x30;
+
+        if (SelectedPartySlotAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        const uint8_t partyIndex =
+            memory[
+                SelectedPartySlotAddress
+            ];
+
+        if (partyIndex >= 6)
+        {
+            return 0;
+        }
+
+        const size_t accuracyAddress =
+            FirstCharacterAddress +
+            static_cast<size_t>(
+                partyIndex
+                ) *
+            CharacterRecordSize +
+            AccuracyOffset;
+
+        if (accuracyAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[
+                accuracyAddress
+            ]
+            );
+    }
+
     int ItemSource::selectedMaterialId() const
     {
         const std::vector<uint8_t>& memory =
