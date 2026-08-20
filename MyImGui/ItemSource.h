@@ -35,5 +35,10 @@ namespace ItemExplorer
         {
             return 0;
         }
+
+        virtual int selectedCharacterAccuracyBonus() const
+        {
+            return 0;
+        }
     };
 }

@@ -85,6 +85,9 @@ namespace ItemExplorer
         const int characterAccuracy =
             m_source->selectedCharacterAccuracy();
 
+        const int characterAccuracyBonus =
+            m_source->selectedCharacterAccuracyBonus();
+
         if (characterLevel > 0)
         {
             ImGui::Text(
@@ -99,6 +102,14 @@ namespace ItemExplorer
             "Character Accuracy: %d",
             characterAccuracy
         );
+
+		ImGui::SameLine();                  
+
+        ImGui::Text(
+            "Accuracy Bonus: +%d",
+            characterAccuracyBonus
+        );
+
         ImGui::Separator();
 
         const auto& items =

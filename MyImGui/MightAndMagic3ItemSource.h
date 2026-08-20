@@ -36,6 +36,8 @@ namespace MightAndMagic3
 
         int selectedCharacterAccuracy() const override;
 
+        int selectedCharacterAccuracyBonus() const override;
+
         int selectedMaterialId() const;
 
         std::string materialName(

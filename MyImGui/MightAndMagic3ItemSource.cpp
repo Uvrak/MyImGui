@@ -509,6 +509,19 @@ namespace MightAndMagic3
             );
     }
 
+    int ItemSource::selectedCharacterAccuracyBonus() const
+    {
+        const int accuracy =
+            selectedCharacterAccuracy();
+
+        if (accuracy < 13)
+        {
+            return 0;
+        }
+
+        return (accuracy - 11) / 2;
+    }
+
     int ItemSource::selectedMaterialId() const
     {
         const std::vector<uint8_t>& memory =
