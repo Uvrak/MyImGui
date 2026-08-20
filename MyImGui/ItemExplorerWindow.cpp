@@ -110,6 +110,16 @@ namespace ItemExplorer
             characterAccuracyBonus
         );
 
+        const int characterClassId =
+            m_source->selectedCharacterClassId();
+
+		ImGui::SameLine();
+
+        ImGui::Text(
+            "Character Class ID: %d",
+            characterClassId
+        );
+
         ImGui::Separator();
 
         const auto& items =

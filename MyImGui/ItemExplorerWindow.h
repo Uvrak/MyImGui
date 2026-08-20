@@ -27,5 +27,7 @@ namespace ItemExplorer
 
         int m_selectedItemId = 0;
 
+        float m_memoryRowHeight = 0.0f;
+
     };
 }

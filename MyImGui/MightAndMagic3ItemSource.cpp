@@ -522,6 +522,58 @@ namespace MightAndMagic3
         return (accuracy - 11) / 2;
     }
 
+    int ItemSource::selectedCharacterClassId() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        constexpr size_t FirstCharacterAddress =
+            0x2BF00;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        constexpr size_t ClassOffset =
+            0x25;
+
+        if (SelectedPartySlotAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        const uint8_t partyIndex =
+            memory[
+                SelectedPartySlotAddress
+            ];
+
+        if (partyIndex >= 6)
+        {
+            return 0;
+        }
+
+        const size_t classAddress =
+            FirstCharacterAddress +
+            static_cast<size_t>(
+                partyIndex
+                ) *
+            CharacterRecordSize +
+            ClassOffset;
+
+        if (classAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[
+                classAddress
+            ]
+            );
+    }
+
     int ItemSource::selectedMaterialId() const
     {
         const std::vector<uint8_t>& memory =

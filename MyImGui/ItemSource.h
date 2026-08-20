@@ -40,5 +40,10 @@ namespace ItemExplorer
         {
             return 0;
         }
+
+        virtual int selectedCharacterClassId() const
+        {
+            return 0;
+        }
     };
 }

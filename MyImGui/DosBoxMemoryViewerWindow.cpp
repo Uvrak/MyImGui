@@ -256,26 +256,50 @@ namespace MyImGui
         if (m_searchType ==
             MemorySearchType::BytePattern)
         {
+            constexpr float PatternInputWidth =
+                70.0f;
+
             ImGui::TextUnformatted("N");
 
             ImGui::SameLine();
-            ImGui::TextUnformatted("From");
+
+            ImGui::SetNextItemWidth(
+                PatternInputWidth
+            );
+
+            ImGui::InputInt(
+                "##PatternN",
+                &m_patternN
+            );
+
             ImGui::SameLine();
 
-            ImGui::SetNextItemWidth(70.0f);
+            ImGui::TextUnformatted("From");
+
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(
+                PatternInputWidth
+            );
+
             ImGui::InputInt(
                 "##PatternFrom",
                 &m_patternFrom
             );
 
             ImGui::SameLine();
+
             ImGui::TextUnformatted("To");
+
             ImGui::SameLine();
 
-            ImGui::SetNextItemWidth(70.0f);
+            ImGui::SetNextItemWidth(
+                PatternInputWidth
+            );
+
             ImGui::InputInt(
-                "##PatternN",
-                &m_patternN
+                "##PatternTo",
+                &m_patternTo
             );
 
             ImGui::SameLine();
@@ -313,12 +337,6 @@ namespace MyImGui
                     }
                 }
             }
-
-            ImGui::SetNextItemWidth(70.0f);
-            ImGui::InputInt(
-                "##PatternTo",
-                &m_patternTo
-            );
 
             if (m_patternN < 0)
             {
@@ -369,13 +387,11 @@ namespace MyImGui
                 *end == '\0' &&
                 address < memory.size())
             {
-                m_searchResult =
+                goToAddress(
                     static_cast<size_t>(
                         address
-                        );
-
-                m_hasSearchResult = true;
-                m_scrollToSearchResult = true;
+                        )
+                );
             }
         }
 
@@ -467,33 +483,68 @@ namespace MyImGui
                 150.0f
             );
             
+            ImGui::TableSetupScrollFreeze(
+                0,
+                1
+            );
 
             ImGui::TableHeadersRow();
 
-            if (m_scrollToSearchResult)
-            {
-                const float rowHeight =
-                    ImGui::GetTextLineHeightWithSpacing();
-
-                const float targetY =
-                    static_cast<float>(
-                        m_searchResult /
-                        BytesPerRow
-                        ) * rowHeight;
-
-                ImGui::SetScrollY(
-                    targetY
-                );
-
-                m_scrollToSearchResult =
-                    false;
-            }
-
             ImGuiListClipper clipper;
+
+            
 
             clipper.Begin(
                 rowCount
             );
+
+            if (m_scrollToSearchResult)
+            {
+                const int targetRow =
+                    static_cast<int>(
+                        m_searchResult /
+                        BytesPerRow
+                        );
+
+                const float scrollMaxY =
+                    ImGui::GetScrollMaxY();
+
+                if (rowCount > 1 &&
+                    scrollMaxY > 0.0f)
+                {
+                    const float fraction =
+                        static_cast<float>(
+                            targetRow
+                            ) /
+                        static_cast<float>(
+                            rowCount - 1
+                            );
+
+                    const float visibleHeight =
+                        ImGui::GetWindowHeight();
+
+                    float targetY =
+                        fraction * scrollMaxY +
+                        (fraction - 0.5f) *
+                        visibleHeight;
+
+                    if (targetY < 0.0f)
+                    {
+                        targetY = 0.0f;
+                    }
+
+                    if (targetY > scrollMaxY)
+                    {
+                        targetY = scrollMaxY;
+                    }
+
+                    ImGui::SetScrollY(
+                        targetY
+                    );
+                }
+
+                m_scrollToSearchResult = false;
+            }
 
             while (clipper.Step())
             {
@@ -512,16 +563,15 @@ namespace MyImGui
                         m_selectedAddress /
                         BytesPerRow;
 
-                    if (m_keepSelectedVisible &&
-                        m_hasSelectedAddress &&
+                    if (m_hasSelectedAddress &&
                         static_cast<size_t>(row) == selectedRow)
                     {
-                        ImGui::SetScrollHereY(
-                            0.5f
+                        ImGui::TableSetBgColor(
+                            ImGuiTableBgTarget_RowBg0,
+                            ImGui::GetColorU32(
+                                ImGuiCol_HeaderHovered
+                            )
                         );
-
-                        m_keepSelectedVisible =
-                            false;
                     }
 
                     const size_t activeRow =
@@ -587,21 +637,25 @@ namespace MyImGui
                                 ImGui::TableSetBgColor(
                                     ImGuiTableBgTarget_CellBg,
                                     ImGui::GetColorU32(
-                                        ImGuiCol_Header
+                                        ImVec4(
+                                            1.0f,
+                                            1.0f,
+                                            1.0f,
+                                            0.65f
+                                        )
                                     )
                                 );
                             }
 
                             ImGui::PushID(
-                                static_cast<int>(byteAddress)
+                                static_cast<int>(
+                                    byteAddress
+                                    )
                             );
 
-                            ImGui::TextUnformatted(
-                                byteText
-                            );
-
-                            if (ImGui::IsItemClicked(
-                                ImGuiMouseButton_Left
+                            if (ImGui::Selectable(
+                                byteText,
+                                selected
                             ))
                             {
                                 m_selectedAddress =
@@ -655,11 +709,11 @@ namespace MyImGui
 
             ImGui::EndTable();
 
-            if (m_memoryViewActive &&
-                m_hasSelectedAddress &&
+            if (m_hasSelectedAddress &&
                 ImGui::IsWindowFocused(
                     ImGuiFocusedFlags_RootAndChildWindows
-                ))
+                ) &&
+                !ImGui::GetIO().WantTextInput)
             {
                 if (ImGui::IsKeyPressed(
                     ImGuiKey_LeftArrow,
@@ -721,6 +775,9 @@ namespace MyImGui
         size_t address
     )
     {
+        m_selectedAddress = address;
+        m_hasSelectedAddress = true;
+
         m_searchResult = address;
         m_hasSearchResult = true;
         m_scrollToSearchResult = true;

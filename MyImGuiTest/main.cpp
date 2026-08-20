@@ -236,11 +236,24 @@ int main(int, char**)
     // Main loop
     bool done = false;
     
-    bool autoStartPending =
-        dosBoxFound;
+    bool autoStartPending = true;
 
     ULONGLONG autoStartAt =
-        GetTickCount64() + 1500;
+        GetTickCount64() + 2000;
+
+    enum class AutoStartState
+    {
+        Waiting,
+        Mount,
+        ChangeDrive,
+        StartGame,
+        Done
+    };
+
+    AutoStartState autoStartState =
+        AutoStartState::Waiting;
+
+    ULONGLONG autoStartNextStep = 0;
 
     while (!done)
     {
@@ -255,63 +268,94 @@ int main(int, char**)
                 done = true;
         }
 
-        if (autoStartPending &&
-            GetTickCount64() >= autoStartAt)
+        if (autoStartPending)
         {
-            dosBoxController.setKeyboardLayout(
-                NamedPipeClient,
-                MyImGui::KeyboardLayout::German
-            );
+            const ULONGLONG now =
+                GetTickCount64();
 
-            Sleep(500);
+            if (autoStartState ==
+                AutoStartState::Waiting)
+            {
+                if (now >= autoStartAt)
+                {
+                    dosBoxController.setKeyboardLayout(
+                        NamedPipeClient,
+                        MyImGui::KeyboardLayout::German
+                    );
 
-            dosBoxController.sendDosText(
-                NamedPipeClient,
-                "MOUNT C \"C:\\GOG Galaxy\\Games\\Might and Magic 3\""
-            );
+                    autoStartState =
+                        AutoStartState::Mount;
 
-            dosBoxController.sendDosKey(
-                NamedPipeClient,
-                "ENTER"
-            );
+                    autoStartNextStep =
+                        now + 500;
+                }
+            }
+            else if (now >= autoStartNextStep)
+            {
+                switch (autoStartState)
+                {
+                case AutoStartState::Mount:
+                    dosBoxController.sendDosText(
+                        NamedPipeClient,
+                        "MOUNT C \"C:\\GOG Galaxy\\Games\\Might and Magic 3\""
+                    );
 
-            Sleep(200);
+                    dosBoxController.sendDosKey(
+                        NamedPipeClient,
+                        "ENTER"
+                    );
 
-            dosBoxController.sendDosText(
-                NamedPipeClient,
-                "C:"
-            );
+                    autoStartState =
+                        AutoStartState::ChangeDrive;
 
-            dosBoxController.sendDosKey(
-                NamedPipeClient,
-                "ENTER"
-            );
+                    autoStartNextStep =
+                        now + 500;
 
-            Sleep(200);
+                    break;
 
-            dosBoxController.sendDosText(
-                NamedPipeClient,
-                "MM3"
-            );
+                case AutoStartState::ChangeDrive:
+                    dosBoxController.sendDosText(
+                        NamedPipeClient,
+                        "C:"
+                    );
 
-            dosBoxController.sendDosKey(
-                NamedPipeClient,
-                "ENTER"
-            );
+                    dosBoxController.sendDosKey(
+                        NamedPipeClient,
+                        "ENTER"
+                    );
 
-            autoStartPending = false;
+                    autoStartState =
+                        AutoStartState::StartGame;
+
+                    autoStartNextStep =
+                        now + 500;
+
+                    break;
+
+                case AutoStartState::StartGame:
+                    dosBoxController.sendDosText(
+                        NamedPipeClient,
+                        "MM3"
+                    );
+
+                    dosBoxController.sendDosKey(
+                        NamedPipeClient,
+                        "ENTER"
+                    );
+
+                    autoStartState =
+                        AutoStartState::Done;
+
+                    autoStartPending = false;
+
+                    break;
+
+                default:
+                    break;
+                }
+            }
         }
-
-        if (done)
-            break;
-
-        // Handle window being minimized or screen locked
-        if (g_SwapChainOccluded && g_pSwapChain->Present(0, DXGI_PRESENT_TEST) == DXGI_STATUS_OCCLUDED)
-        {
-            ::Sleep(10);
-            continue;
-        }
-        g_SwapChainOccluded = false;
+        
 
         // Handle window resize (we don't resize directly in the WM_SIZE handler)
         if (g_ResizeWidth != 0 && g_ResizeHeight != 0)

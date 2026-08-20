@@ -115,8 +115,24 @@ namespace MyImGui
 
                 m_scanner.reset();
 
+                DosBoxMemoryScanMode initialMode =
+                    m_scanMode;
+
+                if (m_scanMode ==
+                    DosBoxMemoryScanMode::Changed ||
+                    m_scanMode ==
+                    DosBoxMemoryScanMode::Unchanged ||
+                    m_scanMode ==
+                    DosBoxMemoryScanMode::Increased ||
+                    m_scanMode ==
+                    DosBoxMemoryScanMode::Decreased)
+                {
+                    initialMode =
+                        DosBoxMemoryScanMode::UnknownInitialValue;
+                }
+
                 m_scanner.scan(
-                    m_scanMode,
+                    initialMode,
                     m_valueType,
                     static_cast<uint32_t>(
                         m_exactValue
@@ -593,6 +609,22 @@ namespace MyImGui
     }
 }
 
+        if (m_addressSearchAttempted)
+        {
+            if (m_hasFoundAddress)
+            {
+                ImGui::TextUnformatted("Found");
+            }
+            else
+            {
+                ImGui::TextUnformatted("Not found");
+            }
+        }
+
+        ImGui::NewLine();            
+
+        
+
         if (ImGui::Button(
             "Pin Address"
         ))
@@ -625,84 +657,56 @@ namespace MyImGui
                 savePinnedAddresses();
             }
         }
+
         ImGui::SameLine();
 
-        if (m_addressSearchAttempted)
+        ImGui::BeginDisabled(
+            m_selectedAddresses.empty()
+        );
+
+        if (ImGui::Button(
+            "Pin Selected"
+        ))
         {
-            if (m_hasFoundAddress)
+            for (size_t address :
+            m_selectedAddresses)
             {
-                ImGui::TextUnformatted("Found");
+                m_pinnedAddresses.insert(
+                    address
+                );
+
+                m_scanner.pinAddress(
+                    address
+                );
             }
-            else
-            {
-                ImGui::TextUnformatted("Not found");
-            }
+
+            savePinnedAddresses();
+
+            m_selectedAddresses.clear();
         }
 
-        ImGui::NewLine();
+        ImGui::EndDisabled();
 
-        if (!m_scanner.candidates().empty())
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(
+            m_pinnedAddresses.empty()
+        );
+
+        if (ImGui::Button(
+            "Unpin All"
+        ))
         {
-            if (ImGui::Button(
-                "Pin All"
-            ))
-            {
-                for (const DosBoxMemoryCandidate& candidate :
-                    m_scanner.candidates())
-                {
-                    m_pinnedAddresses.insert(
-                        candidate.address
-                    );
+            m_pinnedAddresses.clear();
+            m_scanner.clearPinnedAddresses();
+            m_selectedAddresses.clear();
 
-                    m_scanner.pinAddress(
-                        candidate.address
-                    );
-                }
-
-                savePinnedAddresses();
-            }
+            savePinnedAddresses();
         }
 
-        if (!m_pinnedAddresses.empty())
-        {
-            ImGui::SameLine();
+        ImGui::EndDisabled();
 
-            if (ImGui::Button(
-                "Unpin All"
-            ))
-            {
-                m_pinnedAddresses.clear();
-                m_scanner.clearPinnedAddresses();
-                m_selectedAddresses.clear();
-
-                savePinnedAddresses();
-            }
-        }
-
-        if (!m_selectedAddresses.empty())
-        {
-            if (ImGui::Button(
-                "Pin Selected"
-            ))
-                ImGui::SameLine();
-            {
-                for (size_t address :
-                m_selectedAddresses)
-                {
-                    m_pinnedAddresses.insert(
-                        address
-                    );
-
-                    m_scanner.pinAddress(
-                        address
-                    );
-                }
-
-                savePinnedAddresses();
-
-                m_selectedAddresses.clear();
-            }
-        }
+        ImGui::SameLine();
 
         if (ImGui::Checkbox(
             "Descriptions first",
@@ -732,6 +736,8 @@ namespace MyImGui
             )
             ))
             {
+           
+
                 ImGui::TableSetupColumn(
                     "Address"
                 );
