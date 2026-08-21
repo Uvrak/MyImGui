@@ -260,43 +260,29 @@ namespace MyImGui
                 70.0f;
 
             ImGui::TextUnformatted("N");
-
             ImGui::SameLine();
 
-            ImGui::SetNextItemWidth(
-                PatternInputWidth
-            );
-
+            ImGui::SetNextItemWidth(80.0f);
             ImGui::InputInt(
                 "##PatternN",
                 &m_patternN
             );
 
             ImGui::SameLine();
-
             ImGui::TextUnformatted("From");
-
             ImGui::SameLine();
 
-            ImGui::SetNextItemWidth(
-                PatternInputWidth
-            );
-
+            ImGui::SetNextItemWidth(100.0f);
             ImGui::InputInt(
                 "##PatternFrom",
                 &m_patternFrom
             );
 
             ImGui::SameLine();
-
             ImGui::TextUnformatted("To");
-
             ImGui::SameLine();
 
-            ImGui::SetNextItemWidth(
-                PatternInputWidth
-            );
-
+            ImGui::SetNextItemWidth(100.0f);
             ImGui::InputInt(
                 "##PatternTo",
                 &m_patternTo

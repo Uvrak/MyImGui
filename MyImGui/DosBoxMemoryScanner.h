@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <utility>
 
 #include "DosBoxMemoryReader.h"
 #include "NamedPipeClient.h"
@@ -113,6 +114,20 @@ namespace MyImGui
         );
         bool getReadTrackingAddresses(
             std::vector<size_t>& addresses
+        );
+
+        bool getReadTrackingInstructionCount(
+            size_t& count
+        );
+
+        bool getReadTrackingInstructionBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::pair<size_t, size_t>>& instructions
+        );
+
+        bool getReadTrackingInstructions(
+            std::vector<std::pair<size_t, size_t>>& instructions
         );
 
         void setCandidatesFromAddresses(

@@ -1569,9 +1569,6 @@ namespace MyImGui
                             m_writeValue
                             )
                     ))
-                    {
-                        m_scanner.refreshValues();
-                    }
 
                     if (m_dosBoxView != nullptr)
                     {

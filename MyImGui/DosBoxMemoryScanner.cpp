@@ -556,19 +556,9 @@ namespace MyImGui
 
     bool DosBoxMemoryScanner::refreshMemory()
     {
-        const std::vector<uint8_t>
-            previousMemory =
-            m_memoryReader.memory();
-
         if (!requestSnapshot())
         {
             return false;
-        }
-
-        if (!previousMemory.empty())
-        {
-            m_previousMemory =
-                previousMemory;
         }
 
         m_status =
@@ -917,6 +907,211 @@ namespace MyImGui
             "Read tracking addresses loaded: " +
             std::to_string(
                 addresses.size()
+            );
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingInstructionCount(
+            size_t& count
+        )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:INSTRUCTIONCOUNT",
+            response
+        ))
+        {
+            m_status =
+                "Could not get read tracking instruction count.";
+
+            return false;
+        }
+
+        try
+        {
+            count =
+                static_cast<size_t>(
+                    std::stoull(response)
+                    );
+        }
+        catch (...)
+        {
+            m_status =
+                "Invalid read tracking instruction count: " +
+                response;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingInstructionBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::pair<size_t, size_t>>&
+            instructions
+        )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:INSTRUCTIONS:" +
+            std::to_string(start) +
+            ":" +
+            std::to_string(count);
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not get read tracking instruction block.";
+
+            return false;
+        }
+
+        if (response.rfind(
+            "ERROR",
+            0
+        ) == 0)
+        {
+            m_status =
+                "Read tracking instruction block failed: " +
+                response;
+
+            return false;
+        }
+
+        instructions.clear();
+
+        std::stringstream stream(
+            response
+        );
+
+        std::string item;
+
+        while (std::getline(
+            stream,
+            item,
+            ','
+        ))
+        {
+            if (item.empty())
+            {
+                continue;
+            }
+
+            const size_t separator =
+                item.find(':');
+
+            if (separator ==
+                std::string::npos)
+            {
+                instructions.clear();
+
+                m_status =
+                    "Invalid read tracking instruction pair.";
+
+                return false;
+            }
+
+            try
+            {
+                const size_t memoryAddress =
+                    static_cast<size_t>(
+                        std::stoull(
+                            item.substr(
+                                0,
+                                separator
+                            )
+                        )
+                        );
+
+                const size_t instructionAddress =
+                    static_cast<size_t>(
+                        std::stoull(
+                            item.substr(
+                                separator + 1
+                            )
+                        )
+                        );
+
+                instructions.emplace_back(
+                    memoryAddress,
+                    instructionAddress
+                );
+            }
+            catch (...)
+            {
+                instructions.clear();
+
+                m_status =
+                    "Invalid read tracking instruction block.";
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingInstructions(
+            std::vector<std::pair<size_t, size_t>>&
+            instructions
+        )
+    {
+        size_t count = 0;
+
+        if (!getReadTrackingInstructionCount(
+            count
+        ))
+        {
+            return false;
+        }
+
+        instructions.clear();
+        instructions.reserve(
+            count
+        );
+
+        constexpr size_t blockSize = 64;
+
+        for (size_t start = 0;
+            start < count;
+            start += blockSize)
+        {
+            std::vector<std::pair<size_t, size_t>>
+                block;
+
+            if (!getReadTrackingInstructionBlock(
+                start,
+                blockSize,
+                block
+            ))
+            {
+                instructions.clear();
+
+                return false;
+            }
+
+            instructions.insert(
+                instructions.end(),
+                block.begin(),
+                block.end()
+            );
+        }
+
+        m_status =
+            "Read tracking instructions loaded: " +
+            std::to_string(
+                instructions.size()
             );
 
         return true;

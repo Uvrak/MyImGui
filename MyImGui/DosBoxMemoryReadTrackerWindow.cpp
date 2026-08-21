@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <fstream>
 #include <filesystem>
+#include <cstdlib>
 
 #include "imgui.h"
 #include "DosBoxMemoryTools.h"
@@ -141,6 +142,10 @@ namespace MyImGui
             m_scanner.getReadTrackingAddresses(
                 m_attackReadAddresses
             );
+
+            m_scanner.getReadTrackingInstructions(
+                m_attackReadInstructions
+            );
         }
 
         if (ImGui::Button(
@@ -217,12 +222,12 @@ namespace MyImGui
             m_attackReadAddresses.size()
         );
 
-
-
         ImGui::Text(
             "Attack only: %zu",
             m_attackOnlyReadAddresses.size()
         );
+
+
 
         ImGui::SameLine();
 
@@ -269,8 +274,143 @@ namespace MyImGui
             "Previous attack only: %zu",
             m_previousAttackOnlyReadAddresses.size()
         );
+        
+        ImGui::Separator();
 
-        if (m_attackOnlyReadAddresses.size() <= 20)
+        ImGui::Checkbox(
+            "Limit Address Range",
+            &m_limitAddressRange
+        );
+
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            110.0f
+        );
+
+        ImGui::TextUnformatted("From");
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            110.0f
+        );
+
+        ImGui::InputText(
+            "##RangeFrom",
+            m_rangeStartText,
+            sizeof(m_rangeStartText)
+        );
+
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            110.0f
+        );
+
+        ImGui::TextUnformatted("To");
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            110.0f
+        );
+
+        ImGui::InputText(
+            "##RangeTo",
+            m_rangeEndText,
+            sizeof(m_rangeEndText)
+        );
+
+        size_t rangeStart = 0;
+        size_t rangeEnd =
+            static_cast<size_t>(-1);
+
+        bool validRange =
+            !m_limitAddressRange;
+
+        if (m_limitAddressRange)
+        {
+            char* startEnd = nullptr;
+            char* endEnd = nullptr;
+
+            const unsigned long long parsedStart =
+                std::strtoull(
+                    m_rangeStartText,
+                    &startEnd,
+                    0
+                );
+
+            const unsigned long long parsedEnd =
+                std::strtoull(
+                    m_rangeEndText,
+                    &endEnd,
+                    0
+                );
+
+            if (startEnd != m_rangeStartText &&
+                *startEnd == '\0' &&
+                endEnd != m_rangeEndText &&
+                *endEnd == '\0' &&
+                parsedStart <= parsedEnd)
+            {
+                rangeStart =
+                    static_cast<size_t>(
+                        parsedStart
+                        );
+
+                rangeEnd =
+                    static_cast<size_t>(
+                        parsedEnd
+                        );
+
+                validRange = true;
+            }
+        }
+
+        ImGui::Text(
+            "Instruction reads: %zu",
+            m_attackReadInstructions.size()
+        );
+
+        ImGui::Separator();
+
+        ImGui::TextUnformatted(
+            "Memory -> Instruction"
+        );
+
+        size_t shownInstructions = 0;
+
+        for (const auto& entry :
+            m_attackReadInstructions)
+        {
+            const size_t memoryAddress =
+                entry.first;
+
+            const size_t instructionAddress =
+                entry.second;
+
+            if (m_limitAddressRange &&
+                validRange &&
+                (memoryAddress < rangeStart ||
+                    memoryAddress > rangeEnd))
+            {
+                continue;
+            }
+
+            ImGui::Text(
+                "0x%zX -> 0x%zX",
+                memoryAddress,
+                instructionAddress
+            );
+
+            ++shownInstructions;
+
+            if (shownInstructions >= 100)
+            {
+                break;
+            }
+        }
+
+        if (true)
         {
             ImGui::Separator();
             ImGui::Text("Attack only addresses:");
@@ -278,6 +418,14 @@ namespace MyImGui
             for (const size_t address :
             m_attackOnlyReadAddresses)
             {
+                if (m_limitAddressRange &&
+                    validRange &&
+                    (address < rangeStart ||
+                        address > rangeEnd))
+                {
+                    continue;
+                }
+
                 ImGui::Text(
                     "%zu  (0x%zX)",
                     address,
@@ -285,6 +433,8 @@ namespace MyImGui
                 );
             }
         }
+
+        
 
         ImGui::Separator();
 
