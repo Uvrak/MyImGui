@@ -61,5 +61,10 @@ namespace MyImGui
 
         char m_rangeStartText[32] = "0x2BF20";
         char m_rangeEndText[32] = "0x2BF40";
+
+        bool m_limitInstructionRange = false;
+
+        char m_instructionRangeStartText[32] = "0xECCF";
+        char m_instructionRangeEndText[32] = "0xECCF";
 	};
 }

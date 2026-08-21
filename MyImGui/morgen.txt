@@ -1,0 +1,146 @@
+MM3 – Nächste Schritte
+Fortsetzung nach Stand 21.08.2026
+
+1. Debug-Werkzeuge aufräumen
+
+Die Oberfläche ist durch die neuen Reverse-Engineering-Funktionen
+inzwischen zu unübersichtlich geworden.
+
+Deshalb sollen die Funktionen auf getrennte Fenster verteilt werden.
+
+
+DOSBox Memory Viewer
+
+Der Memory Viewer soll wieder hauptsächlich für RAM zuständig sein:
+
+    - Hex-/ASCII-Ansicht
+    - Adresseingabe
+    - Go
+    - Speicher-Navigation
+    - Suche
+    - Auswahl von RAM-Adressen
+
+Der provisorisch eingebaute Zydis-Disassembler soll aus diesem Fenster
+wieder entfernt werden.
+
+
+DOSBox Disassembly
+
+Neues eigenes Fenster für die Disassembly-Ansicht.
+
+Geplante Funktionen:
+
+    - Startadresse
+    - Go
+    - mehrere Instruktionen anzeigen
+    - Address
+    - Bytes
+    - Instruction
+    - Zydis 16-Bit-Decoding
+    - Navigation zu Sprungzielen
+    - später Find Callers
+
+Beispiel:
+
+    0xECCF   26 8A 47 1E   mov al, es:[bx+0x1E]
+
+
+Memory -> Instruction
+
+Auch die Zuordnung von RAM-Adressen zu lesenden Instruktionen soll
+übersichtlicher dargestellt werden.
+
+Beispiel:
+
+    Memory       Instruction
+    0x2BF30  ->  0xECCF
+
+Die vorhandenen Address- und Instruction-Range-Filter sowie die
+Attack-/Idle-Auswertung sollen sinnvoll in diese Werkzeuggruppe
+einsortiert werden.
+
+Langfristig sollen die Fenster miteinander verknüpft werden:
+
+    Memory Viewer
+        0x2BF30
+            |
+            v
+    Memory -> Instruction
+        0x2BF30 -> 0xECCF
+                       |
+                       v
+    DOSBox Disassembly
+        0xECCF mov al, es:[bx+0x1E]
+
+
+2. Caller der Funktion 0xEC4B finden
+
+Die heute untersuchte Funktion liegt ungefähr bei:
+
+    0xEC4B – 0xED80
+
+Der nächste Reverse-Engineering-Schritt ist herauszufinden, welche
+MM3-Routine diese Funktion aufruft.
+
+Dafür soll die Disassembly-Infrastruktur um eine Caller-Suche erweitert
+werden.
+
+Ziel:
+
+    Find Callers: 0xEC4B
+
+Anschließend untersuchen wir die gefundenen CALL-Instruktionen und
+verfolgen den Code nach der Rückkehr aus 0xEC4B.
+
+
+3. Verwendung des Rückgabewertes untersuchen
+
+Die Funktion liefert ihren berechneten Wert in AX zurück.
+
+Beim Caller soll untersucht werden:
+
+    - Was geschieht unmittelbar nach dem CALL?
+    - Wird AX mit einem Zufallswert verglichen?
+    - Wird AX weiter skaliert?
+    - Wird daraus direkt eine Hit/Miss-Entscheidung?
+    - Welche weiteren Character-/Weapon-Werte fließen ein?
+
+Damit können wir feststellen, welche genaue Rolle die Funktion
+0xEC4B bei der MM3-Trefferberechnung spielt.
+
+
+4. Danach Hilfsfunktionen analysieren
+
+Wenn der Caller verstanden ist, untersuchen wir bei Bedarf:
+
+    0xEB05
+
+und:
+
+    FAR 10CD:0157
+
+Ziel ist herauszufinden, welche Boni diese Funktionen zu dem in SI
+aufgebauten Wert beitragen.
+
+
+Hauptziel
+
+Vom bekannten RAM-Wert
+
+    0x2BF30
+
+über seine Reader-Instruktion
+
+    0xECCF
+
+zur Berechnungsroutine
+
+    0xEC4B – 0xED80
+
+und anschließend zum Caller gelangen.
+
+Von dort soll der tatsächliche Codepfad bis zur Hit/Miss-Entscheidung
+verfolgt werden.
+
+Damit wechseln wir endgültig von der reinen RAM-Suche zur Analyse der
+eigentlichen MM3-Kampflogik.

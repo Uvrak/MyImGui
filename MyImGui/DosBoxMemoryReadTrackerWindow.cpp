@@ -320,6 +320,42 @@ namespace MyImGui
             sizeof(m_rangeEndText)
         );
 
+		ImGui::SameLine();
+
+        ImGui::Checkbox(
+            "Limit Instruction Range",
+            &m_limitInstructionRange
+        );
+
+        ImGui::SameLine();
+
+        ImGui::TextUnformatted("From");
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            110.0f
+        );
+
+        ImGui::InputText(
+            "##InstructionRangeFrom",
+            m_instructionRangeStartText,
+            sizeof(m_instructionRangeStartText)
+        );
+
+        ImGui::SameLine();
+
+        ImGui::TextUnformatted("To");
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            110.0f
+        );
+
+        ImGui::InputText(
+            "##InstructionRangeTo",
+            m_instructionRangeEndText,
+            sizeof(m_instructionRangeEndText)
+        );
         size_t rangeStart = 0;
         size_t rangeEnd =
             static_cast<size_t>(-1);
@@ -366,6 +402,52 @@ namespace MyImGui
             }
         }
 
+        size_t instructionRangeStart = 0;
+        size_t instructionRangeEnd =
+            static_cast<size_t>(-1);
+
+        bool validInstructionRange =
+            !m_limitInstructionRange;
+
+        if (m_limitInstructionRange)
+        {
+            char* startEnd = nullptr;
+            char* endEnd = nullptr;
+
+            const unsigned long long parsedStart =
+                std::strtoull(
+                    m_instructionRangeStartText,
+                    &startEnd,
+                    0
+                );
+
+            const unsigned long long parsedEnd =
+                std::strtoull(
+                    m_instructionRangeEndText,
+                    &endEnd,
+                    0
+                );
+
+            if (startEnd != m_instructionRangeStartText &&
+                *startEnd == '\0' &&
+                endEnd != m_instructionRangeEndText &&
+                *endEnd == '\0' &&
+                parsedStart <= parsedEnd)
+            {
+                instructionRangeStart =
+                    static_cast<size_t>(
+                        parsedStart
+                        );
+
+                instructionRangeEnd =
+                    static_cast<size_t>(
+                        parsedEnd
+                        );
+
+                validInstructionRange = true;
+            }
+        }
+
         ImGui::Text(
             "Instruction reads: %zu",
             m_attackReadInstructions.size()
@@ -392,6 +474,14 @@ namespace MyImGui
                 validRange &&
                 (memoryAddress < rangeStart ||
                     memoryAddress > rangeEnd))
+            {
+                continue;
+            }
+
+            if (m_limitInstructionRange &&
+                validInstructionRange &&
+                (instructionAddress < instructionRangeStart ||
+                    instructionAddress > instructionRangeEnd))
             {
                 continue;
             }
@@ -453,6 +543,7 @@ namespace MyImGui
             m_attackReadAddresses.empty() &&
             m_attackOnlyReadAddresses.empty() &&
             m_previousAttackOnlyReadAddresses.empty() &&
+            m_attackReadInstructions.empty() &&
             m_scanner.candidates().empty())
         {
             return;
@@ -578,7 +669,49 @@ namespace MyImGui
                 '\n';
         }
 
+        file <<
+            "AttackInstructions\n";
 
+        file <<
+            m_attackReadInstructions.size() <<
+            '\n';
+
+        for (const auto& entry :
+            m_attackReadInstructions)
+        {
+            file <<
+                entry.first <<
+                ' ' <<
+                entry.second <<
+                '\n';
+        }
+
+        file <<
+            "RangeSettings\n";
+
+        file <<
+            (m_limitAddressRange ? 1 : 0) <<
+            '\n';
+
+        file <<
+            m_rangeStartText <<
+            '\n';
+
+        file <<
+            m_rangeEndText <<
+            '\n';
+
+        file <<
+            (m_limitInstructionRange ? 1 : 0) <<
+            '\n';
+
+        file <<
+            m_instructionRangeStartText <<
+            '\n';
+
+        file <<
+            m_instructionRangeEndText <<
+            '\n';
     }
     
     void DosBoxMemoryTools::saveSession()
@@ -784,38 +917,98 @@ namespace MyImGui
 
         std::string optionalSection;
 
-        if (file >> optionalSection)
+        while (file >> optionalSection)
         {
             if (optionalSection ==
                 "PreviousAttackOnly")
             {
                 size_t count = 0;
 
-                if (file >> count)
+                if (!(file >> count))
                 {
-                    m_previousAttackOnlyReadAddresses.clear();
-
-                    m_previousAttackOnlyReadAddresses.reserve(
-                        count
-                    );
-
-                    for (size_t i = 0;
-                        i < count;
-                        ++i)
-                    {
-                        size_t address = 0;
-
-                        if (!(file >> address))
-                        {
-                            m_previousAttackOnlyReadAddresses.clear();
-                            break;
-                        }
-
-                        m_previousAttackOnlyReadAddresses.push_back(
-                            address
-                        );
-                    }
+                    break;
                 }
+
+                m_previousAttackOnlyReadAddresses.clear();
+
+                m_previousAttackOnlyReadAddresses.reserve(
+                    count
+                );
+
+                for (size_t i = 0;
+                    i < count;
+                    ++i)
+                {
+                    size_t address = 0;
+
+                    if (!(file >> address))
+                    {
+                        break;
+                    }
+
+                    m_previousAttackOnlyReadAddresses.push_back(
+                        address
+                    );
+                }
+            }
+            else if (optionalSection ==
+                "AttackInstructions")
+            {
+                size_t count = 0;
+
+                if (!(file >> count))
+                {
+                    break;
+                }
+
+                m_attackReadInstructions.clear();
+
+                m_attackReadInstructions.reserve(
+                    count
+                );
+
+                for (size_t i = 0;
+                    i < count;
+                    ++i)
+                {
+                    size_t memoryAddress = 0;
+                    size_t instructionAddress = 0;
+
+                    if (!(file >>
+                        memoryAddress >>
+                        instructionAddress))
+                    {
+                        break;
+                    }
+
+                    m_attackReadInstructions.emplace_back(
+                        memoryAddress,
+                        instructionAddress
+                    );
+                }
+            }
+            else if (optionalSection ==
+                "RangeSettings")
+            {
+                int limitAddressRange = 0;
+                int limitInstructionRange = 0;
+
+                if (!(file >>
+                    limitAddressRange >>
+                    m_rangeStartText >>
+                    m_rangeEndText >>
+                    limitInstructionRange >>
+                    m_instructionRangeStartText >>
+                    m_instructionRangeEndText))
+                {
+                    break;
+                }
+
+                m_limitAddressRange =
+                    limitAddressRange != 0;
+
+                m_limitInstructionRange =
+                    limitInstructionRange != 0;
             }
         }
 

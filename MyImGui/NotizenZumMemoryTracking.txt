@@ -1,0 +1,75 @@
+Ah ja — du meinst den letzten Eintrag für unsere MM3-Erkenntnis-MD, nicht den Code-Fix.
+
+Der letzte Eintrag war sinngemäß:
+
+Memory Read Tracking – Instruction Addresses
+
+Wir erweitern den MemoryReadTracker, sodass nicht mehr nur gelesen wird, welche Speicheradresse während einer Aktion gelesen wurde, sondern zusätzlich von welcher DOS/x86-Instruktion dieser Zugriff ausgelöst wurde.
+
+Bisher:
+
+record(LinearPt address);
+
+Neu zusätzlich:
+
+record(
+    LinearPt address,
+    LinearPt instructionAddress
+);
+
+Damit können wir für interessante MM3-Adressen nicht nur feststellen:
+
+„Diese Adresse wurde beim Angriff gelesen.“
+
+sondern:
+
+„Diese konkrete Instruktion liest diese Adresse beim Angriff.“
+
+Das ist der entscheidende nächste Schritt, weil wir dadurch vom RAM-Wert zur ausführenden Spiellogik gelangen können. Bei der Trefferwahrscheinlichkeit können wir so die Instruktionen identifizieren, die Accuracy, Level, Waffen-/Materialbonus oder andere relevante Werte lesen, und anschließend den Codepfad der tatsächlichen Hit-Chance-Berechnung zurückverfolgen.
+
+Ziel: Nicht mehr nur Kandidaten anhand von AttackOnly-Speicherzugriffen eingrenzen, sondern die dazugehörigen Reader-Instruktionen bestimmen und darüber die MM3-Trefferformel im Programmcode lokalisieren.
+
+notizen?
+
+Ja — Notizen, kurz für die MD:
+
+Notizen – Memory Read Tracking
+Read-Tracking soll zusätzlich zur gelesenen RAM-Adresse die Adresse der lesenden Instruktion erfassen.
+Dafür wurde MemoryReadTracker::record(address, instructionAddress) ergänzt.
+Ziel ist, bei AttackOnly nicht nur zu sehen, welche Werte MM3 beim Angriff liest, sondern auch welcher Maschinencode sie liest.
+Dadurch können wir von bekannten RAM-Adressen zurück zur eigentlichen Trefferberechnung im MM3-Code gelangen.
+Besonders interessant sind Zugriffe auf Accuracy, Character Level und Waffen-/Materialwerte.
+Nächster Schritt: Instruction-Tracking kompilierbar machen und anschließend einen Angriff mit Sir Canegm aufzeichnen.
+Danach die Reader-Instruktionen der bekannten Accuracy-Adresse 0x2BF30 untersuchen.
+zum downloaden bitte.
+
+Hier ist die MD-Datei:
+
+MM3_Memory_Read_Tracking_Notizen.md herunterladen 
+
+MM3_Memory_Read_Tracking_Notizen.md
+Dokument
+
+MM3_Memory_Read_Tracking_Notizen.md
+MM3 -- Notizen zum Memory Read Tracking
+Instruction Addresses
+Read-Tracking soll zusätzlich zur gelesenen RAM-Adresse die
+Adresse der lesenden Instruktion erfassen.
+Dafür wurde MemoryReadTracker::record(address, instructionAddress)
+ergänzt.
+Ziel ist, bei AttackOnly nicht nur zu sehen, welche Werte MM3
+beim Angriff liest, sondern auch welcher Maschinencode sie
+liest.
+Dadurch können wir von bekannten RAM-Adressen zurück zur
+eigentlichen Trefferberechnung im MM3-Code gelangen.
+Besonders interessant sind Zugriffe auf Accuracy, Character Level
+und Waffen-/Materialwerte.
+Nächster Schritt: Instruction-Tracking kompilierbar machen und
+anschließend einen Angriff mit Sir Canegm aufzeichnen.
+Danach die Reader-Instruktionen der bekannten Accuracy-Adresse
+0x2BF30 untersuchen.
+Ziel
+
+Nicht mehr nur Kandidaten anhand von AttackOnly-Speicherzugriffen
+eingrenzen, sondern die dazugehörigen Reader-Instruktionen bestimmen
+und darüber die MM3-Trefferformel im Programmcode lokalisieren.

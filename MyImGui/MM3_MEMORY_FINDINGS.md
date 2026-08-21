@@ -509,3 +509,191 @@ Negative modifiers are stored as signed byte values. Examples:
 - `FA` = -6
 - `FE` = -2
 - `FF` = -1
+
+MM3 – Reverse Engineering
+Stand: 21.08.2026
+
+Memory Read Tracking / Instruction Tracking
+
+Das bestehende Memory-Read-Tracking wurde erweitert, sodass zu einer
+gelesenen RAM-Adresse zusätzlich die Adresse der lesenden x86-Instruktion
+aufgezeichnet werden kann.
+
+Beispiel:
+
+    Memory       Instruction
+    0x2BF30  ->  0xECCF
+
+Die bereits bekannte MM3-Adresse 0x2BF30 wird während des untersuchten
+Kampfablaufs von der Instruktion bei 0xECCF gelesen.
+
+
+Zydis-Integration
+
+Zydis wurde als x86-Disassembler in MyImGui eingebunden.
+
+Damit können die Bytes im DOSBox-Speicher jetzt direkt als
+16-Bit-x86-Instruktionen dekodiert werden. Zydis bestimmt dabei auch
+automatisch die Länge einer Instruktion.
+
+Für 0xECCF wurde festgestellt:
+
+    Bytes:
+    26 8A 47 1E
+
+    Disassembly:
+    mov al, es:[bx+0x1E]
+
+    Länge:
+    4 Bytes
+
+Damit ist bestätigt, dass die bekannte Adresse 0x2BF30 über einen
+Byte-Zugriff aus einer Struktur gelesen wird.
+
+
+Verarbeitung des Wertes
+
+Der relevante Code lautet:
+
+    0xECCF  mov al, es:[bx+0x1E]
+    0xECD3  mov ah, 0x00
+    0xECD5  mov si, ax
+
+Der gelesene Byte-Wert wird damit auf 16 Bit erweitert und in SI
+übernommen.
+
+Danach wird ein benachbarter Wert gelesen:
+
+    0xECD7  mov al, es:[bx+0x1F]
+
+Über den Sprung nach 0xEC79 wird dieser ebenfalls auf 16 Bit erweitert
+und in DI gespeichert.
+
+Damit gilt für diesen Zweig:
+
+    SI = byte ES:[BX+0x1E]
+    DI = byte ES:[BX+0x1F]
+
+
+Struktur der Routine
+
+Der Anfang der untersuchten Funktion wurde bei 0xEC4B gefunden.
+
+Prolog:
+
+    0xEC4B  push bp
+    0xEC4C  mov bp, sp
+    0xEC4E  sub sp, 0x06
+    0xEC51  push si
+    0xEC52  push di
+
+Das Ende liegt bei 0xED80:
+
+    0xED7B  pop di
+    0xED7C  pop si
+    0xED7D  mov sp, bp
+    0xED7F  pop bp
+    0xED80  ret far
+
+Damit ist die untersuchte Funktion ungefähr auf den Bereich
+
+    0xEC4B – 0xED80
+
+eingegrenzt.
+
+
+Jump Table
+
+Am Anfang der Funktion befindet sich eine Jump Table:
+
+    mov bx, [bp+0x0A]
+    cmp bx, 0x06
+    jbe ...
+    ...
+    shl bx, 0x01
+    jmp cs:[bx+0x1ED1]
+
+Der Parameter [bp+0x0A] wählt offenbar zwischen mehreren ähnlichen
+Berechnungszweigen.
+
+Dabei werden unterschiedliche benachbarte Byte-Paare einer Struktur
+verwendet, unter anderem:
+
+    +0x16 / +0x17
+    +0x18 / +0x19
+    ...
+    +0x1E / +0x1F
+    +0x20 / +0x21
+
+Unser untersuchter Zugriff auf 0x2BF30 gehört zum Zweig +0x1E/+0x1F.
+
+
+Weitere Berechnung
+
+Im gemeinsamen weiteren Code wird SI verändert:
+
+    call 0xEB05
+
+    mov dx, si
+    add dx, ax
+    mov si, dx
+
+Damit gilt:
+
+    SI += Rückgabewert von 0xEB05
+
+Abhängig von [bp+0x0C] kann eine weitere Funktion aufgerufen werden:
+
+    call far 0x10CD:0x0157
+
+Anschließend wird deren Rückgabewert ebenfalls zu SI addiert.
+
+Danach:
+
+    add si, di
+
+Die bisher rekonstruierte Struktur der Berechnung lautet damit:
+
+    SI = Wert aus +0x1E
+       + Ergebnis von 0xEB05
+       + optional Ergebnis von 10CD:0157
+       + Wert aus +0x1F
+
+
+Rückgabewert
+
+Am Ende:
+
+    cmp si, 0x01
+    jnl 0xED79
+
+    xor ax, ax
+    jmp 0xED7B
+
+    0xED79:
+    mov ax, si
+
+Die Routine gibt damit sinngemäß zurück:
+
+    return (SI < 1) ? 0 : SI;
+
+Der berechnete Wert wird also über AX an den Aufrufer zurückgegeben.
+
+
+Wichtig
+
+Noch nicht endgültig geklärt ist die semantische Bedeutung aller
+Bestandteile der Berechnung.
+
+Insbesondere müssen noch untersucht werden:
+
+    - Bedeutung des Wertes bei +0x1F
+    - Funktion 0xEB05
+    - FAR-Funktion 10CD:0157
+    - Bedeutung der einzelnen Jump-Table-Fälle
+    - Verwendung des zurückgegebenen AX-Wertes durch den Caller
+
+Die bekannte Adresse 0x2BF30 ist ein zentraler Ausgangspunkt unserer
+Accuracy-Untersuchung. Die genaue Rolle der gesamten Funktion innerhalb
+der tatsächlichen Trefferwahrscheinlichkeitsberechnung muss jedoch noch
+durch Analyse des Callers bestätigt werden.

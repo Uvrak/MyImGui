@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "imgui.h"
+#include <Zydis/Zydis.h>
 
 namespace MyImGui
 {
@@ -753,6 +754,96 @@ namespace MyImGui
             }
                     
         }
+
+        if (m_hasSelectedAddress &&
+            m_selectedAddress < memory.size())
+        {
+            ZydisDecoder decoder;
+
+            if (ZYAN_SUCCESS(
+                ZydisDecoderInit(
+                    &decoder,
+                    ZYDIS_MACHINE_MODE_LONG_COMPAT_16,
+                    ZYDIS_STACK_WIDTH_16
+                )))
+            {
+                ZydisFormatter formatter;
+
+                if (ZYAN_SUCCESS(
+                    ZydisFormatterInit(
+                        &formatter,
+                        ZYDIS_FORMATTER_STYLE_INTEL
+                    )))
+                {
+                    ImGui::Separator();
+                    ImGui::TextUnformatted(
+                        "Disassembly:"
+                    );
+
+                    size_t address =
+                        m_selectedAddress;
+
+                    for (int i = 0;
+                        i < 20 &&
+                        address < memory.size();
+                        ++i)
+                    {
+                        ZydisDecodedInstruction
+                            instruction;
+
+                        ZydisDecodedOperand operands[
+                            ZYDIS_MAX_OPERAND_COUNT
+                        ];
+
+                        const size_t bytesAvailable =
+                            memory.size() - address;
+
+                        if (!ZYAN_SUCCESS(
+                            ZydisDecoderDecodeFull(
+                                &decoder,
+                                memory.data() + address,
+                                bytesAvailable,
+                                &instruction,
+                                operands
+                            )))
+                        {
+                            break;
+                        }
+
+                        char instructionText[256]{};
+
+                        if (ZYAN_SUCCESS(
+                            ZydisFormatterFormatInstruction(
+                                &formatter,
+                                &instruction,
+                                operands,
+                                instruction.operand_count_visible,
+                                instructionText,
+                                sizeof(instructionText),
+                                static_cast<ZyanU64>(
+                                    address
+                                    ),
+                                nullptr
+                            )))
+                        {
+                            ImGui::Text(
+                                "0x%05zX  %-32s  (%u bytes)",
+                                address,
+                                instructionText,
+                                static_cast<unsigned int>(
+                                    instruction.length
+                                    )
+                            );
+                        }
+
+                        address +=
+                            instruction.length;
+                    }
+                }
+            }
+        }
+            
+   
 
         ImGui::End();
     }

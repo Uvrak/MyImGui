@@ -221,4 +221,12 @@
       <Filter>Games\docs</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="NotizenZumMemoryTracking.txt">
+      <Filter>Games\docs</Filter>
+    </Text>
+    <Text Include="morgen.txt">
+      <Filter>Games\docs</Filter>
+    </Text>
+  </ItemGroup>
 </Project>
