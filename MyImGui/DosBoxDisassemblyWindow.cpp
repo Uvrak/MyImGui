@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unordered_map>
+#include <fstream>
 
 #include "imgui.h"
 #include <Zydis/Zydis.h>
@@ -23,11 +24,19 @@ namespace MyImGui
         bool* isOpen
     )
     {
+        if (!m_savedAddressesLoaded)
+        {
+            loadSession();
+            m_savedAddressesLoaded = true;
+        }
+
         if (isOpen &&
             !*isOpen)
         {
             return;
         }
+
+        m_wasOpen = true;
 
         ImGui::SetNextWindowSize(
             ImVec2(
@@ -37,14 +46,26 @@ namespace MyImGui
             ImGuiCond_FirstUseEver
         );
 
-        if (!ImGui::Begin(
-            "DOSBox Disassembly",
-            isOpen
-        ))
+        const bool windowVisible =
+            ImGui::Begin(
+                "DOSBox Disassembly",
+                isOpen
+            );
+
+        if (isOpen &&
+            !*isOpen)
+        {
+            saveSession();
+            m_wasOpen = false;
+        }
+
+        if (!windowVisible)
         {
             ImGui::End();
             return;
         }
+
+        m_wasOpen = true;
 
         const auto& memory =
             m_memoryReader.memory();
@@ -85,6 +106,123 @@ namespace MyImGui
         }
 
         ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            120.0f
+        );
+
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            160.0f
+        );
+
+        ImGui::InputText(
+            "Name##SavedAddressName",
+            m_sessionName,
+            sizeof(m_sessionName)
+        );
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Save Address"
+        ))
+        {
+            addSavedAddress();
+        }
+
+        ImGui::SetNextItemWidth(
+            180.0f
+        );
+
+        if (ImGui::BeginCombo(
+            "Saved Addresses",
+            "Select..."
+        ))
+        {
+            if (m_savedAddresses.empty())
+            {
+                ImGui::TextDisabled(
+                    "No saved addresses."
+                );
+            }
+            else
+            {
+                for (size_t i = 0;
+                    i < m_savedAddresses.size();
+                    ++i)
+                {
+                    const SavedAddress& entry =
+                        m_savedAddresses[i];
+
+                    char label[256];
+
+                    if (entry.name.empty())
+                    {
+                        std::snprintf(
+                            label,
+                            sizeof(label),
+                            "0x%05zX",
+                            entry.address
+                        );
+                    }
+                    else
+                    {
+                        std::snprintf(
+                            label,
+                            sizeof(label),
+                            "0x%05zX - %s",
+                            entry.address,
+                            entry.name.c_str()
+                        );
+                    }
+
+                    ImGui::PushID(
+                        static_cast<int>(i)
+                    );
+
+                    bool deleteEntry = false;
+
+                    if (ImGui::Selectable(
+                        label
+                    ))
+                    {
+                        goToAddress(
+                            entry.address
+                        );
+                    }
+
+                    if (ImGui::BeginPopupContextItem())
+                    {
+                        if (ImGui::MenuItem(
+                            "Delete"
+                        ))
+                        {
+                            deleteEntry = true;
+                        }
+
+                        ImGui::EndPopup();
+                    }
+
+                    if (deleteEntry)
+                    {
+                        m_savedAddresses.erase(
+                            m_savedAddresses.begin() + i
+                        );
+
+                        saveSession();
+
+                        ImGui::PopID();
+                        break;
+                    }
+
+                    ImGui::PopID();
+                }
+            }
+
+            ImGui::EndCombo();
+        }
 
         ImGui::SetNextItemWidth(
             120.0f
@@ -605,5 +743,148 @@ namespace MyImGui
             "0x%zX",
             address
         );
+    }
+    
+    void DosBoxDisassemblyWindow::saveSession()
+    {
+        std::ofstream file(
+            "settings/dosbox_disassembly.cfg"
+        );
+
+        if (!file)
+        {
+            m_status =
+                "Could not save disassembly session.";
+
+            return;
+        }
+
+        for (const SavedAddress& entry :
+            m_savedAddresses)
+        {
+            file << std::hex
+                << entry.address
+                << '\t'
+                << entry.name
+                << '\n';
+        }
+
+        m_status =
+            "Disassembly session saved.";
+    }
+
+    void DosBoxDisassemblyWindow::loadSession()
+    {
+        m_savedAddresses.clear();
+
+        std::ifstream file(
+            "settings/dosbox_disassembly.cfg"
+        );
+
+        if (!file)
+        {
+            m_status =
+                "No disassembly session found.";
+
+            return;
+        }
+
+        size_t address = 0;
+
+        while (file >> std::hex >> address)
+        {
+            std::string name;
+
+            std::getline(
+                file,
+                name
+            );
+
+            if (!name.empty() &&
+                name[0] == '\t')
+            {
+                name.erase(
+                    0,
+                    1
+                );
+            }
+
+            SavedAddress entry;
+
+            entry.address =
+                address;
+
+            entry.name =
+                name;
+
+            m_savedAddresses.push_back(
+                entry
+            );
+        }
+
+        m_status =
+            "Disassembly session loaded.";
+    }
+    
+    void DosBoxDisassemblyWindow::addSavedAddress()
+    {
+        char* end = nullptr;
+
+        const unsigned long long address =
+            std::strtoull(
+                m_addressText,
+                &end,
+                0
+            );
+
+        if (end == m_addressText ||
+            *end != '\0')
+        {
+            m_status =
+                "Invalid address.";
+
+            return;
+        }
+
+        m_address =
+            static_cast<size_t>(
+                address
+                );
+
+        m_hasAddress = true;
+
+        for (SavedAddress& entry :
+            m_savedAddresses)
+        {
+            if (entry.address == m_address)
+            {
+                entry.name =
+                    m_sessionName;
+
+                saveSession();
+
+                m_status =
+                    "Address updated.";
+
+                return;
+            }
+        }
+
+        SavedAddress entry;
+
+        entry.address =
+            m_address;
+
+        entry.name =
+            m_sessionName;
+
+        m_savedAddresses.push_back(
+            entry
+        );
+
+        saveSession();
+
+        m_status =
+            "Address saved.";
     }
 }
