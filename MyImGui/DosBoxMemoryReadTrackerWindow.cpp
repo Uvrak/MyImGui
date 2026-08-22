@@ -169,6 +169,10 @@ namespace MyImGui
             m_scanner.getReadTrackingTransitions(
                 m_attackInstructionTransitions
             );
+
+            m_scanner.getReadTrackingTransitionContexts(
+                m_attackInstructionTransitionContexts
+            );
         }
 
         if (ImGui::Button(
@@ -491,19 +495,69 @@ namespace MyImGui
             sizeof(m_transitionTargetText)
         );
 
+        size_t transitionServerCount = 0;
+        size_t contextServerCount = 0;
+
+        const bool transitionCountOk =
+            m_scanner.getReadTrackingTransitionCount(
+                transitionServerCount
+            );
+
+        const bool contextCountOk =
+            m_scanner.getReadTrackingTransitionContextCount(
+                contextServerCount
+            );
+
         ImGui::Text(
             "Instruction transitions: %zu",
             m_attackInstructionTransitions.size()
         );
 
-        for (const auto& transition :
-            m_attackInstructionTransitions)
+        ImGui::Text(
+            "Transition contexts: %zu",
+            m_attackInstructionTransitionContexts.size()
+        );
+
+        ImGui::Text(
+            "Context block response: %s",
+            m_scanner
+            .lastTransitionContextResponse()
+            .c_str()
+        );
+
+        for (size_t i = 0;
+            i < m_attackInstructionTransitions.size();
+            ++i)
         {
-            ImGui::Text(
-                "0x%zX -> 0x%zX",
-                transition.first,
-                transition.second
-            );
+            const auto& transition =
+                m_attackInstructionTransitions[i];
+
+            if (i <
+                m_attackInstructionTransitionContexts.size())
+            {
+                const auto& context =
+                    m_attackInstructionTransitionContexts[i];
+
+                ImGui::Text(
+                    "0x%zX -> 0x%zX    CS:IP %04X:%04X",
+                    transition.first,
+                    transition.second,
+                    static_cast<unsigned int>(
+                        context.first
+                        ),
+                    static_cast<unsigned int>(
+                        context.second
+                        )
+                );
+            }
+            else
+            {
+                ImGui::Text(
+                    "0x%zX -> 0x%zX",
+                    transition.first,
+                    transition.second
+                );
+            }
         }
 
         ImGui::Separator();
@@ -723,14 +777,37 @@ namespace MyImGui
         }
 
         file <<
-            "AttackInstructions\n";
+            "AttackTransitionContexts\n";
 
         file <<
-            m_attackReadInstructions.size() <<
+            m_attackInstructionTransitionContexts.size() <<
+            '\n';
+
+        for (const auto& context :
+            m_attackInstructionTransitionContexts)
+        {
+            file <<
+                context.first <<
+                ' ' <<
+                context.second <<
+                '\n';
+        }
+
+        file <<
+            "TransitionTarget\n";
+
+        file <<
+            m_transitionTargetText <<
+            '\n';
+        file <<
+            "AttackTransitions\n";
+
+        file <<
+            m_attackInstructionTransitions.size() <<
             '\n';
 
         for (const auto& entry :
-            m_attackReadInstructions)
+            m_attackInstructionTransitions)
         {
             file <<
                 entry.first <<
@@ -1040,6 +1117,99 @@ namespace MyImGui
                     );
                 }
             }
+
+            else if (optionalSection ==
+                "AttackTransitions")
+            {
+                size_t count = 0;
+
+                if (!(file >> count))
+                {
+                    break;
+                }
+
+                m_attackInstructionTransitions.clear();
+
+                m_attackInstructionTransitions.reserve(
+                    count
+                );
+
+                for (size_t i = 0;
+                    i < count;
+                    ++i)
+                {
+                    size_t previousAddress = 0;
+                    size_t currentAddress = 0;
+
+                    if (!(file >>
+                        previousAddress >>
+                        currentAddress))
+                    {
+                        break;
+                    }
+
+                    m_attackInstructionTransitions.emplace_back(
+                        previousAddress,
+                        currentAddress
+                    );
+                }
+            }
+
+            else if (optionalSection ==
+                "AttackTransitionContexts")
+                {
+                    size_t count = 0;
+
+                    if (!(file >> count))
+                    {
+                        break;
+                    }
+
+                    m_attackInstructionTransitionContexts.clear();
+
+                    m_attackInstructionTransitionContexts.reserve(
+                        count
+                    );
+
+                    for (size_t i = 0;
+                        i < count;
+                        ++i)
+                    {
+                        uint16_t cs = 0;
+                        uint16_t ip = 0;
+
+                        if (!(file >>
+                            cs >>
+                            ip))
+                        {
+                            break;
+                        }
+
+                        m_attackInstructionTransitionContexts.emplace_back(
+                            cs,
+                            ip
+                        );
+                    }
+            }
+
+            else if (optionalSection ==
+                "TransitionTarget")
+                {
+                    std::string target;
+
+                    if (!(file >> target))
+                    {
+                        break;
+                    }
+
+                    strncpy_s(
+                        m_transitionTargetText,
+                        sizeof(m_transitionTargetText),
+                        target.c_str(),
+                        _TRUNCATE
+                    );
+}
+
             else if (optionalSection ==
                 "RangeSettings")
             {

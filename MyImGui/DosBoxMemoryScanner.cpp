@@ -812,6 +812,204 @@ namespace MyImGui
     }
 
     bool DosBoxMemoryScanner::
+        getReadTrackingTransitionContextCount(
+            size_t& count
+        )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:TRANSITIONCONTEXTCOUNT",
+            response
+        ))
+        {
+            m_status =
+                "Could not get transition context count.";
+
+            return false;
+        }
+
+        try
+        {
+            count =
+                static_cast<size_t>(
+                    std::stoull(response)
+                    );
+        }
+        catch (...)
+        {
+            m_status =
+                "Invalid transition context count: " +
+                response;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionContextBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::pair<uint16_t, uint16_t>>&
+            contexts
+        )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:TRANSITIONCONTEXTS:" +
+            std::to_string(start) +
+            ":" +
+            std::to_string(count);
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not get transition context block.";
+
+            return false;
+        }
+
+        m_lastTransitionContextResponse =
+            response;
+
+        if (response.rfind(
+            "ERROR",
+            0
+        ) == 0)
+        {
+            m_status =
+                "Transition context block failed: " +
+                response;
+
+            return false;
+        }
+
+        contexts.clear();
+
+        std::stringstream stream(
+            response
+        );
+
+        std::string item;
+
+        while (std::getline(
+            stream,
+            item,
+            ','
+        ))
+        {
+            if (item.empty())
+            {
+                continue;
+            }
+
+            const size_t separator =
+                item.find(':');
+
+            if (separator ==
+                std::string::npos)
+            {
+                contexts.clear();
+                return false;
+            }
+
+            try
+            {
+                const uint16_t cs =
+                    static_cast<uint16_t>(
+                        std::stoul(
+                            item.substr(
+                                0,
+                                separator
+                            )
+                        )
+                        );
+
+                const uint16_t ip =
+                    static_cast<uint16_t>(
+                        std::stoul(
+                            item.substr(
+                                separator + 1
+                            )
+                        )
+                        );
+
+                contexts.emplace_back(
+                    cs,
+                    ip
+                );
+            }
+            catch (...)
+            {
+                contexts.clear();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionContexts(
+            std::vector<std::pair<uint16_t, uint16_t>>&
+            contexts
+        )
+    {
+        size_t count = 0;
+
+        if (!getReadTrackingTransitionContextCount(
+            count
+        ))
+        {
+            return false;
+        }
+
+        m_status =
+            "Transition context server count: " +
+            std::to_string(count);
+
+        contexts.clear();
+        contexts.reserve(
+            count
+        );
+
+        constexpr size_t blockSize = 64;
+
+        for (size_t start = 0;
+            start < count;
+            start += blockSize)
+        {
+            std::vector<std::pair<uint16_t, uint16_t>>
+                block;
+
+            if (!getReadTrackingTransitionContextBlock(
+                start,
+                blockSize,
+                block
+            ))
+            {
+                contexts.clear();
+
+                return false;
+            }
+
+            contexts.insert(
+                contexts.end(),
+                block.begin(),
+                block.end()
+            );
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
         getReadTrackingTransitionBlock(
             size_t start,
             size_t count,
@@ -1030,6 +1228,10 @@ namespace MyImGui
 
             return false;
         }
+
+        m_status =
+            "Context block response: " +
+            response;
 
         if (response.rfind(
             "ERROR",
@@ -1440,6 +1642,13 @@ namespace MyImGui
     {
         m_scanRangeEnabled =
             false;
+    }
+
+    const std::string&
+        DosBoxMemoryScanner::
+        lastTransitionContextResponse() const
+    {
+        return m_lastTransitionContextResponse;
     }
 
 }

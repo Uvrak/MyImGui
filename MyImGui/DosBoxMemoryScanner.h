@@ -110,6 +110,20 @@ namespace MyImGui
             size_t& count
         );
 
+        bool getReadTrackingTransitionContextCount(
+            size_t& count
+        );
+
+        bool getReadTrackingTransitionContextBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::pair<uint16_t, uint16_t>>& contexts
+        );
+
+        bool getReadTrackingTransitionContexts(
+            std::vector<std::pair<uint16_t, uint16_t>>& contexts
+        );
+
         bool getReadTrackingTransitionBlock(
             size_t start,
             size_t count,
@@ -161,7 +175,8 @@ namespace MyImGui
 
         void clearScanRange();
 
-
+        const std::string&
+            lastTransitionContextResponse() const;
 
     private:
         bool requestSnapshot();
@@ -207,5 +222,8 @@ namespace MyImGui
 
         size_t m_scanStartAddress = 0;
         size_t m_scanEndAddress = 0;
+
+        std::string
+            m_lastTransitionContextResponse;
     };
 }
