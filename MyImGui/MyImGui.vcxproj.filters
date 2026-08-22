@@ -234,5 +234,8 @@
     <Text Include="morgen.txt">
       <Filter>Games\docs</Filter>
     </Text>
+    <Text Include="AttackTransitionTracking.txt">
+      <Filter>Games\docs</Filter>
+    </Text>
   </ItemGroup>
 </Project>

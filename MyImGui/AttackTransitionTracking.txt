@@ -1,0 +1,70 @@
+Attack Transition Tracking – 22.08.2026
+
+Ziel:
+Eine Code-Stelle finden, die während eines einzelnen Angriffs genau einmal
+ausgeführt wird, um den eigentlichen Angriffs-/Trefferpfad einzugrenzen.
+
+Implementiert:
+- CPU_Core_Normal_Run zeichnet die aktuelle instruction_start auf.
+- Transition Target ist nicht mehr hardcodiert.
+- MyImGui besitzt ein editierbares "Transition Target".
+- Zieladresse wird beim "Begin Attack" per IPC an DOSBox-X übertragen.
+- Beim Erreichen der Zieladresse wird die unmittelbar zuvor beobachtete
+  Instruktionsadresse gespeichert.
+- Capture Attack liest und zeigt die Transitions an.
+
+Bestätigte Messungen:
+
+Target 0xEC2B:
+29 Transitions
+0xEC28 -> 0xEC2B
+
+Target 0xEC28:
+2 Transitions
+0xEC27 -> 0xEC28
+
+Target 0xEC27:
+2 Transitions
+0xEC26 -> 0xEC27
+
+Target 0xEC26:
+2 Transitions
+0xEC24 -> 0xEC26
+
+Target 0xEC24:
+2 Transitions
+0xEC23 -> 0xEC24
+
+Target 0xEC23:
+2 Transitions mit unterschiedlichen Vorgängern:
+0x30B81 -> 0xEC23
+0x31C2A -> 0xEC23
+
+Bekanntes Disassembly:
+0xEC23  push bp
+0xEC24  mov bp, sp
+0xEC26  dec sp
+0xEC27  dec sp
+0xEC28  les bx, dword ptr [bp+0x06]
+0xEC2B  mov al, es:[bx+0x23]
+
+Wichtige Erkenntnis:
+Die Routine ab 0xEC23 wird bei einem Angriff zweimal betreten.
+Damit ist sie selbst noch nicht die gesuchte "einmal pro Angriff"-Stelle.
+
+Problem:
+Die aufgezeichneten Vorgänger 0x30B81 und 0x31C2A lassen sich nachträglich
+nicht zuverlässig als Caller disassemblieren:
+- 0x30B81 zeigt aktuell überwiegend Daten/unplausiblen Code.
+- 0x31C2A liefert im Disassembly keine Ausgabe.
+
+Daher dürfen 0x30B81 und 0x31C2A momentan NICHT einfach als normale
+statische Caller interpretiert werden.
+
+Nächster Schritt:
+Den Transition-Tracker erweitern, sodass beim Erreichen des Targets
+zusätzlich genügend Ausführungskontext des Vorgängers aufgezeichnet wird
+(z.B. CS:IP / Segmentbasis und ggf. Instruktionsbytes).
+
+Damit soll der tatsächliche Caller zum Ausführungszeitpunkt rekonstruiert
+werden, statt später nur die nackte Adresse zu disassemblieren.

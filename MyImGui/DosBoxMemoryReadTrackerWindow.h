@@ -55,6 +55,11 @@ namespace MyImGui
         std::vector<std::pair<size_t, size_t>>
             m_attackReadInstructions;
 
+        std::vector<std::pair<size_t, size_t>>
+            m_attackInstructionTransitions;
+
+        char m_transitionTargetText[32] = "0xEC2B";
+
         size_t m_readTrackingCount = 0;
 
         bool m_limitAddressRange = false;

@@ -230,6 +230,7 @@
     <None Include="MM3_MEMORY_FINDINGS.md" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="AttackTransitionTracking.txt" />
     <Text Include="morgen.txt" />
     <Text Include="NotizenZumMemoryTracking.txt" />
   </ItemGroup>

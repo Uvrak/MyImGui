@@ -131,6 +131,25 @@ namespace MyImGui
             "Begin Attack"
         ))
         {
+            char* end = nullptr;
+
+            const unsigned long long targetAddress =
+                std::strtoull(
+                    m_transitionTargetText,
+                    &end,
+                    0
+                );
+
+            if (end != m_transitionTargetText &&
+                *end == '\0')
+            {
+                m_scanner.setReadTrackingTransitionTarget(
+                    static_cast<size_t>(
+                        targetAddress
+                        )
+                );
+            }
+
             m_scanner.clearReadTracking();
             m_scanner.startReadTracking();
         }
@@ -145,6 +164,10 @@ namespace MyImGui
 
             m_scanner.getReadTrackingInstructions(
                 m_attackReadInstructions
+            );
+
+            m_scanner.getReadTrackingTransitions(
+                m_attackInstructionTransitions
             );
         }
 
@@ -256,6 +279,11 @@ namespace MyImGui
             "Pin Attack Only"
         ))
         {
+            m_scannerWindow.scanner().
+                setCandidatesFromAddresses(
+                    m_attackOnlyReadAddresses
+                );
+
             m_scannerWindow.pinAddresses(
                 m_attackOnlyReadAddresses
             );
@@ -452,6 +480,31 @@ namespace MyImGui
             "Instruction reads: %zu",
             m_attackReadInstructions.size()
         );
+
+        ImGui::SetNextItemWidth(
+            100.0f
+        );
+
+        ImGui::InputText(
+            "Transition Target",
+            m_transitionTargetText,
+            sizeof(m_transitionTargetText)
+        );
+
+        ImGui::Text(
+            "Instruction transitions: %zu",
+            m_attackInstructionTransitions.size()
+        );
+
+        for (const auto& transition :
+            m_attackInstructionTransitions)
+        {
+            ImGui::Text(
+                "0x%zX -> 0x%zX",
+                transition.first,
+                transition.second
+            );
+        }
 
         ImGui::Separator();
 

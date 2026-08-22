@@ -700,6 +700,40 @@ namespace MyImGui
         return true;
     }
 
+    bool DosBoxMemoryScanner::
+        setReadTrackingTransitionTarget(
+            size_t address
+        )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:TRANSITIONTARGET:" +
+            std::to_string(address);
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not set transition target.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Setting transition target failed: " +
+                response;
+
+            return false;
+        }
+
+        return true;
+    }
+
     bool DosBoxMemoryScanner::getReadTrackingCount(
         size_t& count
     )
@@ -736,6 +770,197 @@ namespace MyImGui
         m_status =
             "Read tracking count: " +
             std::to_string(count);
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionCount(
+            size_t& count
+        )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:TRANSITIONCOUNT",
+            response
+        ))
+        {
+            m_status =
+                "Could not get transition count.";
+
+            return false;
+        }
+
+        try
+        {
+            count =
+                static_cast<size_t>(
+                    std::stoull(response)
+                    );
+        }
+        catch (...)
+        {
+            m_status =
+                "Invalid transition count: " +
+                response;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::pair<size_t, size_t>>&
+            transitions
+        )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:TRANSITIONS:" +
+            std::to_string(start) +
+            ":" +
+            std::to_string(count);
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not get transition block.";
+
+            return false;
+        }
+
+        if (response.rfind(
+            "ERROR",
+            0
+        ) == 0)
+        {
+            m_status =
+                "Transition block failed: " +
+                response;
+
+            return false;
+        }
+
+        transitions.clear();
+
+        std::stringstream stream(
+            response
+        );
+
+        std::string item;
+
+        while (std::getline(
+            stream,
+            item,
+            ','
+        ))
+        {
+            if (item.empty())
+            {
+                continue;
+            }
+
+            const size_t separator =
+                item.find(':');
+
+            if (separator ==
+                std::string::npos)
+            {
+                transitions.clear();
+                return false;
+            }
+
+            try
+            {
+                const size_t previous =
+                    static_cast<size_t>(
+                        std::stoull(
+                            item.substr(
+                                0,
+                                separator
+                            )
+                        )
+                        );
+
+                const size_t current =
+                    static_cast<size_t>(
+                        std::stoull(
+                            item.substr(
+                                separator + 1
+                            )
+                        )
+                        );
+
+                transitions.emplace_back(
+                    previous,
+                    current
+                );
+            }
+            catch (...)
+            {
+                transitions.clear();
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitions(
+            std::vector<std::pair<size_t, size_t>>&
+            transitions
+        )
+    {
+        size_t count = 0;
+
+        if (!getReadTrackingTransitionCount(
+            count
+        ))
+        {
+            return false;
+        }
+
+        transitions.clear();
+        transitions.reserve(
+            count
+        );
+
+        constexpr size_t blockSize = 64;
+
+        for (size_t start = 0;
+            start < count;
+            start += blockSize)
+        {
+            std::vector<std::pair<size_t, size_t>>
+                block;
+
+            if (!getReadTrackingTransitionBlock(
+                start,
+                blockSize,
+                block
+            ))
+            {
+                transitions.clear();
+
+                return false;
+            }
+
+            transitions.insert(
+                transitions.end(),
+                block.begin(),
+                block.end()
+            );
+        }
 
         return true;
     }

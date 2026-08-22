@@ -98,8 +98,26 @@ namespace MyImGui
         bool stopReadTracking();
         bool clearReadTracking();
 
+        bool setReadTrackingTransitionTarget(
+            size_t address
+        );
+
         bool getReadTrackingCount(
             size_t& count
+        );
+
+        bool getReadTrackingTransitionCount(
+            size_t& count
+        );
+
+        bool getReadTrackingTransitionBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::pair<size_t, size_t>>& transitions
+        );
+
+        bool getReadTrackingTransitions(
+            std::vector<std::pair<size_t, size_t>>& transitions
         );
 
         bool getReadTrackingAddress(
