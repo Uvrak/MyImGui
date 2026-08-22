@@ -22,6 +22,9 @@ namespace MyImGui
         ),
         m_viewerWindow(
             m_memoryReader
+        ),
+        m_disassemblyWindow(
+            m_memoryReader
         )
     {}
 
@@ -70,6 +73,10 @@ namespace MyImGui
         m_viewerWindow.draw(
             nullptr,
             m_liveView
+        );
+
+        m_disassemblyWindow.draw(
+            nullptr
         );
     }
 

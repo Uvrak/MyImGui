@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DosBoxController.h" />
+    <ClInclude Include="DosBoxDisassemblyWindow.h" />
     <ClInclude Include="DosBoxFrameReader.h" />
     <ClInclude Include="DosBoxFrameTexture.h" />
     <ClInclude Include="DosBoxKeyboard.h" />
@@ -188,6 +189,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DosBoxController.cpp" />
+    <ClCompile Include="DosBoxDisassemblyWindow.cpp" />
     <ClCompile Include="DosBoxFrameReader.cpp" />
     <ClCompile Include="DosBoxFrameTexture.cpp" />
     <ClCompile Include="DosBoxKeyboard.cpp" />

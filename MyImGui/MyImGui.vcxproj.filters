@@ -135,6 +135,9 @@
     <ClInclude Include="MightAndMagic3Inventory.h">
       <Filter>Games</Filter>
     </ClInclude>
+    <ClInclude Include="DosBoxDisassemblyWindow.h">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -213,6 +216,9 @@
       <Filter>Games</Filter>
     </ClCompile>
     <ClCompile Include="DosBoxMemoryReadTrackerWindow.cpp">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxDisassemblyWindow.cpp">
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClCompile>
   </ItemGroup>
