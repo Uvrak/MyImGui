@@ -261,7 +261,7 @@ namespace MyImGui
                 if (ZYAN_SUCCESS(
                     ZydisDecoderInit(
                         &decoder,
-                        ZYDIS_MACHINE_MODE_LONG_COMPAT_16,
+                        ZYDIS_MACHINE_MODE_LEGACY_16,
                         ZYDIS_STACK_WIDTH_16
                     )))
                 {
@@ -292,12 +292,10 @@ namespace MyImGui
                         }
 
                         if (instruction.mnemonic !=
-                            ZYDIS_MNEMONIC_CALL)
+                        ZYDIS_MNEMONIC_CALL)
                         {
                             continue;
                         }
-
-
 
                         for (ZyanU8 operandIndex = 0;
                             operandIndex <
@@ -373,9 +371,17 @@ namespace MyImGui
                                 break;
                             }
                         }
+                                         
                     }
                 }
             }
+        }
+
+        if (!m_status.empty())
+        {
+            ImGui::TextUnformatted(
+                m_status.c_str()
+            );
         }
 
         if (m_callerSearchPerformed)
