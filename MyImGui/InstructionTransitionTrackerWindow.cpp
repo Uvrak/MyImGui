@@ -144,6 +144,124 @@ namespace MyImGui
             }
         }
 
+        if (ImGui::Button(
+            "Set Execution Target"
+        ))
+        {
+            char* end = nullptr;
+
+            const unsigned long long targetAddress =
+                std::strtoull(
+                    m_transitionTargetText,
+                    &end,
+                    0
+                );
+
+            if (end !=
+                m_transitionTargetText &&
+                *end == '\0')
+            {
+                const bool ok =
+                    m_scanner.setExecutionCaptureTarget(
+                        static_cast<size_t>(
+                            targetAddress
+                            )
+                    );
+
+                if (ok)
+                {
+                    m_executionCaptureHit =
+                        false;
+
+                    m_executionCapture =
+                        RuntimeInstruction{};
+                }
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Stop Execution Capture"
+        ))
+        {
+            if (m_scanner.clearExecutionCapture())
+            {
+                m_executionCaptureHit =
+                    false;
+
+                m_executionCapture =
+                    RuntimeInstruction{};
+            }
+        }
+
+        if (ImGui::Button(
+            "Get Execution Capture"
+        ))
+        {
+            RuntimeInstruction instruction;
+
+            if (m_scanner.getExecutionCapture(
+                instruction
+            ))
+            {
+                m_executionCapture =
+                    instruction;
+
+                m_executionCaptureHit =
+                    true;
+            }
+        }
+        bool executionHit = false;
+
+        if (m_scanner.getExecutionCaptureHit(
+            executionHit
+        ))
+        {
+            if (executionHit &&
+                !m_executionCaptureHit)
+            {
+                if (m_scanner.getExecutionCapture(
+                    m_executionCapture
+                ))
+                {
+                    m_executionCaptureHit =
+                        true;
+                }
+            }
+
+            ImGui::Text(
+                "Execution capture state: %s",
+                m_executionCaptureHit
+                ? "HIT"
+                : "ARMED / NO HIT"
+            );
+        }
+        else
+        {
+            ImGui::TextDisabled(
+                "Execution capture state unavailable."
+            );
+        }
+
+        size_t executionTarget = 0;
+
+        if (m_scanner.getExecutionCaptureTarget(
+            executionTarget
+        ))
+        {
+            ImGui::Text(
+                "DOSBox execution target: 0x%zX",
+                executionTarget
+            );
+        }
+        else
+        {
+            ImGui::TextDisabled(
+                "DOSBox execution target unavailable."
+            );
+        }
+
         ImGui::Separator();
 
         ImGui::Text(

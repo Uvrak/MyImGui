@@ -35,6 +35,15 @@ namespace MyImGui
         char m_transitionTargetText[32] =
             "0xEC4B";
 
+        char m_executionCaptureTargetText[32] =
+            "0x30684";
+
+        bool m_executionCaptureHit =
+            false;
+
+        RuntimeInstruction
+            m_executionCapture;
+
         std::vector<std::pair<size_t, size_t>>
             m_transitions;
 

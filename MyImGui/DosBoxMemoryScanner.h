@@ -53,6 +53,7 @@ namespace MyImGui
 
         uint16_t ds = 0;
         uint16_t es = 0;
+        uint16_t ss = 0;
     };
 
     struct RuntimeInstruction
@@ -65,6 +66,9 @@ namespace MyImGui
         RegisterSnapshot registers;
 
         std::array<uint8_t, 16> bytes{};
+
+        std::array<uint8_t, 32>
+            stackBytes{};
     };
 
     class DosBoxMemoryScanner
@@ -129,6 +133,24 @@ namespace MyImGui
 
         bool setReadTrackingTransitionTarget(
             size_t address
+        );
+
+        bool setExecutionCaptureTarget(
+            size_t address
+        );
+
+        bool getExecutionCaptureTarget(
+            size_t& address
+        );
+
+        bool clearExecutionCapture();
+
+        bool getExecutionCaptureHit(
+            bool& hit
+        );
+
+        bool getExecutionCapture(
+            RuntimeInstruction& instruction
         );
 
         bool getReadTrackingCount(
@@ -278,5 +300,6 @@ namespace MyImGui
 
         std::string
             m_lastTransitionContextResponse;
-    };
+        
+};
 }

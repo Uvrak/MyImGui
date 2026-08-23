@@ -170,6 +170,7 @@
     <ClInclude Include="DosBoxMemoryReadTrackerWindow.h" />
     <ClInclude Include="DosBoxView.h" />
     <ClInclude Include="DragDropReorder.h" />
+    <ClInclude Include="ExecutionCaptureWindow.h" />
     <ClInclude Include="ExternalWindow.h" />
     <ClInclude Include="FloatingWindow.h" />
     <ClInclude Include="FlowLayout.h" />
@@ -204,6 +205,7 @@
     <ClCompile Include="DosBoxMouse.cpp" />
     <ClCompile Include="DosBoxView.cpp" />
     <ClCompile Include="DragDropRecoder.cpp" />
+    <ClCompile Include="ExecutionCaptureWindow.cpp" />
     <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
@@ -234,6 +236,7 @@
   <ItemGroup>
     <Text Include="220826.txt" />
     <Text Include="AttackTransitionTracking.txt" />
+    <Text Include="CharacterRecord.txt" />
     <Text Include="morgen.txt" />
     <Text Include="NotizenZumMemoryTracking.txt" />
     <Text Include="ReverseE%27ngineering.txt" />

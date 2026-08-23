@@ -5,6 +5,7 @@
 #include "DosBoxMemoryReadTrackerWindow.h"
 #include "DosBoxDisassemblyWindow.h"
 #include "InstructionTransitionTrackerWindow.h"
+#include "ExecutionCaptureWindow.h"
 
 #include "imgui.h"
 
@@ -50,6 +51,9 @@ namespace MyImGui
 
         InstructionTransitionTrackerWindow
             m_transitionTrackerWindow;
+
+        ExecutionCaptureWindow
+            m_executionCaptureWindow;
 
         DosBoxDisassemblyWindow
             m_disassemblyWindow;

@@ -68,3 +68,69 @@ zusätzlich genügend Ausführungskontext des Vorgängers aufgezeichnet wird
 
 Damit soll der tatsächliche Caller zum Ausführungszeitpunkt rekonstruiert
 werden, statt später nur die nackte Adresse zu disassemblieren.
+
+MM3 Execution Capture – Stand 23.08.2026
+
+- Execution Capture wurde in ein eigenes Fenster ausgelagert.
+- Capture enthält jetzt:
+  - physische Instruction-Adresse
+  - CS:IP
+  - AX/BX/CX/DX
+  - SI/DI/BP/SP
+  - DS/ES/SS
+  - 16 Instruction-Bytes
+  - 32 Stack-Bytes ab SS:SP
+
+Performance-Fix:
+- Instruction-Bytes dürfen nicht permanent über LoadMb gelesen werden.
+- Das hatte DOSBox-X massiv verlangsamt; sogar die Musik lief in Zeitlupe.
+- Instruction-Bytes werden jetzt nur bei aktivem Tracking bzw. beim tatsächlichen Execution-Target-Hit gelesen.
+- Stack-Bytes werden ebenfalls nur beim tatsächlichen Target-Hit gelesen.
+- DOSBox läuft danach wieder mit normaler Geschwindigkeit.
+
+IPC-Fixes:
+- Execution Capture wurde um SS erweitert.
+- EXECUTIONCAPTURE:GET wurde um stackBytes erweitert.
+- MyImGui erwartet jetzt 16 Felder.
+- vector-subscript-out-of-range beim Execution Capture wurde beseitigt.
+
+MM3 / 0xEC4B:
+Drei Captures mit unterschiedlichen Charakteren:
+
+Capture 1:
+DI = B9E2
+
+Capture 2:
+DI = BB11
+
+Capture 3:
+DI = BC40
+
+Differenzen:
+BB11 - B9E2 = 0x12F
+BC40 - BB11 = 0x12F
+
+0x12F entspricht exakt der bekannten Größe/Distanz der
+MM3-Charakterdatensätze.
+
+Damit sehr stark bestätigt:
+Bei Instruction 0xEC4B zeigt DI auf den Datensatz des aktuell
+verarbeiteten/angreifenden Charakters.
+
+Der DI-Wert erscheint zusätzlich mehrfach im Stack:
+SP+04
+SP+0C
+SP+18
+SP+1E
+
+Weitere Beobachtung:
+DX änderte sich zwischen den Captures:
+0006
+0001
+0002
+
+Die Bedeutung von DX ist noch ungeklärt.
+
+Nächster Schritt:
+- Bedeutung von DX bei 0xEC4B untersuchen.
+- Danach weitere Parameter/Register/Stackwerte der Routine identifizieren.

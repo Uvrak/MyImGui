@@ -1,0 +1,51 @@
+MM3 Character Record / Hit-Chance Research
+
+Confirmed:
+- Character record base (index 0, Sir Canegm): physical 0x2BF12
+- Character record stride: 0x012F bytes
+- Character record physical address:
+  0x2BF12 + index * 0x012F
+
+Confirmed address derivation from runtime code:
+- DS = 0x2053
+- base offset = 0xB9E2
+- runtime offset = 0xB9E2 + index * 0x012F
+- physical = DS * 0x10 + offset
+
+Example index 0:
+- 0x2053 * 0x10 + 0xB9E2 = 0x2BF12
+
+Example index 5:
+- offset = 0xB9E2 + 5 * 0x012F = 0xBFCD
+
+Character record fields confirmed:
+- +0x00: Name / character record start
+- +0x1E: Accuracy
+  physical for index 0: 0x2BF30
+- +0x23: Level
+  physical for index 0: 0x2BF35
+
+Runtime code around caller 0x32057:
+- mov al, [bx-0x132B]   -> loads character index
+- mov ah, 0
+- mov dx, 0x012F
+- imul dx
+- add ax, 0xB9E2
+- push ax
+- call far 0x0CEB:0x1D9B
+
+Interpretation:
+- The caller constructs a far pointer to the selected character record.
+- The called routine 0x0CEB:0x1D9B receives that character-record pointer.
+- Next research target: determine which fields this routine reads and whether it leads into Accuracy / Hit-Chance calculation.
+
+Instruction Transition Tracker:
+- Runtime history now captures:
+  AX BX CX DX
+  SI DI BP SP
+  DS ES
+  CS:IP
+  instruction bytes
+- Register snapshots are displayed in the tracker.
+- Session format upgraded to version 2.
+- Register snapshots survive save/load and restart.

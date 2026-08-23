@@ -23,6 +23,9 @@ namespace MyImGui
             m_scannerWindow,
             gameId
         ),
+        m_executionCaptureWindow(
+            m_scannerWindow.scanner()
+        ),
         m_transitionTrackerWindow(
             m_scannerWindow.scanner(),
             gameId
@@ -59,6 +62,10 @@ namespace MyImGui
         );
 
         m_transitionTrackerWindow.draw(
+            nullptr
+        );
+
+        m_executionCaptureWindow.draw(
             nullptr
         );
 
