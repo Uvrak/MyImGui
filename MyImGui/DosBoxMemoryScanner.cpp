@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <utility>
 #include <sstream>
+#include <windows.h>
 
 namespace
 {
@@ -761,7 +762,7 @@ namespace MyImGui
         catch (...)
         {
             m_status =
-                "Invalid read tracking count: " +
+                "Invalid read tracking address: " +
                 response;
 
             return false;
@@ -1393,6 +1394,10 @@ namespace MyImGui
             response
         ))
         {
+            OutputDebugStringA(
+                "TRANSITION HISTORY REQUEST FAILED\n"
+            );
+
             m_status =
                 "Could not get transition history.";
 
@@ -1430,32 +1435,50 @@ namespace MyImGui
                 continue;
             }
 
-            const size_t separator1 =
-                item.find(':');
+            std::vector<std::string> fields;
 
-            const size_t separator2 =
-                item.find(
-                    ':',
-                    separator1 + 1
-                );
+            std::stringstream itemStream(
+                item
+            );
 
-            const size_t separator3 =
-                item.find(
-                    ':',
-                    separator2 + 1
-                );
+            std::string field;
 
-            if (separator1 == std::string::npos ||
-                separator2 == std::string::npos ||
-                separator3 == std::string::npos)
+            while (std::getline(
+                itemStream,
+                field,
+                ':'
+            ))
             {
+                fields.push_back(
+                    field
+                );
+            }
+
+            if (fields.size() != 14)
+            {
+                OutputDebugStringA(
+                    "HISTORY ERROR: FIELD COUNT\n"
+                );
+
                 history.clear();
 
                 m_status =
-                    "Invalid transition history format.";
+                    "Invalid transition history field count.";
 
                 return false;
             }
+
+            OutputDebugStringA(
+                "TRANSITION HISTORY RAW:\n"
+            );
+
+            OutputDebugStringA(
+                response.c_str()
+            );
+
+            OutputDebugStringA(
+                "\n"
+            );
 
             try
             {
@@ -1464,42 +1487,80 @@ namespace MyImGui
                 instruction.address =
                     static_cast<size_t>(
                         std::stoull(
-                            item.substr(
-                                0,
-                                separator1
-                            )
+                            fields[0]
                         )
                         );
 
                 instruction.cs =
                     static_cast<uint16_t>(
                         std::stoul(
-                            item.substr(
-                                separator1 + 1,
-                                separator2 -
-                                separator1 - 1
-                            )
+                            fields[1]
                         )
                         );
 
                 instruction.ip =
                     static_cast<uint16_t>(
                         std::stoul(
-                            item.substr(
-                                separator2 + 1,
-                                separator3 -
-                                separator2 - 1
-                            )
+                            fields[2]
                         )
                         );
 
+                instruction.registers.ax =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[3])
+                        );
+
+                instruction.registers.bx =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[4])
+                        );
+
+                instruction.registers.cx =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[5])
+                        );
+
+                instruction.registers.dx =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[6])
+                        );
+
+                instruction.registers.si =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[7])
+                        );
+
+                instruction.registers.di =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[8])
+                        );
+
+                instruction.registers.bp =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[9])
+                        );
+
+                instruction.registers.sp =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[10])
+                        );
+
+                instruction.registers.ds =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[11])
+                        );
+
+                instruction.registers.es =
+                    static_cast<uint16_t>(
+                        std::stoul(fields[12])
+                        );
+
                 std::stringstream byteStream(
-                    item.substr(
-                        separator3 + 1
-                    )
+                    fields[13]
                 );
 
                 std::string byteText;
+
                 size_t byteIndex = 0;
 
                 while (std::getline(
@@ -1511,10 +1572,11 @@ namespace MyImGui
                     if (byteIndex >=
                         instruction.bytes.size())
                     {
-                        history.clear();
+                        OutputDebugStringA(
+                            "HISTORY ERROR: TOO MANY BYTES\n"
+                        );
 
-                        m_status =
-                            "Too many transition history bytes.";
+                        history.clear();
 
                         return false;
                     }
@@ -1547,10 +1609,11 @@ namespace MyImGui
                 if (byteIndex !=
                     instruction.bytes.size())
                 {
-                    history.clear();
+                    OutputDebugStringA(
+                        "HISTORY ERROR: BYTE COUNT\n"
+                    );
 
-                    m_status =
-                        "Invalid transition history byte count.";
+                    history.clear();
 
                     return false;
                 }
@@ -1559,8 +1622,13 @@ namespace MyImGui
                     instruction
                 );
             }
+
             catch (...)
             {
+                OutputDebugStringA(
+                    "HISTORY ERROR: EXCEPTION\n"
+                );
+
                 history.clear();
 
                 m_status =

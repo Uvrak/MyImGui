@@ -2,6 +2,7 @@
 #include "InstructionTransitionTrackerWindow.h"
 
 #include "imgui.h"
+#include "Zydis/Zydis.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -29,6 +30,24 @@ namespace MyImGui
         bool* isOpen
     )
     {
+        ZydisDecoder decoder;
+        ZydisFormatter formatter;
+
+        const bool zydisReady =
+            ZYAN_SUCCESS(
+                ZydisDecoderInit(
+                    &decoder,
+                    ZYDIS_MACHINE_MODE_LEGACY_16,
+                    ZYDIS_STACK_WIDTH_16
+                )
+            ) &&
+            ZYAN_SUCCESS(
+                ZydisFormatterInit(
+                    &formatter,
+                    ZYDIS_FORMATTER_STYLE_INTEL
+                )
+            );
+
         if (isOpen &&
             !*isOpen)
         {
@@ -115,10 +134,13 @@ namespace MyImGui
                 i < m_transitions.size();
                 ++i)
             {
-                m_scanner.getReadTrackingTransitionHistory(
+                if (!m_scanner.getReadTrackingTransitionHistory(
                     i,
                     m_transitionHistories[i]
-                );
+                ))
+                {
+                    break;
+                }
             }
         }
 
@@ -215,6 +237,47 @@ namespace MyImGui
                 for (const auto& instruction :
                     history)
                 {
+                    char instructionText[256] =
+                        "<decode failed>";
+
+                    ZydisDecodedInstruction
+                        decodedInstruction;
+
+                    ZydisDecodedOperand operands[
+                        ZYDIS_MAX_OPERAND_COUNT
+                    ];
+
+                    bool decoded = false;
+
+                    if (zydisReady &&
+                        ZYAN_SUCCESS(
+                            ZydisDecoderDecodeFull(
+                                &decoder,
+                                instruction.bytes.data(),
+                                instruction.bytes.size(),
+                                &decodedInstruction,
+                                operands
+                            )
+                        ))
+                    {
+                        decoded =
+                            ZYAN_SUCCESS(
+                                ZydisFormatterFormatInstruction(
+                                    &formatter,
+                                    &decodedInstruction,
+                                    operands,
+                                    decodedInstruction.
+                                    operand_count_visible,
+                                    instructionText,
+                                    sizeof(instructionText),
+                                    static_cast<ZyanU64>(
+                                        instruction.address
+                                        ),
+                                    nullptr
+                                )
+                            );
+                    }
+
                     ImGui::Text(
                         "  0x%zX  CS:IP %04X:%04X",
                         instruction.address,
@@ -228,25 +291,61 @@ namespace MyImGui
 
                     ImGui::SameLine();
 
-                    for (size_t byteIndex = 0;
-                        byteIndex < instruction.bytes.size();
-                        ++byteIndex)
+                    if (decoded)
                     {
-                        ImGui::SameLine(
-                            0.0f,
-                            4.0f
-                        );
-
-                        ImGui::Text(
-                            "%02X",
-                            static_cast<unsigned int>(
-                                instruction.bytes[
-                                    byteIndex
-                                ]
-                                )
+                        ImGui::TextUnformatted(
+                            instructionText
                         );
                     }
-                            }
+                    else
+                    {
+                        ImGui::TextDisabled(
+                            "<decode failed>"
+                        );
+                    }
+
+                    ImGui::Text(
+                        "           AX=%04X BX=%04X CX=%04X DX=%04X",
+                        static_cast<unsigned int>(
+                            instruction.registers.ax
+                            ),
+                        static_cast<unsigned int>(
+                            instruction.registers.bx
+                            ),
+                        static_cast<unsigned int>(
+                            instruction.registers.cx
+                            ),
+                        static_cast<unsigned int>(
+                            instruction.registers.dx
+                            )
+                    );
+
+                    ImGui::Text(
+                        "           SI=%04X DI=%04X BP=%04X SP=%04X",
+                        static_cast<unsigned int>(
+                            instruction.registers.si
+                            ),
+                        static_cast<unsigned int>(
+                            instruction.registers.di
+                            ),
+                        static_cast<unsigned int>(
+                            instruction.registers.bp
+                            ),
+                        static_cast<unsigned int>(
+                            instruction.registers.sp
+                            )
+                    );
+
+                    ImGui::Text(
+                        "           DS=%04X ES=%04X",
+                        static_cast<unsigned int>(
+                            instruction.registers.ds
+                            ),
+                        static_cast<unsigned int>(
+                            instruction.registers.es
+                            )
+                    );
+                }
             }
         }
 
@@ -279,7 +378,7 @@ namespace MyImGui
                 }
 
                 file <<
-                    "GridBuilderInstructionTransitionSession 1\n";
+                    "GridBuilderInstructionTransitionSession 2\n";
 
                 file <<
                     "TransitionTarget\n";
@@ -366,7 +465,17 @@ namespace MyImGui
                         file <<
                             instruction.address << ' ' <<
                             instruction.cs << ' ' <<
-                            instruction.ip;
+                            instruction.ip << ' ' <<
+                            instruction.registers.ax << ' ' <<
+                            instruction.registers.bx << ' ' <<
+                            instruction.registers.cx << ' ' <<
+                            instruction.registers.dx << ' ' <<
+                            instruction.registers.si << ' ' <<
+                            instruction.registers.di << ' ' <<
+                            instruction.registers.bp << ' ' <<
+                            instruction.registers.sp << ' ' <<
+                            instruction.registers.ds << ' ' <<
+                            instruction.registers.es;
 
                         for (const uint8_t byte :
                         instruction.bytes)
@@ -382,247 +491,308 @@ namespace MyImGui
                 }
             }
 
-            void InstructionTransitionTrackerWindow::loadSession()
+    void InstructionTransitionTrackerWindow::loadSession()
+    {
+        m_transitions.clear();
+        m_transitionContexts.clear();
+        m_transitionBytes.clear();
+        m_transitionHistories.clear();
+
+        if (m_gameId.empty())
+        {
+            return;
+        }
+
+        const std::string filename =
+            "settings/instruction_transition_session_" +
+            m_gameId +
+            ".cfg";
+
+        std::ifstream file(
+            filename
+        );
+
+        if (!file)
+        {
+            return;
+        }
+
+        std::string header;
+
+        std::getline(
+            file,
+            header
+        );
+
+        if (header !=
+            "GridBuilderInstructionTransitionSession 2")
+        {
+            return;
+        }
+
+        std::string section;
+
+        if (!(file >> section) ||
+            section != "TransitionTarget")
+        {
+            return;
+        }
+
+        std::string target;
+
+        if (!(file >> target))
+        {
+            return;
+        }
+
+        strncpy_s(
+            m_transitionTargetText,
+            sizeof(m_transitionTargetText),
+            target.c_str(),
+            _TRUNCATE
+        );
+
+        if (!(file >> section) ||
+            section != "Transitions")
+        {
+            return;
+        }
+
+        size_t transitionCount = 0;
+
+        if (!(file >> transitionCount))
+        {
+            return;
+        }
+
+        m_transitions.reserve(
+            transitionCount
+        );
+
+        for (size_t i = 0;
+            i < transitionCount;
+            ++i)
+        {
+            size_t previousAddress = 0;
+            size_t currentAddress = 0;
+
+            if (!(file >>
+                previousAddress >>
+                currentAddress))
             {
-                m_transitions.clear();
-                m_transitionContexts.clear();
-                m_transitionBytes.clear();
-                m_transitionHistories.clear();
+                return;
+            }
 
-                if (m_gameId.empty())
+            m_transitions.emplace_back(
+                previousAddress,
+                currentAddress
+            );
+        }
+
+        if (!(file >> section) ||
+            section != "TransitionContexts")
+        {
+            return;
+        }
+
+        size_t contextCount = 0;
+
+        if (!(file >> contextCount))
+        {
+            return;
+        }
+
+        m_transitionContexts.reserve(
+            contextCount
+        );
+
+        for (size_t i = 0;
+            i < contextCount;
+            ++i)
+        {
+            unsigned int cs = 0;
+            unsigned int ip = 0;
+
+            if (!(file >>
+                cs >>
+                ip))
+            {
+                return;
+            }
+
+            m_transitionContexts.emplace_back(
+                static_cast<uint16_t>(
+                    cs
+                    ),
+                static_cast<uint16_t>(
+                    ip
+                    )
+            );
+        }
+        
+
+        if (!(file >> section) ||
+            section != "TransitionBytes")
+        {
+            return;
+        }
+
+        size_t byteBlockCount = 0;
+
+        if (!(file >> byteBlockCount))
+        {
+            return;
+        }
+
+        m_transitionBytes.resize(
+            byteBlockCount
+        );
+
+        for (auto& bytes :
+            m_transitionBytes)
+        {
+            for (uint8_t& byte :
+                bytes)
+            {
+                unsigned int value = 0;
+
+                if (!(file >> value) ||
+                    value > 255)
                 {
                     return;
                 }
 
-                const std::string filename =
-                    "settings/instruction_transition_session_" +
-                    m_gameId +
-                    ".cfg";
+                byte =
+                    static_cast<uint8_t>(
+                        value
+                        );
+            }
+        }
 
-                std::ifstream file(
-                    filename
-                );
+        if (!(file >> section) ||
+            section != "TransitionHistories")
+        {
+            return;
+        }
 
-                if (!file)
+        size_t historyCount = 0;
+
+        if (!(file >> historyCount))
+        {
+            return;
+        }
+
+        m_transitionHistories.resize(
+            historyCount
+        );
+
+        for (auto& history :
+            m_transitionHistories)
+        {
+            size_t instructionCount = 0;
+
+            if (!(file >> instructionCount))
+            {
+                return;
+            }
+
+            history.resize(
+                instructionCount
+            );
+
+            for (RuntimeInstruction& instruction :
+                history)
+            {
+
+                unsigned int cs = 0;
+                unsigned int ip = 0;
+
+                unsigned int ax = 0;
+                unsigned int bx = 0;
+                unsigned int cx = 0;
+                unsigned int dx = 0;
+
+                unsigned int si = 0;
+                unsigned int di = 0;
+                unsigned int bp = 0;
+                unsigned int sp = 0;
+
+                unsigned int ds = 0;
+                unsigned int es = 0;
+
+                if (!(file >>
+                    instruction.address >>
+                    cs >>
+                    ip >>
+                    ax >>
+                    bx >>
+                    cx >>
+                    dx >>
+                    si >>
+                    di >>
+                    bp >>
+                    sp >>
+                    ds >>
+                    es))
                 {
                     return;
                 }
 
-                std::string header;
+                instruction.cs =
+                    static_cast<uint16_t>(cs);
 
-                std::getline(
-                    file,
-                    header
-                );
+                instruction.ip =
+                    static_cast<uint16_t>(ip);
 
-                if (header !=
-                    "GridBuilderInstructionTransitionSession 1")
+                instruction.registers.ax =
+                    static_cast<uint16_t>(ax);
+
+                instruction.registers.bx =
+                    static_cast<uint16_t>(bx);
+
+                instruction.registers.cx =
+                    static_cast<uint16_t>(cx);
+
+                instruction.registers.dx =
+                    static_cast<uint16_t>(dx);
+
+                instruction.registers.si =
+                    static_cast<uint16_t>(si);
+
+                instruction.registers.di =
+                    static_cast<uint16_t>(di);
+
+                instruction.registers.bp =
+                    static_cast<uint16_t>(bp);
+
+                instruction.registers.sp =
+                    static_cast<uint16_t>(sp);
+
+                instruction.registers.ds =
+                    static_cast<uint16_t>(ds);
+
+                instruction.registers.es =
+                    static_cast<uint16_t>(es);
+
+                for (uint8_t& byte :
+                    instruction.bytes)
                 {
-                    return;
-                }
+                    unsigned int value = 0;
 
-                std::string section;
-
-                if (!(file >> section) ||
-                    section != "TransitionTarget")
-                {
-                    return;
-                }
-
-                std::string target;
-
-                if (!(file >> target))
-                {
-                    return;
-                }
-
-                strncpy_s(
-                    m_transitionTargetText,
-                    sizeof(m_transitionTargetText),
-                    target.c_str(),
-                    _TRUNCATE
-                );
-
-                if (!(file >> section) ||
-                    section != "Transitions")
-                {
-                    return;
-                }
-
-                size_t transitionCount = 0;
-
-                if (!(file >> transitionCount))
-                {
-                    return;
-                }
-
-                m_transitions.reserve(
-                    transitionCount
-                );
-
-                for (size_t i = 0;
-                    i < transitionCount;
-                    ++i)
-                {
-                    size_t previousAddress = 0;
-                    size_t currentAddress = 0;
-
-                    if (!(file >>
-                        previousAddress >>
-                        currentAddress))
+                    if (!(file >> value) ||
+                        value > 255)
                     {
                         return;
                     }
 
-                    m_transitions.emplace_back(
-                        previousAddress,
-                        currentAddress
-                    );
-                }
-
-                if (!(file >> section) ||
-                    section != "TransitionContexts")
-                {
-                    return;
-                }
-
-                size_t contextCount = 0;
-
-                if (!(file >> contextCount))
-                {
-                    return;
-                }
-
-                m_transitionContexts.reserve(
-                    contextCount
-                );
-
-                for (size_t i = 0;
-                    i < contextCount;
-                    ++i)
-                {
-                    unsigned int cs = 0;
-                    unsigned int ip = 0;
-
-                    if (!(file >> cs >> ip))
-                    {
-                        return;
-                    }
-
-                    m_transitionContexts.emplace_back(
-                        static_cast<uint16_t>(cs),
-                        static_cast<uint16_t>(ip)
-                    );
-                }
-
-                if (!(file >> section) ||
-                    section != "TransitionBytes")
-                {
-                    return;
-                }
-
-                size_t byteBlockCount = 0;
-
-                if (!(file >> byteBlockCount))
-                {
-                    return;
-                }
-
-                m_transitionBytes.resize(
-                    byteBlockCount
-                );
-
-                for (auto& bytes :
-                    m_transitionBytes)
-                {
-                    for (uint8_t& byte :
-                        bytes)
-                    {
-                        unsigned int value = 0;
-
-                        if (!(file >> value) ||
-                            value > 255)
-                        {
-                            return;
-                        }
-
-                        byte =
-                            static_cast<uint8_t>(
-                                value
-                                );
-                    }
-                }
-
-                if (!(file >> section) ||
-                    section != "TransitionHistories")
-                {
-                    return;
-                }
-
-                size_t historyCount = 0;
-
-                if (!(file >> historyCount))
-                {
-                    return;
-                }
-
-                m_transitionHistories.resize(
-                    historyCount
-                );
-
-                for (auto& history :
-                    m_transitionHistories)
-                {
-                    size_t instructionCount = 0;
-
-                    if (!(file >> instructionCount))
-                    {
-                        return;
-                    }
-
-                    history.resize(
-                        instructionCount
-                    );
-
-                    for (RuntimeInstruction& instruction :
-                        history)
-                    {
-                        unsigned int cs = 0;
-                        unsigned int ip = 0;
-
-                        if (!(file >>
-                            instruction.address >>
-                            cs >>
-                            ip))
-                        {
-                            return;
-                        }
-
-                        instruction.cs =
-                            static_cast<uint16_t>(cs);
-
-                        instruction.ip =
-                            static_cast<uint16_t>(ip);
-
-                        for (uint8_t& byte :
-                            instruction.bytes)
-                        {
-                            unsigned int value = 0;
-
-                            if (!(file >> value) ||
-                                value > 255)
-                            {
-                                return;
-                            }
-
-                            byte =
-                                static_cast<uint8_t>(
-                                    value
-                                    );
-                        }
-                    }
+                    byte =
+                        static_cast<uint8_t>(
+                            value
+                            );
                 }
             }
+        }
+    }
 
     void InstructionTransitionTrackerWindow::setGameId(
         const std::string& gameId

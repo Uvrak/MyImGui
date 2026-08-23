@@ -287,7 +287,7 @@ int main(int, char**)
                         AutoStartState::Mount;
 
                     autoStartNextStep =
-                        now + 500;
+                        now + 2000;
                 }
             }
             else if (now >= autoStartNextStep)
@@ -309,7 +309,7 @@ int main(int, char**)
                         AutoStartState::ChangeDrive;
 
                     autoStartNextStep =
-                        now + 500;
+                        now + 2000;
 
                     break;
 

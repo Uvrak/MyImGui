@@ -39,6 +39,22 @@ namespace MyImGui
         uint32_t currentValue = 0;
     };
 
+    struct RegisterSnapshot
+    {
+        uint16_t ax = 0;
+        uint16_t bx = 0;
+        uint16_t cx = 0;
+        uint16_t dx = 0;
+
+        uint16_t si = 0;
+        uint16_t di = 0;
+        uint16_t bp = 0;
+        uint16_t sp = 0;
+
+        uint16_t ds = 0;
+        uint16_t es = 0;
+    };
+
     struct RuntimeInstruction
     {
         size_t address = 0;
@@ -46,8 +62,9 @@ namespace MyImGui
         uint16_t cs = 0;
         uint16_t ip = 0;
 
-        std::array<uint8_t, 16>
-            bytes{};
+        RegisterSnapshot registers;
+
+        std::array<uint8_t, 16> bytes{};
     };
 
     class DosBoxMemoryScanner
