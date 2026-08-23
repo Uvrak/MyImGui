@@ -15,23 +15,22 @@ namespace MyImGui
             gameId,
             dosBoxView
         ),
+        m_viewerWindow(
+            m_memoryReader
+        ),
         m_readTrackerWindow(
             m_scannerWindow.scanner(),
             m_scannerWindow,
             gameId
         ),
-        m_viewerWindow(
-            m_memoryReader
+        m_transitionTrackerWindow(
+            m_scannerWindow.scanner(),
+            gameId
         ),
         m_disassemblyWindow(
             m_memoryReader
         )
     {}
-
-    void setGameId(
-        const std::string& gameId
-    );
-    
 
     void DosBoxMemoryTools::draw()
     {
@@ -56,6 +55,10 @@ namespace MyImGui
         );
 
         m_readTrackerWindow.draw(
+            nullptr
+        );
+
+        m_transitionTrackerWindow.draw(
             nullptr
         );
 
@@ -84,5 +87,29 @@ namespace MyImGui
         DosBoxMemoryTools::memoryReader()
     {
         return m_memoryReader;
+    }
+
+    void DosBoxMemoryTools::saveSession()
+    {
+        m_readTrackerWindow.saveSession();
+
+        m_transitionTrackerWindow.saveSession();
+    }
+
+    void DosBoxMemoryTools::setGameId(
+        const std::string& gameId
+    )
+    {
+        m_scannerWindow.setGameId(
+            gameId
+        );
+
+        m_readTrackerWindow.setGameId(
+            gameId
+        );
+
+        m_transitionTrackerWindow.setGameId(
+            gameId
+        );
     }
 }

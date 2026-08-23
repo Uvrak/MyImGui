@@ -67,8 +67,11 @@ namespace MyImGui
 
         m_wasOpen = true;
 
-        const auto& memory =
+        const auto& liveMemory =
             m_memoryReader.memory();
+
+        const auto& memory =
+            m_disassemblyMemory;
 
         ImGui::SetNextItemWidth(
             120.0f
@@ -95,13 +98,35 @@ namespace MyImGui
 
             if (end != m_addressText &&
                 *end == '\0' &&
-                address < memory.size())
+                address < liveMemory.size())
             {
+                m_disassemblyMemory =
+                    liveMemory;
+
                 goToAddress(
                     static_cast<size_t>(
                         address
                         )
                 );
+
+                m_status =
+                    "Disassembly snapshot captured.";
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Refresh Snapshot"))
+        {
+            if (!liveMemory.empty())
+            {
+                m_disassemblyMemory =
+                    liveMemory;
+
+                m_scrollToTop = true;
+
+                m_status =
+                    "Disassembly snapshot refreshed.";
             }
         }
 

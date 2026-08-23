@@ -1,146 +1,75 @@
-MM3 – Nächste Schritte
-Fortsetzung nach Stand 21.08.2026
+# Morgen weitermachen – MM3 Instruction Tracking
 
-1. Debug-Werkzeuge aufräumen
+## Stand am 22.08.2026
 
-Die Oberfläche ist durch die neuen Reverse-Engineering-Funktionen
-inzwischen zu unübersichtlich geworden.
+Das Instruction-Transition-Tracking funktioniert jetzt vollständig.
 
-Deshalb sollen die Funktionen auf getrennte Fenster verteilt werden.
+Wir können für eine gewünschte Zielinstruktion nicht mehr nur feststellen, dass sie ausgeführt wurde, sondern auch:
 
+- welche Instruktion unmittelbar davor ausgeführt wurde,
+- wie oft die Transition auftrat,
+- und aus welchem CS:IP-Kontext die vorherige Instruktion kam.
 
-DOSBox Memory Viewer
+Die komplette Kette funktioniert jetzt:
 
-Der Memory Viewer soll wieder hauptsächlich für RAM zuständig sein:
+Memory-Adresse
+→ lesende Instruktion
+→ Instruction Transition
+→ CS:IP-Kontext
 
-    - Hex-/ASCII-Ansicht
-    - Adresseingabe
-    - Go
-    - Speicher-Navigation
-    - Suche
-    - Auswahl von RAM-Adressen
+Der letzte wichtige Fehler lag nicht in DOSBox-X oder im Named-Pipe-Protokoll.
 
-Der provisorisch eingebaute Zydis-Disassembler soll aus diesem Fenster
-wieder entfernt werden.
+`getReadTrackingTransitionContexts()` war bereits implementiert, wurde beim Button `Capture Attack` aber schlicht nicht aufgerufen.
 
+Der fehlende Aufruf war:
 
-DOSBox Disassembly
+    m_scanner.getReadTrackingTransitionContexts(
+        m_attackInstructionTransitionContexts
+    );
 
-Neues eigenes Fenster für die Disassembly-Ansicht.
+Nach dem Einbau funktioniert die Context-Erfassung.
 
-Geplante Funktionen:
+## Bestätigter Test
 
-    - Startadresse
-    - Go
-    - mehrere Instruktionen anzeigen
-    - Address
-    - Bytes
-    - Instruction
-    - Zydis 16-Bit-Decoding
-    - Navigation zu Sprungzielen
-    - später Find Callers
+Beim Angriff wurden für das eingestellte Transition Target zwei Transitions gefunden.
 
-Beispiel:
+DOSBox-X meldete:
 
-    0xECCF   26 8A 47 1E   mov al, es:[bx+0x1E]
+    Transition server count: 2
+    Context server count: 2
 
+Nach der Korrektur konnten auch die zugehörigen CS:IP-Contexts erfolgreich von MyImGui abgefragt werden.
 
-Memory -> Instruction
+Damit ist die technische Grundlage vorhanden, um den Programmfluss rund um interessante MM3-Instruktionen gezielt rückwärts zu verfolgen.
 
-Auch die Zuordnung von RAM-Adressen zu lesenden Instruktionen soll
-übersichtlicher dargestellt werden.
+## Morgen
 
-Beispiel:
+Als Erstes den heutigen Stand kurz kontrollieren und sicherstellen, dass nach dem Aufräumen und Commit weiterhin alles baut.
 
-    Memory       Instruction
-    0x2BF30  ->  0xECCF
+Danach keine weitere IPC-Diagnose mehr.
 
-Die vorhandenen Address- und Instruction-Range-Filter sowie die
-Attack-/Idle-Auswertung sollen sinnvoll in diese Werkzeuggruppe
-einsortiert werden.
+Wir gehen zurück zur eigentlichen MM3-Untersuchung.
 
-Langfristig sollen die Fenster miteinander verknüpft werden:
+Ausgehend von den gefundenen Transitions verfolgen wir den Code vor der interessanten Zielinstruktion weiter zurück.
 
-    Memory Viewer
-        0x2BF30
-            |
-            v
-    Memory -> Instruction
-        0x2BF30 -> 0xECCF
-                       |
-                       v
-    DOSBox Disassembly
-        0xECCF mov al, es:[bx+0x1E]
+Ziel ist herauszufinden:
 
+1. Woher die relevanten Werte beziehungsweise Register kommen.
+2. Welche Instruktionen unmittelbar an der Berechnung beteiligt sind.
+3. Welche Speicheradressen gelesen werden.
+4. Welche Bedeutung AX, SI, DI und andere beteiligte Register an diesen Stellen haben.
+5. Ob sich daraus der Ablauf der Treffer-/Angriffsberechnung rekonstruieren lässt.
 
-2. Caller der Funktion 0xEC4B finden
+Dabei soll das neue Disassembly-Fenster helfen.
 
-Die heute untersuchte Funktion liegt ungefähr bei:
+Außerdem wollen wir die Darstellung verbessern:
 
-    0xEC4B – 0xED80
+- identische Hex-/Instruktionsziele farblich gleich hervorheben,
+- zusammengehörige Transitions leichter erkennbar machen,
+- Memory → Instruction → Transition → CS:IP übersichtlich miteinander verbinden.
 
-Der nächste Reverse-Engineering-Schritt ist herauszufinden, welche
-MM3-Routine diese Funktion aufruft.
+Wichtig:
 
-Dafür soll die Disassembly-Infrastruktur um eine Caller-Suche erweitert
-werden.
+Nicht wieder mit großen Änderungen gleichzeitig anfangen.
 
-Ziel:
-
-    Find Callers: 0xEC4B
-
-Anschließend untersuchen wir die gefundenen CALL-Instruktionen und
-verfolgen den Code nach der Rückkehr aus 0xEC4B.
-
-
-3. Verwendung des Rückgabewertes untersuchen
-
-Die Funktion liefert ihren berechneten Wert in AX zurück.
-
-Beim Caller soll untersucht werden:
-
-    - Was geschieht unmittelbar nach dem CALL?
-    - Wird AX mit einem Zufallswert verglichen?
-    - Wird AX weiter skaliert?
-    - Wird daraus direkt eine Hit/Miss-Entscheidung?
-    - Welche weiteren Character-/Weapon-Werte fließen ein?
-
-Damit können wir feststellen, welche genaue Rolle die Funktion
-0xEC4B bei der MM3-Trefferberechnung spielt.
-
-
-4. Danach Hilfsfunktionen analysieren
-
-Wenn der Caller verstanden ist, untersuchen wir bei Bedarf:
-
-    0xEB05
-
-und:
-
-    FAR 10CD:0157
-
-Ziel ist herauszufinden, welche Boni diese Funktionen zu dem in SI
-aufgebauten Wert beitragen.
-
-
-Hauptziel
-
-Vom bekannten RAM-Wert
-
-    0x2BF30
-
-über seine Reader-Instruktion
-
-    0xECCF
-
-zur Berechnungsroutine
-
-    0xEC4B – 0xED80
-
-und anschließend zum Caller gelangen.
-
-Von dort soll der tatsächliche Codepfad bis zur Hit/Miss-Entscheidung
-verfolgt werden.
-
-Damit wechseln wir endgültig von der reinen RAM-Suche zur Analyse der
-eigentlichen MM3-Kampflogik.
+Wir verfolgen morgen zunächst **eine konkrete Transition Schritt für Schritt rückwärts**, bis klar ist, was der Code tatsächlich macht.

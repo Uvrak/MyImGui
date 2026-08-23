@@ -39,6 +39,9 @@ namespace MyImGui
         DosBoxMemoryReader&
             m_memoryReader;
 
+        std::vector<uint8_t>
+            m_disassemblyMemory;
+
         char m_addressText[32] = {};
 
         size_t m_address = 0;

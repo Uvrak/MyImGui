@@ -8,6 +8,9 @@
 #include <fstream>
 #include <filesystem>
 #include <cstdlib>
+#include <cstdio>
+#include <cstring>
+
 
 #include "imgui.h"
 #include "DosBoxMemoryTools.h"
@@ -60,6 +63,36 @@ namespace MyImGui
 
         ImGui::TextUnformatted(
             "Memory Read Tracker"
+        );
+
+        if (ImGui::Button(
+            "Compare 0x32057"
+        ))
+        {
+            m_scanner.compareMemoryAddress(
+                0x32057,
+                m_memoryCompareResult
+            );
+        }
+
+        ImGui::SameLine();
+
+        ImGui::TextUnformatted(
+            "PHYS vs LINEAR test"
+        );
+
+        if (!m_memoryCompareResult.empty())
+        {
+            ImGui::TextWrapped(
+                "%s",
+                m_memoryCompareResult.c_str()
+            );
+        }
+
+        ImGui::SameLine();
+
+        ImGui::TextUnformatted(
+            "PHYS vs LINEAR test"
         );
 
         if (ImGui::Button(
@@ -131,25 +164,6 @@ namespace MyImGui
             "Begin Attack"
         ))
         {
-            char* end = nullptr;
-
-            const unsigned long long targetAddress =
-                std::strtoull(
-                    m_transitionTargetText,
-                    &end,
-                    0
-                );
-
-            if (end != m_transitionTargetText &&
-                *end == '\0')
-            {
-                m_scanner.setReadTrackingTransitionTarget(
-                    static_cast<size_t>(
-                        targetAddress
-                        )
-                );
-            }
-
             m_scanner.clearReadTracking();
             m_scanner.startReadTracking();
         }
@@ -164,14 +178,6 @@ namespace MyImGui
 
             m_scanner.getReadTrackingInstructions(
                 m_attackReadInstructions
-            );
-
-            m_scanner.getReadTrackingTransitions(
-                m_attackInstructionTransitions
-            );
-
-            m_scanner.getReadTrackingTransitionContexts(
-                m_attackInstructionTransitionContexts
             );
         }
 
@@ -489,124 +495,6 @@ namespace MyImGui
             100.0f
         );
 
-        ImGui::InputText(
-            "Transition Target",
-            m_transitionTargetText,
-            sizeof(m_transitionTargetText)
-        );
-
-        size_t transitionServerCount = 0;
-        size_t contextServerCount = 0;
-
-        const bool transitionCountOk =
-            m_scanner.getReadTrackingTransitionCount(
-                transitionServerCount
-            );
-
-        const bool contextCountOk =
-            m_scanner.getReadTrackingTransitionContextCount(
-                contextServerCount
-            );
-
-        ImGui::Text(
-            "Instruction transitions: %zu",
-            m_attackInstructionTransitions.size()
-        );
-
-        ImGui::Text(
-            "Transition contexts: %zu",
-            m_attackInstructionTransitionContexts.size()
-        );
-
-        ImGui::Text(
-            "Context block response: %s",
-            m_scanner
-            .lastTransitionContextResponse()
-            .c_str()
-        );
-
-        for (size_t i = 0;
-            i < m_attackInstructionTransitions.size();
-            ++i)
-        {
-            const auto& transition =
-                m_attackInstructionTransitions[i];
-
-            if (i <
-                m_attackInstructionTransitionContexts.size())
-            {
-                const auto& context =
-                    m_attackInstructionTransitionContexts[i];
-
-                ImGui::Text(
-                    "0x%zX -> 0x%zX    CS:IP %04X:%04X",
-                    transition.first,
-                    transition.second,
-                    static_cast<unsigned int>(
-                        context.first
-                        ),
-                    static_cast<unsigned int>(
-                        context.second
-                        )
-                );
-            }
-            else
-            {
-                ImGui::Text(
-                    "0x%zX -> 0x%zX",
-                    transition.first,
-                    transition.second
-                );
-            }
-        }
-
-        ImGui::Separator();
-
-        ImGui::TextUnformatted(
-            "Memory -> Instruction"
-        );
-
-        size_t shownInstructions = 0;
-
-        for (const auto& entry :
-            m_attackReadInstructions)
-        {
-            const size_t memoryAddress =
-                entry.first;
-
-            const size_t instructionAddress =
-                entry.second;
-
-            if (m_limitAddressRange &&
-                validRange &&
-                (memoryAddress < rangeStart ||
-                    memoryAddress > rangeEnd))
-            {
-                continue;
-            }
-
-            if (m_limitInstructionRange &&
-                validInstructionRange &&
-                (instructionAddress < instructionRangeStart ||
-                    instructionAddress > instructionRangeEnd))
-            {
-                continue;
-            }
-
-            ImGui::Text(
-                "0x%zX -> 0x%zX",
-                memoryAddress,
-                instructionAddress
-            );
-
-            ++shownInstructions;
-
-            if (shownInstructions >= 100)
-            {
-                break;
-            }
-        }
-
         if (true)
         {
             ImGui::Separator();
@@ -777,43 +665,18 @@ namespace MyImGui
         }
 
         file <<
-            "AttackTransitionContexts\n";
+            "AttackInstructions\n";
 
         file <<
-            m_attackInstructionTransitionContexts.size() <<
-            '\n';
-
-        for (const auto& context :
-            m_attackInstructionTransitionContexts)
-        {
-            file <<
-                context.first <<
-                ' ' <<
-                context.second <<
-                '\n';
-        }
-
-        file <<
-            "TransitionTarget\n";
-
-        file <<
-            m_transitionTargetText <<
-            '\n';
-        file <<
-            "AttackTransitions\n";
-
-        file <<
-            m_attackInstructionTransitions.size() <<
+            m_attackReadInstructions.size() <<
             '\n';
 
         for (const auto& entry :
-            m_attackInstructionTransitions)
+            m_attackReadInstructions)
         {
             file <<
-                entry.first <<
-                ' ' <<
-                entry.second <<
-                '\n';
+                entry.first << ' ' <<
+                entry.second << '\n';
         }
 
         file <<
@@ -842,11 +705,6 @@ namespace MyImGui
         file <<
             m_instructionRangeEndText <<
             '\n';
-    }
-    
-    void DosBoxMemoryTools::saveSession()
-    {
-        m_readTrackerWindow.saveSession();
     }
 
     void DosBoxMemoryReadTrackerWindow::loadSession()
@@ -1116,124 +974,67 @@ namespace MyImGui
                         instructionAddress
                     );
                 }
+
             }
-
-            else if (optionalSection ==
-                "AttackTransitions")
-            {
-                size_t count = 0;
-
-                if (!(file >> count))
+                else if (optionalSection ==
+                    "RangeSettings")
                 {
-                    break;
-                }
+                    int limitAddressRange = 0;
+                    int limitInstructionRange = 0;
 
-                m_attackInstructionTransitions.clear();
+                    std::string rangeStart;
+                    std::string rangeEnd;
 
-                m_attackInstructionTransitions.reserve(
-                    count
-                );
-
-                for (size_t i = 0;
-                    i < count;
-                    ++i)
-                {
-                    size_t previousAddress = 0;
-                    size_t currentAddress = 0;
+                    std::string instructionRangeStart;
+                    std::string instructionRangeEnd;
 
                     if (!(file >>
-                        previousAddress >>
-                        currentAddress))
+                        limitAddressRange >>
+                        rangeStart >>
+                        rangeEnd >>
+                        limitInstructionRange >>
+                        instructionRangeStart >>
+                        instructionRangeEnd))
                     {
                         break;
                     }
 
-                    m_attackInstructionTransitions.emplace_back(
-                        previousAddress,
-                        currentAddress
-                    );
-                }
-            }
+                    m_limitAddressRange =
+                        limitAddressRange != 0;
 
-            else if (optionalSection ==
-                "AttackTransitionContexts")
-                {
-                    size_t count = 0;
-
-                    if (!(file >> count))
-                    {
-                        break;
-                    }
-
-                    m_attackInstructionTransitionContexts.clear();
-
-                    m_attackInstructionTransitionContexts.reserve(
-                        count
-                    );
-
-                    for (size_t i = 0;
-                        i < count;
-                        ++i)
-                    {
-                        uint16_t cs = 0;
-                        uint16_t ip = 0;
-
-                        if (!(file >>
-                            cs >>
-                            ip))
-                        {
-                            break;
-                        }
-
-                        m_attackInstructionTransitionContexts.emplace_back(
-                            cs,
-                            ip
-                        );
-                    }
-            }
-
-            else if (optionalSection ==
-                "TransitionTarget")
-                {
-                    std::string target;
-
-                    if (!(file >> target))
-                    {
-                        break;
-                    }
+                    m_limitInstructionRange =
+                        limitInstructionRange != 0;
 
                     strncpy_s(
-                        m_transitionTargetText,
-                        sizeof(m_transitionTargetText),
-                        target.c_str(),
+                        m_rangeStartText,
+                        sizeof(m_rangeStartText),
+                        rangeStart.c_str(),
                         _TRUNCATE
                     );
-}
 
-            else if (optionalSection ==
-                "RangeSettings")
-            {
-                int limitAddressRange = 0;
-                int limitInstructionRange = 0;
+                    strncpy_s(
+                        m_rangeEndText,
+                        sizeof(m_rangeEndText),
+                        rangeEnd.c_str(),
+                        _TRUNCATE
+                    );
 
-                if (!(file >>
-                    limitAddressRange >>
-                    m_rangeStartText >>
-                    m_rangeEndText >>
-                    limitInstructionRange >>
-                    m_instructionRangeStartText >>
-                    m_instructionRangeEndText))
-                {
-                    break;
+                    strncpy_s(
+                        m_instructionRangeStartText,
+                        sizeof(m_instructionRangeStartText),
+                        instructionRangeStart.c_str(),
+                        _TRUNCATE
+                    );
+
+                    strncpy_s(
+                        m_instructionRangeEndText,
+                        sizeof(m_instructionRangeEndText),
+                        instructionRangeEnd.c_str(),
+                        _TRUNCATE
+                    );
                 }
-
-                m_limitAddressRange =
-                    limitAddressRange != 0;
-
-                m_limitInstructionRange =
-                    limitInstructionRange != 0;
             }
-        }
+        
 
         OutputDebugStringA(
             "loadSession OK: Candidates\n"
@@ -1256,18 +1057,4 @@ namespace MyImGui
 
         loadSession();
     }
-
-    void DosBoxMemoryTools::setGameId(
-        const std::string& gameId
-    )
-    {
-        m_scannerWindow.setGameId(
-            gameId
-        );
-
-        m_readTrackerWindow.setGameId(
-            gameId
-        );
-    }
-
 }

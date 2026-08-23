@@ -1163,6 +1163,423 @@ namespace MyImGui
         return true;
     }
 
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionByteCount(
+            size_t& count
+        )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:TRANSITIONBYTECOUNT",
+            response
+        ))
+        {
+            m_status =
+                "Could not get transition byte count.";
+
+            return false;
+        }
+
+        try
+        {
+            count =
+                static_cast<size_t>(
+                    std::stoull(response)
+                    );
+        }
+        catch (...)
+        {
+            m_status =
+                "Invalid transition byte count: " +
+                response;
+
+            return false;
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionByteBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::array<uint8_t, 16>>& bytes
+        )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:TRANSITIONBYTES:" +
+            std::to_string(start) +
+            ":" +
+            std::to_string(count);
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not get transition byte block.";
+
+            return false;
+        }
+
+        if (response.rfind(
+            "ERROR",
+            0
+        ) == 0)
+        {
+            m_status =
+                "Transition byte block failed: " +
+                response;
+
+            return false;
+        }
+
+        bytes.clear();
+
+        std::stringstream stream(
+            response
+        );
+
+        std::string item;
+
+        while (std::getline(
+            stream,
+            item,
+            ','
+        ))
+        {
+            if (item.empty())
+            {
+                continue;
+            }
+
+            std::array<uint8_t, 16>
+                instructionBytes{};
+
+            std::stringstream itemStream(
+                item
+            );
+
+            std::string byteText;
+
+            size_t byteIndex = 0;
+
+            while (std::getline(
+                itemStream,
+                byteText,
+                ':'
+            ))
+            {
+                if (byteIndex >=
+                    instructionBytes.size())
+                {
+                    bytes.clear();
+                    return false;
+                }
+
+                try
+                {
+                    const unsigned long value =
+                        std::stoul(
+                            byteText
+                        );
+
+                    if (value > 255)
+                    {
+                        bytes.clear();
+                        return false;
+                    }
+
+                    instructionBytes[
+                        byteIndex
+                    ] =
+                        static_cast<uint8_t>(
+                            value
+                            );
+                }
+                catch (...)
+                {
+                    bytes.clear();
+                    return false;
+                }
+
+                ++byteIndex;
+            }
+
+            if (byteIndex !=
+                instructionBytes.size())
+            {
+                bytes.clear();
+                return false;
+            }
+
+            bytes.push_back(
+                instructionBytes
+            );
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionBytes(
+            std::vector<std::array<uint8_t, 16>>& bytes
+        )
+    {
+        size_t count = 0;
+
+        if (!getReadTrackingTransitionByteCount(
+            count
+        ))
+        {
+            return false;
+        }
+
+        bytes.clear();
+        bytes.reserve(
+            count
+        );
+
+        constexpr size_t blockSize = 64;
+
+        for (size_t start = 0;
+            start < count;
+            start += blockSize)
+        {
+            std::vector<std::array<uint8_t, 16>>
+                block;
+
+            if (!getReadTrackingTransitionByteBlock(
+                start,
+                blockSize,
+                block
+            ))
+            {
+                bytes.clear();
+
+                return false;
+            }
+
+            bytes.insert(
+                bytes.end(),
+                block.begin(),
+                block.end()
+            );
+        }
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        getReadTrackingTransitionHistory(
+            size_t transitionIndex,
+            std::vector<RuntimeInstruction>& history
+        )
+    {
+        std::string response;
+
+        const std::string command =
+            "READTRACK:TRANSITIONHISTORY:" +
+            std::to_string(
+                transitionIndex
+            );
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not get transition history.";
+
+            return false;
+        }
+
+        if (response.rfind(
+            "ERROR",
+            0
+        ) == 0)
+        {
+            m_status =
+                "Transition history failed: " +
+                response;
+
+            return false;
+        }
+
+        history.clear();
+
+        std::stringstream stream(
+            response
+        );
+
+        std::string item;
+
+        while (std::getline(
+            stream,
+            item,
+            ','
+        ))
+        {
+            if (item.empty())
+            {
+                continue;
+            }
+
+            const size_t separator1 =
+                item.find(':');
+
+            const size_t separator2 =
+                item.find(
+                    ':',
+                    separator1 + 1
+                );
+
+            const size_t separator3 =
+                item.find(
+                    ':',
+                    separator2 + 1
+                );
+
+            if (separator1 == std::string::npos ||
+                separator2 == std::string::npos ||
+                separator3 == std::string::npos)
+            {
+                history.clear();
+
+                m_status =
+                    "Invalid transition history format.";
+
+                return false;
+            }
+
+            try
+            {
+                RuntimeInstruction instruction;
+
+                instruction.address =
+                    static_cast<size_t>(
+                        std::stoull(
+                            item.substr(
+                                0,
+                                separator1
+                            )
+                        )
+                        );
+
+                instruction.cs =
+                    static_cast<uint16_t>(
+                        std::stoul(
+                            item.substr(
+                                separator1 + 1,
+                                separator2 -
+                                separator1 - 1
+                            )
+                        )
+                        );
+
+                instruction.ip =
+                    static_cast<uint16_t>(
+                        std::stoul(
+                            item.substr(
+                                separator2 + 1,
+                                separator3 -
+                                separator2 - 1
+                            )
+                        )
+                        );
+
+                std::stringstream byteStream(
+                    item.substr(
+                        separator3 + 1
+                    )
+                );
+
+                std::string byteText;
+                size_t byteIndex = 0;
+
+                while (std::getline(
+                    byteStream,
+                    byteText,
+                    '.'
+                ))
+                {
+                    if (byteIndex >=
+                        instruction.bytes.size())
+                    {
+                        history.clear();
+
+                        m_status =
+                            "Too many transition history bytes.";
+
+                        return false;
+                    }
+
+                    const unsigned long value =
+                        std::stoul(
+                            byteText
+                        );
+
+                    if (value > 255)
+                    {
+                        history.clear();
+
+                        m_status =
+                            "Invalid transition history byte.";
+
+                        return false;
+                    }
+
+                    instruction.bytes[
+                        byteIndex
+                    ] =
+                        static_cast<uint8_t>(
+                            value
+                            );
+
+                        ++byteIndex;
+                }
+
+                if (byteIndex !=
+                    instruction.bytes.size())
+                {
+                    history.clear();
+
+                    m_status =
+                        "Invalid transition history byte count.";
+
+                    return false;
+                }
+
+                history.push_back(
+                    instruction
+                );
+            }
+            catch (...)
+            {
+                history.clear();
+
+                m_status =
+                    "Invalid transition history data.";
+
+                return false;
+            }
+        }
+
+        m_status =
+            "Transition history loaded: " +
+            std::to_string(
+                history.size()
+            ) +
+            " instructions.";
+
+        return true;
+    }
+
     bool DosBoxMemoryScanner::getReadTrackingAddress(
         size_t index,
         size_t& address
@@ -1642,6 +2059,49 @@ namespace MyImGui
     {
         m_scanRangeEnabled =
             false;
+    }
+
+    bool DosBoxMemoryScanner::compareMemoryAddress(
+        size_t address,
+        std::string& result
+    )
+    {
+        const std::string command =
+            "MEMCOMPARE:" +
+            std::to_string(address);
+
+        std::string response;
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "MEMCOMPARE request failed.";
+
+            return false;
+        }
+
+        if (response.rfind(
+            "ERROR",
+            0
+        ) == 0)
+        {
+            m_status =
+                "MEMCOMPARE failed: " +
+                response;
+
+            return false;
+        }
+
+        result =
+            response;
+
+        m_status =
+            response;
+
+        return true;
     }
 
     const std::string&

@@ -5,9 +5,10 @@
 #include <string>
 #include <utility>
 
+#include "DosBoxMemoryScanner.h"
+
 namespace MyImGui
 {
-    class DosBoxMemoryScanner;
     class DosBoxMemoryScannerWindow;
 
     class DosBoxMemoryReadTrackerWindow
@@ -40,6 +41,9 @@ namespace MyImGui
         std::string
             m_gameId;
 
+        std::string
+            m_memoryCompareResult;
+
         std::vector<size_t>
             m_idleReadAddresses;
 
@@ -54,14 +58,6 @@ namespace MyImGui
 
         std::vector<std::pair<size_t, size_t>>
             m_attackReadInstructions;
-
-        std::vector<std::pair<size_t, size_t>>
-            m_attackInstructionTransitions;
-
-        std::vector<std::pair<uint16_t, uint16_t>>
-            m_attackInstructionTransitionContexts;
-
-        char m_transitionTargetText[32] = "0xEC2B";
 
         size_t m_readTrackingCount = 0;
 

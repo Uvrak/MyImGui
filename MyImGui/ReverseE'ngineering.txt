@@ -1,0 +1,189 @@
+MM3 Reverse Engineering – Notizen 23.08.2026
+
+Accuracy / Memory -> Instruction
+================================
+
+Bestätigte Accuracy-Adresse:
+0x2BF30
+
+Der Memory->Instruction-Tracker zeigte:
+
+0x2BF30 -> 0xECCF
+
+Relevantes Disassembly:
+
+0xECCC  les bx, dword ptr [bp+0x06]
+0xECCF  mov al, es:[bx+0x1E]
+0xECD3  mov ah, 0x00
+0xECD5  mov si, ax
+
+Damit wird Accuracy als Byte gelesen, auf 16 Bit erweitert und zunächst in SI abgelegt.
+
+
+Combat-/Berechnungsfunktion
+===========================
+
+Die untersuchte Funktion beginnt bei:
+
+0xEC4B
+
+Sie verarbeitet mehrere Bestandteile eines laufenden Ergebnisses.
+Unter anderem wird eine tabellenbasierte Komponente addiert und
+anschließend die Funktion 0xEB05 aufgerufen.
+
+Relevanter Abschnitt:
+
+0xED3B  push [bp+0x0A]
+0xED3E  push [bp+0x08]
+0xED41  push [bp+0x06]
+0xED44  push cs
+0xED45  call 0xEB05
+
+Nach dem Aufruf wird AX zum laufenden Wert addiert.
+
+
+Funktion 0xEB05
+===============
+
+0xEB05 ist sehr wahrscheinlich eine Item-/Equipment-Bonusfunktion.
+
+Wichtige Erkenntnisse:
+
+- SI startet bei 0.
+- DI startet bei 0 und akkumuliert die Boni.
+- Die Funktion iteriert über 0x12 = 18 Einträge.
+- Verschiedene Item-/Statusfelder werden geprüft.
+- Mehrere Lookup-Tabellen liefern Bonuswerte.
+- Der angeforderte Bonus-Typ wird über [bp+0x0A] übergeben.
+- Am Ende wird DI nach AX kopiert und zurückgegeben.
+
+Funktionsende:
+
+0xEC12  inc si
+0xEC13  cmp si, 0x12
+0xEC16  jnl 0xEC1B
+0xEC18  jmp 0xEB15
+0xEC1B  mov ax, di
+...
+0xEC22  ret far
+
+Damit ungefähr:
+
+for (si = 0; si < 18; ++si)
+{
+    Boni prüfen und in DI akkumulieren;
+}
+
+return DI;
+
+
+Bonus-Type beim untersuchten Angriff
+====================================
+
+Der Aufrufer der Funktion 0xEC4B wurde durch den
+Transition-Tracker gefunden:
+
+0x32057 -> 0xEC4B
+CS:IP 3055:1B07
+
+Runtime bytes:
+
+9A 9B 1D EB 0C ...
+
+Das entspricht:
+
+0x32057  call far 0x0CEB:0x1D9B
+
+Lineares Ziel:
+
+0x0CEB0 + 0x1D9B = 0xEC4B
+
+Direkt vor dem Call wurde bestätigt:
+
+0x32040  mov ax, 0x04
+0x32043  push ax
+0x32044  push ds
+...
+0x32056  push ax
+0x32057  call far 0x0CEB:0x1D9B
+
+Daraus folgt für 0xEC4B:
+
+[bp+0x06] = Character Offset
+[bp+0x08] = DS
+[bp+0x0A] = 4
+[bp+0x0C] = noch unbekannt
+
+Bonus-Type 4 wird unverändert an 0xEB05 weitergereicht.
+
+
+Charakterstruktur
+=================
+
+Der Aufrufer berechnet die Charakteradresse mit:
+
+mov dx, 0x012F
+imul dx
+add ax, 0xB9E2
+
+Also:
+
+characterAddress = 0xB9E2 + characterIndex * 0x12F
+
+0x12F = 303 Bytes und entspricht dem bereits bekannten Abstand
+zwischen den MM3-Charakterblöcken.
+
+
+Offener vierter Parameter
+=========================
+
+Der vierte Parameter von 0xEC4B landet bei:
+
+[bp+0x0C]
+
+Er ist wichtig, weil die Funktion später prüft:
+
+cmp word ptr [bp+0x0C], 0
+
+Der konkrete Wert konnte noch nicht zuverlässig bestimmt werden.
+
+
+WICHTIGER BUG IM DISASSEMBLY-FENSTER
+====================================
+
+Beim Scrollen zeigte das Disassembly-Fenster für dieselben
+linearen Adressen plötzlich andere Bytes.
+
+Korrekte Session:
+
+0x32040  B8 04 00
+0x32043  50
+...
+0x32057  9A 9B 1D EB 0C
+
+Nach dem Scrollen wurde dieselbe Adresse 0x32057 mit völlig
+anderen Bytes dekodiert.
+
+Damit ist das aktuelle Disassembly bei einem Wechsel oder
+Erweitern des Bereichs nicht zuverlässig genug für
+Runtime-Reverse-Engineering.
+
+Der Runtime-Transition-Tracker inklusive Runtime-Bytes und
+CS:IP war dagegen konsistent.
+
+
+Nächster technischer Schritt
+============================
+
+Das Disassembly-Fenster so korrigieren, dass die Dekodierung
+an den richtigen Runtime-/Session-/Segment-Kontext gebunden bleibt.
+
+Besonders die aufgezeichneten Runtime-Bytes und CS:IP sollten
+als verlässliche Grundlage dienen.
+
+Danach:
+
+1. Vierten Parameter [bp+0x0C] bestimmen.
+2. Bonus-Type 4 genauer identifizieren.
+3. Weitere Bestandteile der Hit-Chance-/Combat-Berechnung zerlegen.
+4. Accuracy-, Level- und Material-/Equipment-Anteile endgültig zuordnen.

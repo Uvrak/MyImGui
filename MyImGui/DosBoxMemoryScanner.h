@@ -6,6 +6,7 @@
 #include <vector>
 #include <unordered_set>
 #include <utility>
+#include <array>
 
 #include "DosBoxMemoryReader.h"
 #include "NamedPipeClient.h"
@@ -36,6 +37,17 @@ namespace MyImGui
 
         uint32_t previousValue = 0;
         uint32_t currentValue = 0;
+    };
+
+    struct RuntimeInstruction
+    {
+        size_t address = 0;
+
+        uint16_t cs = 0;
+        uint16_t ip = 0;
+
+        std::array<uint8_t, 16>
+            bytes{};
     };
 
     class DosBoxMemoryScanner
@@ -134,6 +146,25 @@ namespace MyImGui
             std::vector<std::pair<size_t, size_t>>& transitions
         );
 
+        bool getReadTrackingTransitionByteCount(
+            size_t& count
+        );
+
+        bool getReadTrackingTransitionByteBlock(
+            size_t start,
+            size_t count,
+            std::vector<std::array<uint8_t, 16>>& bytes
+        );
+
+        bool getReadTrackingTransitionBytes(
+            std::vector<std::array<uint8_t, 16>>& bytes
+        );
+
+        bool getReadTrackingTransitionHistory(
+            size_t transitionIndex,
+            std::vector<RuntimeInstruction>& history
+        );
+
         bool getReadTrackingAddress(
             size_t index,
             size_t& address
@@ -177,6 +208,11 @@ namespace MyImGui
 
         const std::string&
             lastTransitionContextResponse() const;
+
+        bool compareMemoryAddress(
+            size_t address,
+            std::string& result
+        );
 
     private:
         bool requestSnapshot();
