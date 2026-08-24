@@ -58,6 +58,12 @@ namespace MyImGui
         >
             m_transitionHistories;
 
+        std::vector<RuntimeInstruction>
+            m_transitionNextInstructions;
+
+        std::vector<RuntimeInstruction>
+            m_readTrace;
+
         std::string m_gameId;
     };
 }

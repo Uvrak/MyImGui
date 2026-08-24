@@ -491,6 +491,18 @@ namespace MyImGui
             m_attackReadInstructions.size()
         );
 
+        for (const auto& entry :
+            m_attackReadInstructions)
+        {
+            if (entry.first == 0x2BF35)
+            {
+                ImGui::Text(
+                    "Level 0x2BF35 read by instruction: 0x%zX",
+                    entry.second
+                );
+            }
+        }
+
         ImGui::SetNextItemWidth(
             100.0f
         );

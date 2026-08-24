@@ -1,75 +1,55 @@
-# Morgen weitermachen – MM3 Instruction Tracking
+Weiterarbeit MM3 – 24.08.2026
 
-## Stand am 22.08.2026
+Wir machen bei der Analyse der MM3-Kampfroutine weiter.
 
-Das Instruction-Transition-Tracking funktioniert jetzt vollständig.
+Aktueller Stand:
 
-Wir können für eine gewünschte Zielinstruktion nicht mehr nur feststellen, dass sie ausgeführt wurde, sondern auch:
+Execution Capture für 0xEC4B funktioniert stabil und ohne die frühere DOSBox-Verlangsamung.
 
-- welche Instruktion unmittelbar davor ausgeführt wurde,
-- wie oft die Transition auftrat,
-- und aus welchem CS:IP-Kontext die vorherige Instruktion kam.
+Der Capture enthält:
+- CS:IP
+- AX, BX, CX, DX
+- SI, DI, BP, SP
+- DS, ES, SS
+- 16 Instruction-Bytes
+- 32 Stack-Bytes ab SS:SP
 
-Die komplette Kette funktioniert jetzt:
+Wichtige Erkenntnis:
 
-Memory-Adresse
-→ lesende Instruktion
-→ Instruction Transition
-→ CS:IP-Kontext
+Bei drei verschiedenen Charakteren wurde bei 0xEC4B ermittelt:
 
-Der letzte wichtige Fehler lag nicht in DOSBox-X oder im Named-Pipe-Protokoll.
+DI = B9E2
+DI = BB11
+DI = BC40
 
-`getReadTrackingTransitionContexts()` war bereits implementiert, wurde beim Button `Capture Attack` aber schlicht nicht aufgerufen.
+Abstand jeweils exakt:
 
-Der fehlende Aufruf war:
+0x12F
 
-    m_scanner.getReadTrackingTransitionContexts(
-        m_attackInstructionTransitionContexts
-    );
+Damit ist sehr stark bestätigt, dass DI bei 0xEC4B auf den Datensatz des aktuell verarbeiteten bzw. angreifenden Charakters zeigt.
 
-Nach dem Einbau funktioniert die Context-Erfassung.
+Der DI-Wert taucht außerdem mehrfach im Stack auf:
+SP+04
+SP+0C
+SP+18
+SP+1E
 
-## Bestätigter Test
+Noch ungeklärt:
 
-Beim Angriff wurden für das eingestellte Transition Target zwei Transitions gefunden.
+DX war bei den drei Captures:
 
-DOSBox-X meldete:
+0006
+0001
+0002
 
-    Transition server count: 2
-    Context server count: 2
-
-Nach der Korrektur konnten auch die zugehörigen CS:IP-Contexts erfolgreich von MyImGui abgefragt werden.
-
-Damit ist die technische Grundlage vorhanden, um den Programmfluss rund um interessante MM3-Instruktionen gezielt rückwärts zu verfolgen.
-
-## Morgen
-
-Als Erstes den heutigen Stand kurz kontrollieren und sicherstellen, dass nach dem Aufräumen und Commit weiterhin alles baut.
-
-Danach keine weitere IPC-Diagnose mehr.
-
-Wir gehen zurück zur eigentlichen MM3-Untersuchung.
-
-Ausgehend von den gefundenen Transitions verfolgen wir den Code vor der interessanten Zielinstruktion weiter zurück.
-
-Ziel ist herauszufinden:
-
-1. Woher die relevanten Werte beziehungsweise Register kommen.
-2. Welche Instruktionen unmittelbar an der Berechnung beteiligt sind.
-3. Welche Speicheradressen gelesen werden.
-4. Welche Bedeutung AX, SI, DI und andere beteiligte Register an diesen Stellen haben.
-5. Ob sich daraus der Ablauf der Treffer-/Angriffsberechnung rekonstruieren lässt.
-
-Dabei soll das neue Disassembly-Fenster helfen.
-
-Außerdem wollen wir die Darstellung verbessern:
-
-- identische Hex-/Instruktionsziele farblich gleich hervorheben,
-- zusammengehörige Transitions leichter erkennbar machen,
-- Memory → Instruction → Transition → CS:IP übersichtlich miteinander verbinden.
+Morgen zuerst:
+1. Herausfinden, was DX bei 0xEC4B bedeutet.
+2. Dazu kontrollierte Captures mit verschiedenen Charakteren/Angriffen vergleichen.
+3. Danach die übrigen Register und Stackwerte von 0xEC4B zuordnen.
+4. Von 0xEC4B aus die relevante Kampfroutine weiter rückwärts verfolgen.
+5. Langfristiges Ziel bleibt, die MM3-Trefferberechnung vollständig zu verstehen:
+   Character Accuracy + Level-Bonus + Material-Bonus und weitere beteiligte Werte.
 
 Wichtig:
-
-Nicht wieder mit großen Änderungen gleichzeitig anfangen.
-
-Wir verfolgen morgen zunächst **eine konkrete Transition Schritt für Schritt rückwärts**, bis klar ist, was der Code tatsächlich macht.
+Keine großen Umbauten am Tracker, solange die vorhandenen Capture-Werkzeuge funktionieren.
+Erst Daten sammeln und vergleichen, dann gezielt erweitern.

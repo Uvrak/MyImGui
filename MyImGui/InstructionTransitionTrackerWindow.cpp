@@ -130,6 +130,12 @@ namespace MyImGui
                 m_transitions.size()
             );
 
+            m_transitionNextInstructions.clear();
+
+            m_transitionNextInstructions.resize(
+                m_transitions.size()
+            );
+
             for (size_t i = 0;
                 i < m_transitions.size();
                 ++i)
@@ -141,6 +147,11 @@ namespace MyImGui
                 {
                     break;
                 }
+
+                m_scanner.getReadTrackingTransitionNextInstruction(
+                    i,
+                    m_transitionNextInstructions[i]
+                );
             }
         }
 
@@ -264,6 +275,236 @@ namespace MyImGui
 
         ImGui::Separator();
 
+        ImGui::Separator();
+
+        ImGui::TextUnformatted(
+            "Read Trace"
+        );
+
+        if (ImGui::Button(
+            "Start Read Trace"
+        ))
+        {
+            char* end = nullptr;
+
+            const unsigned long long targetAddress =
+                std::strtoull(
+                    m_transitionTargetText,
+                    &end,
+                    0
+                );
+
+            m_readTrace.clear();
+
+            m_scanner.clearReadTracking();
+
+            m_scanner.setReadTraceTarget(
+                static_cast<size_t>(
+                    targetAddress
+                    )
+            );
+
+            m_scanner.startReadTracking();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Get Read Trace"
+        ))
+        {
+            size_t count = 0;
+
+            if (m_scanner.getReadTraceCount(
+                count
+            ))
+            {
+                m_readTrace.clear();
+
+                m_readTrace.reserve(
+                    count
+                );
+
+                for (size_t i = 0;
+                    i < count;
+                    ++i)
+                {
+                    RuntimeInstruction instruction;
+
+                    if (!m_scanner.getReadTraceInstruction(
+                        i,
+                        instruction
+                    ))
+                    {
+                        break;
+                    }
+
+                    m_readTrace.push_back(
+                        instruction
+                    );
+                }
+            }
+        }
+
+        bool readTraceActive = false;
+
+        if (m_scanner.getReadTraceActive(
+            readTraceActive
+        ))
+        {
+            ImGui::Text(
+                "Read trace state: %s",
+                readTraceActive
+                ? "CAPTURING"
+                : "IDLE / COMPLETE"
+            );
+        }
+
+        size_t readTraceTarget = 0;
+
+        if (m_scanner.getReadTraceTarget(
+            readTraceTarget
+        ))
+        {
+            ImGui::Text(
+                "Read trace target: 0x%zX",
+                readTraceTarget
+            );
+        }
+        else
+        {
+            ImGui::TextDisabled(
+                "Read trace target unavailable."
+            );
+        }
+
+
+        ImGui::Text(
+            "Captured instructions: %zu",
+            m_readTrace.size()
+        );
+
+        for (size_t i = 0;
+            i < m_readTrace.size();
+            ++i)
+        {
+            const auto& instruction =
+                m_readTrace[i];
+
+            char instructionText[256] =
+                "<decode failed>";
+
+            ZydisDecodedInstruction
+                decodedInstruction;
+
+            ZydisDecodedOperand operands[
+                ZYDIS_MAX_OPERAND_COUNT
+            ];
+
+            bool decoded = false;
+
+            if (zydisReady &&
+                ZYAN_SUCCESS(
+                    ZydisDecoderDecodeFull(
+                        &decoder,
+                        instruction.bytes.data(),
+                        instruction.bytes.size(),
+                        &decodedInstruction,
+                        operands
+                    )
+                ))
+            {
+                decoded =
+                    ZYAN_SUCCESS(
+                        ZydisFormatterFormatInstruction(
+                            &formatter,
+                            &decodedInstruction,
+                            operands,
+                            decodedInstruction.
+                            operand_count_visible,
+                            instructionText,
+                            sizeof(instructionText),
+                            static_cast<ZyanU64>(
+                                instruction.address
+                                ),
+                            nullptr
+                        )
+                    );
+            }
+
+            ImGui::Text(
+                "%02zu  0x%zX  CS:IP %04X:%04X",
+                i,
+                instruction.address,
+                static_cast<unsigned int>(
+                    instruction.cs
+                    ),
+                static_cast<unsigned int>(
+                    instruction.ip
+                    )
+            );
+
+            ImGui::SameLine();
+
+            if (decoded)
+            {
+                ImGui::TextUnformatted(
+                    instructionText
+                );
+            }
+            else
+            {
+                ImGui::TextDisabled(
+                    "<decode failed>"
+                );
+            }
+
+            ImGui::Text(
+                "     AX=%04X BX=%04X CX=%04X DX=%04X",
+                static_cast<unsigned int>(
+                    instruction.registers.ax
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.bx
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.cx
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.dx
+                    )
+            );
+
+            ImGui::Text(
+                "     SI=%04X DI=%04X BP=%04X SP=%04X",
+                static_cast<unsigned int>(
+                    instruction.registers.si
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.di
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.bp
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.sp
+                    )
+            );
+
+            ImGui::Text(
+                "     DS=%04X ES=%04X SS=%04X",
+                static_cast<unsigned int>(
+                    instruction.registers.ds
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.es
+                    ),
+                static_cast<unsigned int>(
+                    instruction.registers.ss
+                    )
+            );
+        }
+
         ImGui::Text(
             "Instruction transitions: %zu",
             m_transitions.size()
@@ -338,6 +579,26 @@ namespace MyImGui
                         "%02X",
                         static_cast<unsigned int>(
                             m_transitionBytes[i][byteIndex]
+                            )
+                    );
+                }
+            }
+
+            if (i < m_transitionNextInstructions.size())
+            {
+                const auto& nextInstruction =
+                    m_transitionNextInstructions[i];
+
+                if (nextInstruction.address != 0)
+                {
+                    ImGui::Text(
+                        "Next executed: 0x%zX    CS:IP %04X:%04X",
+                        nextInstruction.address,
+                        static_cast<unsigned int>(
+                            nextInstruction.cs
+                            ),
+                        static_cast<unsigned int>(
+                            nextInstruction.ip
                             )
                     );
                 }

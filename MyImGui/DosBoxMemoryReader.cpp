@@ -23,7 +23,7 @@ namespace MyImGui
     DosBoxMemoryReader::
         DosBoxMemoryReader()
     {}
-
+    
     DosBoxMemoryReader::
         ~DosBoxMemoryReader()
     {

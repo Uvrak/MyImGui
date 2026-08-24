@@ -153,6 +153,25 @@ namespace MyImGui
             RuntimeInstruction& instruction
         );
 
+        bool setReadTraceTarget(
+            size_t address
+        );
+
+        bool getReadTraceTarget(
+            size_t& address
+        );
+
+
+        bool getReadTraceActive(
+            bool& active
+        );
+
+        bool getReadTraceCount(
+            size_t& count
+        );
+
+        bool getReadTraceInstruction(size_t index, RuntimeInstruction& instruction);
+
         bool getReadTrackingCount(
             size_t& count
         );
@@ -202,6 +221,11 @@ namespace MyImGui
         bool getReadTrackingTransitionHistory(
             size_t transitionIndex,
             std::vector<RuntimeInstruction>& history
+        );
+
+        bool getReadTrackingTransitionNextInstruction(
+            size_t transitionIndex,
+            RuntimeInstruction& instruction
         );
 
         bool getReadTrackingAddress(
