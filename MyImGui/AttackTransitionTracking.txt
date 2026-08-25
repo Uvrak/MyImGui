@@ -134,3 +134,430 @@ Die Bedeutung von DX ist noch ungeklärt.
 Nächster Schritt:
 - Bedeutung von DX bei 0xEC4B untersuchen.
 - Danach weitere Parameter/Register/Stackwerte der Routine identifizieren.
+
+MM3 – Execution Trace / Routine 0xEC2F–0xEC4A
+
+0xEC2F  mov ah, 0
+0xEC31  mov dl, es:[bx+0x24]
+          ES = 2053
+          BX = B9E2
+          Quelle = 2053:BA06
+          geladener Wert = 00
+
+0xEC35  mov dh, 0
+          DX = 0000
+
+0xEC37  add ax, dx
+          AX vorher = 0001
+          DX = 0000
+          AX danach = 0001
+
+0xEC39  mov [bp-02], ax
+          lokaler Wert = 0001
+
+0xEC3C  or ax, ax
+0xEC3E  jnl 0xEC44
+          Sprung nach 0xEC44 bestätigt
+
+0xEC44  mov ax, [bp-02]
+          AX = 0001
+
+0xEC47  mov sp, bp
+0xEC49  pop bp
+0xEC4A  ret far
+
+Interpretation bisher:
+- Die Routine liest ein Byte aus ES:[BX+24].
+- Im beobachteten Durchlauf war dieses Byte 00.
+- Dieses Byte wird als 16-Bit-Wert in DX verwendet.
+- AX war zuvor 0001.
+- Ergebnis der Addition war daher 0001.
+- Die Routine gibt offenbar diesen Wert über AX zurück.
+- Die genaue Bedeutung von ES:[BX+24] und des Rückgabewerts 1 ist NOCH NICHT geklärt.
+
+MM3 – Level-/Hit-Chance-Berechnung
+Stand: 24.08.2026
+
+Ziel
+----
+Untersuchung der MM3-Trefferwahrscheinlichkeitsberechnung und insbesondere
+des Level-Anteils der Hit Chance.
+
+Bisher bekannte Grundlage
+--------------------------
+Für die vermutete Hit-Chance-Berechnung untersuchen wir drei Komponenten:
+
+- Accuracy
+- Waffen-/Materialbonus
+- Levelbonus
+
+Die RAM-Adresse für den Levelwert wurde bereits als 0x2BF35 bestätigt.
+
+Execution Trace
+---------------
+Im ausgeführten MM3-Code wurde folgende Sequenz gefunden:
+
+0x31C2F  pop cx
+0x31C30  pop cx
+0x31C31  xor dx, dx
+0x31C33  div di
+0x31C35  mov dx, si
+0x31C37  add dx, ax
+0x31C39  mov si, dx
+
+Besonders wichtig:
+
+    xor dx, dx
+    div di
+
+Vor DIV befindet sich der zu dividierende Wert in AX.
+Durch XOR DX,DX wird DX auf 0 gesetzt.
+
+DIV DI führt damit eine unsigned 16-Bit-Division aus:
+
+    DX:AX / DI
+
+Der Quotient landet anschließend in AX,
+der Rest in DX.
+
+
+Experiment: Level 10
+====================
+
+Der Charakter wurde testweise auf Level 10 gesetzt.
+
+Dadurch wurde unmittelbar vor DIV beobachtet:
+
+    DX:AX = 0000:000A
+
+Der Dividend ist damit eindeutig:
+
+    0x000A = 10
+
+Der Wert in AX entspricht also in diesem Test exakt dem Charakterlevel.
+
+
+Klassenabhängiger Divisor
+=========================
+
+Bei verschiedenen Charakterklassen wurden unterschiedliche Werte in DI
+beobachtet.
+
+Diese Werte passen zu der Hypothese, dass MM3 den Level-Anteil der
+Trefferchance über einen klassenspezifischen Divisor berechnet.
+
+Besonders wichtiger Test:
+
+Ritter
+------
+Level:
+
+    AX = 000A = 10
+
+Divisor:
+
+    DI = 0001 = 1
+
+Damit führt MM3 aus:
+
+    10 / 1 = 10
+
+Der berechnete Quotient beträgt also 10.
+
+
+Weitere beobachtete Divisoren
+-----------------------------
+Bei vorherigen Tests wurden auch andere DI-Werte beobachtet, unter anderem:
+
+    DI = 0002
+    DI = 0003
+
+Diese Werte änderten sich abhängig vom getesteten Charakter bzw. seiner
+Klasse.
+
+Damit besteht starke Evidenz dafür, dass DI einen klassenspezifischen
+Level-Divisor enthält.
+
+
+Aktuelle Arbeitshypothese
+=========================
+
+Die bisher beobachtete Berechnung lautet:
+
+    LevelBonus = Level / ClassDivisor
+
+mit ganzzahliger Division.
+
+Für den Ritter ergibt sich beispielsweise:
+
+    LevelBonus = Level / 1
+
+Bei Level 10:
+
+    LevelBonus = 10
+
+
+Warum dieser Fund wichtig ist
+=============================
+
+Wir haben den Levelbonus nicht aus einer Tabelle oder aus beobachteten
+Endwerten abgeleitet.
+
+Wir beobachten direkt den von MM3 ausgeführten Maschinencode:
+
+    xor dx, dx
+    div di
+
+und können gleichzeitig die beteiligten Registerwerte messen.
+
+Der Levelwert 10 erscheint dabei als AX=000A und der Ritter verwendet
+DI=0001.
+
+Damit ist erstmals eine konkrete ausführbare Berechnung des vermuteten
+Level-Hit-Chance-Modifikators gefunden.
+
+
+Noch NICHT endgültig bewiesen
+=============================
+
+Folgende Punkte müssen noch bestätigt werden:
+
+1. Dass AX vor DIV für alle Charaktere tatsächlich das Level enthält.
+
+2. Welche Klasse welchen DI-Divisor verwendet.
+
+3. Dass das Ergebnis von DIV tatsächlich unmittelbar Bestandteil der
+   Hit-Chance-Berechnung ist.
+
+4. Wie dieser Levelbonus anschließend mit Accuracy und Materialbonus
+   kombiniert wird.
+
+5. Ob zusätzliche Caps, Mindestwerte oder Sonderregeln existieren.
+
+
+Nächster sinnvoller Test
+========================
+
+Execution Capture auf:
+
+    0x31C35
+
+setzen.
+
+Das ist die erste Instruktion unmittelbar nach:
+
+    div di
+
+Beim Ritter Level 10 erwarten wir dort:
+
+    AX = 000A
+
+Damit können wir den Quotienten direkt bestätigen.
+
+Danach verfolgen wir:
+
+    0x31C35  mov dx, si
+    0x31C37  add dx, ax
+    0x31C39  mov si, dx
+
+Denn diese Sequenz sieht danach aus, als würde der gerade berechnete
+Levelwert zu einem bereits in SI vorhandenen Wert addiert.
+
+Das könnte der nächste entscheidende Teil der Hit-Chance-Berechnung sein.
+
+Ergänzung – Herkunft des Klassen-Divisors
+Stand: 24.08.2026
+=========================================
+
+Bestätigte Klassenversuche
+--------------------------
+
+Die Division bei:
+
+    0x31C33  div di
+
+wurde inzwischen mit mehreren Charakterklassen untersucht.
+
+Beobachtet wurden:
+
+    Ritter:
+        DI = 0001
+        LevelDivisor = 1
+
+    Charakter mit Divisor 2:
+        DI = 0002
+        LevelDivisor = 2
+
+    Kleriker:
+        DI = 0003
+        LevelDivisor = 3
+
+Beim Kleriker wurde damit die Berechnung:
+
+    Level / 3
+
+beobachtet.
+
+Beim Ritter wurde:
+
+    Level / 1
+
+beobachtet.
+
+Dies verstärkt die Hypothese erheblich, dass DI tatsächlich den
+klassenspezifischen Divisor für den Level-Anteil der Hit Chance enthält.
+
+
+Party-Slot und Klassen-Divisor
+==============================
+
+Für die weiteren Tests befindet sich der Ritter auf Party-Slot 1.
+
+Wichtig:
+
+    Party-Slot 1 bedeutet NICHT automatisch DI = 1.
+
+Der Party-Slot bestimmt, welcher Charakterdatensatz verarbeitet wird.
+
+Die bisherigen Vergleiche mit verschiedenen Charakterklassen sprechen
+vielmehr dafür, dass DI = 1 beim Ritter von seiner Klasse bzw. der
+zugehörigen Klassenberechnung stammt.
+
+Aktueller reproduzierbarer Testzustand:
+
+    Party-Slot: 1
+    Klasse:     Ritter
+    Level:      10
+    DI:         0001
+
+Erwartete Division:
+
+    10 / 1 = 10
+
+
+Neue offene Frage: Woher kommt DI?
+==================================
+
+Nachdem die Bedeutung von DI als wahrscheinlicher Klassen-Divisor stark
+eingegrenzt wurde, ist jetzt die Herkunft dieses Wertes interessant.
+
+Gesucht wird die Runtime-Instruktion, die DI vor:
+
+    0x31C33  div di
+
+auf den Wert 1, 2 bzw. 3 setzt.
+
+Dabei soll insbesondere geklärt werden, ob MM3:
+
+- den Divisor direkt aus einer Klassentabelle liest,
+- ihn anhand der Charakterklasse berechnet,
+- oder ihn aus einem anderen bereits vorbereiteten Wert übernimmt.
+
+Dazu muss der Execution Trace weiter VOR 0x31C33 zurückverfolgt werden.
+
+Gesucht wird insbesondere eine Instruktion wie:
+
+    mov di, ...
+    mov di, [...]
+    pop di
+
+oder eine andere Instruktion, die DI verändert.
+
+
+Wichtige Erkenntnis zum statischen Disassembly
+==============================================
+
+Beim Versuch, den Code vor 0x31C33 statisch zu untersuchen, wurde erneut
+festgestellt, dass das aktuelle Memory-Disassembly nicht mit dem zur
+Laufzeit aufgezeichneten Code übereinstimmt.
+
+Der Runtime-Trace zeigte:
+
+    0x31C2F  pop cx
+    0x31C30  pop cx
+    0x31C31  xor dx, dx
+    0x31C33  div di
+    0x31C35  mov dx, si
+    0x31C37  add dx, ax
+    0x31C39  mov si, dx
+
+Das später statisch erzeugte Disassembly zeigte an denselben physischen
+Adressen dagegen unter anderem:
+
+    0x31C2F  add [bx+si-0x48], dl
+    0x31C32  add ax, [bx+si]
+    0x31C34  push ax
+    0x31C35  call far 0x2005:0x003E
+
+Diese beiden Ergebnisse sind nicht miteinander vereinbar.
+
+Damit bestätigt sich die bereits bei 0x30B81 / 0x31C2A gemachte
+Beobachtung:
+
+    Eine physische Adresse kann nachträglich nicht zuverlässig
+    disassembliert werden, um den zuvor ausgeführten MM3-Code zu
+    rekonstruieren.
+
+Sehr wahrscheinlich spielen dynamisch geladener bzw. überschriebener
+Code oder Overlay-Mechanismen eine Rolle.
+
+Für diese Untersuchung müssen deshalb die Instruktionsbytes und Register
+zum tatsächlichen Ausführungszeitpunkt verwendet werden.
+
+
+Konsequenz für den nächsten Trace
+=================================
+
+Der nächste Test wird wieder mit dem bekannten Zustand durchgeführt:
+
+    Ritter
+    Party-Slot 1
+    Level 10
+    erwartetes DI = 0001
+
+Anstatt die Adresse 0x31C2F später statisch rückwärts zu disassemblieren,
+soll der tatsächliche Execution Trace weiter zurück aufgezeichnet werden.
+
+Ziel:
+
+    Herausfinden, wann und wodurch DI = 0001 gesetzt wird.
+
+Anschließend soll derselbe Vorgang mit einer Klasse mit DI = 0002 und
+dem Kleriker mit DI = 0003 verglichen werden.
+
+Wenn alle drei Ausführungspfade dieselbe Stelle erreichen und dort
+abhängig von der Klasse 1, 2 oder 3 erzeugt wird, wäre die Herkunft des
+ClassDivisor direkt im MM3-Code identifiziert.
+
+
+Geplante Verbesserung des Execution-Capture-Workflows
+=====================================================
+
+Vor den nächsten Angriffstests soll die Bedienung des Execution Capture
+vereinfacht werden.
+
+Gewünschter Ablauf:
+
+    Record
+      |
+      v
+    Angriff ausführen
+      |
+      v
+    Record / Get
+
+Der erste Klick auf Record soll die Aufnahme vorbereiten bzw. starten.
+
+Der zweite Klick soll das vorhandene Execution Capture direkt abrufen
+und anzeigen.
+
+WICHTIG:
+
+    Beim zweiten Klick darf NICHT "Stop Execution Capture"
+    ausgeführt werden.
+
+Der bisherige Stop-Befehl führt dazu, dass das benötigte Capture-Ergebnis
+verloren geht.
+
+"Stop Execution Capture" darf daher nur als separater Abbruch verwendet
+werden, wenn eine laufende Aufnahme bewusst verworfen werden soll.

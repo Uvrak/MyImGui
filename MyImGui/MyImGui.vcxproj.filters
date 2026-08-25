@@ -43,6 +43,9 @@
     <Filter Include="Games\docs">
       <UniqueIdentifier>{298750f3-cbd0-411d-90a5-bd944776a1ad}</UniqueIdentifier>
     </Filter>
+    <Filter Include="RecordButton">
+      <UniqueIdentifier>{b85af1da-6cc0-421e-9f61-6eb5977df2fb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyImGui.h">
@@ -144,6 +147,12 @@
     <ClInclude Include="ExecutionCaptureWindow.h">
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClInclude>
+    <ClInclude Include="RecordButton.h">
+      <Filter>RecordButton</Filter>
+    </ClInclude>
+    <ClInclude Include="ExecutionTraceWindow.h">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -231,6 +240,12 @@
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClCompile>
     <ClCompile Include="ExecutionCaptureWindow.cpp">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClCompile>
+    <ClCompile Include="RecordButton.cpp">
+      <Filter>RecordButton</Filter>
+    </ClCompile>
+    <ClCompile Include="ExecutionTraceWindow.cpp">
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClCompile>
   </ItemGroup>

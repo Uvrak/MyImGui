@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DosBoxMemoryScanner.h"
+#include "RecordButton.h"
 
 #include <string>
 
@@ -18,6 +19,9 @@ namespace MyImGui
         );
 
     private:
+        void loadSession();
+        void saveSession() const;
+
         DosBoxMemoryScanner&
             m_scanner;
 
@@ -29,5 +33,8 @@ namespace MyImGui
 
         RuntimeInstruction
             m_capture{};
+
+        RecordButton
+            m_executionRecordButton;
     };
 }

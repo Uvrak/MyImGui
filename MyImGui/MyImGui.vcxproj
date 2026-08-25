@@ -171,6 +171,7 @@
     <ClInclude Include="DosBoxView.h" />
     <ClInclude Include="DragDropReorder.h" />
     <ClInclude Include="ExecutionCaptureWindow.h" />
+    <ClInclude Include="ExecutionTraceWindow.h" />
     <ClInclude Include="ExternalWindow.h" />
     <ClInclude Include="FloatingWindow.h" />
     <ClInclude Include="FlowLayout.h" />
@@ -187,6 +188,7 @@
     <ClInclude Include="MyImGuiSettingsWindow.h" />
     <ClInclude Include="NamedPipeClient.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="RecordButton.h" />
     <ClInclude Include="WindowCapture.h" />
   </ItemGroup>
   <ItemGroup>
@@ -206,6 +208,7 @@
     <ClCompile Include="DosBoxView.cpp" />
     <ClCompile Include="DragDropRecoder.cpp" />
     <ClCompile Include="ExecutionCaptureWindow.cpp" />
+    <ClCompile Include="ExecutionTraceWindow.cpp" />
     <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
@@ -223,6 +226,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="RecordButton.cpp" />
     <ClCompile Include="WindowCapture.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -1571,6 +1571,43 @@ namespace MyImGui
         return true;
     }
 
+    bool DosBoxMemoryScanner::
+        getReadTraceArmed(
+            bool& armed
+        )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACE:ARMED",
+            response
+        ))
+        {
+            m_status =
+                "Could not get read trace armed state.";
+
+            return false;
+        }
+
+        if (response == "1")
+        {
+            armed = true;
+            return true;
+        }
+
+        if (response == "0")
+        {
+            armed = false;
+            return true;
+        }
+
+        m_status =
+            "Invalid read trace armed state: " +
+            response;
+
+        return false;
+    }
+
     bool DosBoxMemoryScanner::getReadTrackingCount(
         size_t& count
     )

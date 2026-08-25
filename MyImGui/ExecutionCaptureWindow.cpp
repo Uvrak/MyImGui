@@ -2,6 +2,9 @@
 #include "ExecutionCaptureWindow.h"
 
 #include <cstdlib>
+#include <fstream>
+#include <filesystem>
+#include <cstring>
 
 #include "imgui.h"
 
@@ -14,7 +17,9 @@ namespace MyImGui
         : m_scanner(
             scanner
         )
-    {}
+    {
+        loadSession();
+    }
 
     void ExecutionCaptureWindow::draw(
         bool* isOpen
@@ -45,68 +50,40 @@ namespace MyImGui
             sizeof(m_targetText)
         );
 
-        if (ImGui::Button(
-            "Set Execution Target"
-        ))
+        ImGui::TextUnformatted(
+            "Capture"
+        );
+
+        if (m_executionRecordButton.draw())
         {
-            char* end = nullptr;
-
-            const unsigned long long targetAddress =
-                std::strtoull(
-                    m_targetText,
-                    &end,
-                    0
-                );
-
-            if (end != m_targetText &&
-                *end == '\0')
+            if (m_executionRecordButton.recording())
             {
-                if (m_scanner.setExecutionCaptureTarget(
-                    static_cast<size_t>(
-                        targetAddress
-                        )
-                ))
-                {
-                    m_captureHit = false;
+                char* end = nullptr;
 
-                    m_capture =
-                        RuntimeInstruction{};
+                const unsigned long long targetAddress =
+                    std::strtoull(
+                        m_targetText,
+                        &end,
+                        0
+                    );
+
+                if (end != m_targetText &&
+                    *end == '\0')
+                {
+                    if (m_scanner.setExecutionCaptureTarget(
+                        static_cast<size_t>(
+                            targetAddress
+                            )
+                    ))
+                    {
+                        m_captureHit = false;
+                    }
                 }
             }
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Stop Execution Capture"
-        ))
-        {
-            if (m_scanner.clearExecutionCapture())
+            else
             {
-                m_captureHit = false;
-
-                m_capture =
-                    RuntimeInstruction{};
-            }
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Get Execution Capture"
-        ))
-        {
-            RuntimeInstruction instruction;
-
-            if (m_scanner.getExecutionCapture(
-                instruction
-            ))
-            {
-                m_capture =
-                    instruction;
-
-                m_captureHit =
-                    true;
+                // Manueller Stop/Abbruch:
+                // hier NICHT clearExecutionCapture() aufrufen.
             }
         }
 
@@ -116,11 +93,34 @@ namespace MyImGui
             executionHit
         ))
         {
+            if (executionHit &&
+                m_executionRecordButton.recording())
+            {
+                RuntimeInstruction instruction;
+
+                if (m_scanner.getExecutionCapture(
+                    instruction
+                ))
+                {
+                    m_capture =
+                        instruction;
+
+                    m_captureHit =
+                        true;
+
+                    saveSession();
+
+                    m_executionRecordButton.stop();
+                }
+            }
+
             ImGui::Text(
                 "State: %s",
                 executionHit
                 ? "HIT"
-                : "ARMED / NO HIT"
+                : m_executionRecordButton.recording()
+                ? "ARMED / NO HIT"
+                : "IDLE"
             );
         }
         else
@@ -241,5 +241,280 @@ namespace MyImGui
         }
 
         ImGui::End();
+    }
+
+    void ExecutionCaptureWindow::saveSession() const
+    {
+        std::filesystem::create_directories(
+            "settings"
+        );
+
+        std::ofstream file(
+            "settings/execution_capture.cfg"
+        );
+
+        if (!file)
+        {
+            return;
+        }
+
+        file <<
+            "ExecutionCaptureSession 1\n";
+
+        file <<
+            m_targetText <<
+            '\n';
+
+        file <<
+            (m_captureHit ? 1 : 0) <<
+            '\n';
+
+        if (!m_captureHit)
+        {
+            return;
+        }
+
+        file <<
+            m_capture.address << ' ' <<
+            m_capture.cs << ' ' <<
+            m_capture.ip << ' ' <<
+
+            m_capture.registers.ax << ' ' <<
+            m_capture.registers.bx << ' ' <<
+            m_capture.registers.cx << ' ' <<
+            m_capture.registers.dx << ' ' <<
+
+            m_capture.registers.si << ' ' <<
+            m_capture.registers.di << ' ' <<
+            m_capture.registers.bp << ' ' <<
+            m_capture.registers.sp << ' ' <<
+
+            m_capture.registers.ds << ' ' <<
+            m_capture.registers.es << ' ' <<
+            m_capture.registers.ss <<
+            '\n';
+
+        for (const uint8_t byte :
+        m_capture.bytes)
+        {
+            file <<
+                static_cast<unsigned int>(
+                    byte
+                    ) <<
+                ' ';
+        }
+
+        file << '\n';
+
+        for (const uint8_t byte :
+        m_capture.stackBytes)
+        {
+            file <<
+                static_cast<unsigned int>(
+                    byte
+                    ) <<
+                ' ';
+        }
+
+        file << '\n';
+    }
+
+    void ExecutionCaptureWindow::loadSession()
+    {
+        std::ifstream file(
+            "settings/execution_capture.cfg"
+        );
+
+        if (!file)
+        {
+            return;
+        }
+
+        std::string header;
+
+        std::getline(
+            file,
+            header
+        );
+
+        if (header !=
+            "ExecutionCaptureSession 1")
+        {
+            return;
+        }
+
+        std::string target;
+
+        if (!std::getline(
+            file,
+            target
+        ))
+        {
+            return;
+        }
+
+        strncpy_s(
+            m_targetText,
+            sizeof(m_targetText),
+            target.c_str(),
+            _TRUNCATE
+        );
+
+        int captureHit = 0;
+
+        if (!(file >>
+            captureHit))
+        {
+            return;
+        }
+
+        m_captureHit =
+            captureHit != 0;
+
+        if (!m_captureHit)
+        {
+            return;
+        }
+
+        unsigned int cs = 0;
+        unsigned int ip = 0;
+
+        unsigned int ax = 0;
+        unsigned int bx = 0;
+        unsigned int cx = 0;
+        unsigned int dx = 0;
+
+        unsigned int si = 0;
+        unsigned int di = 0;
+        unsigned int bp = 0;
+        unsigned int sp = 0;
+
+        unsigned int ds = 0;
+        unsigned int es = 0;
+        unsigned int ss = 0;
+
+        if (!(file >>
+            m_capture.address >>
+            cs >>
+            ip >>
+
+            ax >>
+            bx >>
+            cx >>
+            dx >>
+
+            si >>
+            di >>
+            bp >>
+            sp >>
+
+            ds >>
+            es >>
+            ss))
+        {
+            m_captureHit = false;
+            return;
+        }
+
+        m_capture.cs =
+            static_cast<uint16_t>(
+                cs
+                );
+
+        m_capture.ip =
+            static_cast<uint16_t>(
+                ip
+                );
+
+        m_capture.registers.ax =
+            static_cast<uint16_t>(
+                ax
+                );
+
+        m_capture.registers.bx =
+            static_cast<uint16_t>(
+                bx
+                );
+
+        m_capture.registers.cx =
+            static_cast<uint16_t>(
+                cx
+                );
+
+        m_capture.registers.dx =
+            static_cast<uint16_t>(
+                dx
+                );
+
+        m_capture.registers.si =
+            static_cast<uint16_t>(
+                si
+                );
+
+        m_capture.registers.di =
+            static_cast<uint16_t>(
+                di
+                );
+
+        m_capture.registers.bp =
+            static_cast<uint16_t>(
+                bp
+                );
+
+        m_capture.registers.sp =
+            static_cast<uint16_t>(
+                sp
+                );
+
+        m_capture.registers.ds =
+            static_cast<uint16_t>(
+                ds
+                );
+
+        m_capture.registers.es =
+            static_cast<uint16_t>(
+                es
+                );
+
+        m_capture.registers.ss =
+            static_cast<uint16_t>(
+                ss
+                );
+
+        for (uint8_t& byte :
+            m_capture.bytes)
+        {
+            unsigned int value = 0;
+
+            if (!(file >> value) ||
+                value > 255)
+            {
+                m_captureHit = false;
+                return;
+            }
+
+            byte =
+                static_cast<uint8_t>(
+                    value
+                    );
+        }
+
+        for (uint8_t& byte :
+            m_capture.stackBytes)
+        {
+            unsigned int value = 0;
+
+            if (!(file >> value) ||
+                value > 255)
+            {
+                m_captureHit = false;
+                return;
+            }
+
+            byte =
+                static_cast<uint8_t>(
+                    value
+                    );
+        }
     }
 }

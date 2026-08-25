@@ -6,6 +6,7 @@
 #include <array>
 
 #include "DosBoxMemoryScanner.h"
+#include "RecordButton.h"
 
 namespace MyImGui
 {
@@ -60,9 +61,6 @@ namespace MyImGui
 
         std::vector<RuntimeInstruction>
             m_transitionNextInstructions;
-
-        std::vector<RuntimeInstruction>
-            m_readTrace;
 
         std::string m_gameId;
     };

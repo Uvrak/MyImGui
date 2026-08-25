@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "DosBoxMemoryScanner.h"
+#include "RecordButton.h"
 
 namespace MyImGui
 {
@@ -31,6 +32,7 @@ namespace MyImGui
             const std::string& gameId
         );
 
+
     private:
         DosBoxMemoryScanner&
             m_scanner;
@@ -38,11 +40,14 @@ namespace MyImGui
         DosBoxMemoryScannerWindow&
             m_scannerWindow;
 
-        std::string
-            m_gameId;
+        RecordButton
+            m_idleRecordButton;
+
+        RecordButton
+            m_attackRecordButton;
 
         std::string
-            m_memoryCompareResult;
+            m_gameId;
 
         std::vector<size_t>
             m_idleReadAddresses;
@@ -58,8 +63,6 @@ namespace MyImGui
 
         std::vector<std::pair<size_t, size_t>>
             m_attackReadInstructions;
-
-        size_t m_readTrackingCount = 0;
 
         bool m_limitAddressRange = false;
 

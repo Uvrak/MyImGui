@@ -1,55 +1,16 @@
-Weiterarbeit MM3 – 24.08.2026
+Weiter nach der Pause:
 
-Wir machen bei der Analyse der MM3-Kampfroutine weiter.
-
-Aktueller Stand:
-
-Execution Capture für 0xEC4B funktioniert stabil und ohne die frühere DOSBox-Verlangsamung.
-
-Der Capture enthält:
-- CS:IP
-- AX, BX, CX, DX
-- SI, DI, BP, SP
-- DS, ES, SS
-- 16 Instruction-Bytes
-- 32 Stack-Bytes ab SS:SP
-
-Wichtige Erkenntnis:
-
-Bei drei verschiedenen Charakteren wurde bei 0xEC4B ermittelt:
-
-DI = B9E2
-DI = BB11
-DI = BC40
-
-Abstand jeweils exakt:
-
-0x12F
-
-Damit ist sehr stark bestätigt, dass DI bei 0xEC4B auf den Datensatz des aktuell verarbeiteten bzw. angreifenden Charakters zeigt.
-
-Der DI-Wert taucht außerdem mehrfach im Stack auf:
-SP+04
-SP+0C
-SP+18
-SP+1E
-
-Noch ungeklärt:
-
-DX war bei den drei Captures:
-
-0006
-0001
-0002
-
-Morgen zuerst:
-1. Herausfinden, was DX bei 0xEC4B bedeutet.
-2. Dazu kontrollierte Captures mit verschiedenen Charakteren/Angriffen vergleichen.
-3. Danach die übrigen Register und Stackwerte von 0xEC4B zuordnen.
-4. Von 0xEC4B aus die relevante Kampfroutine weiter rückwärts verfolgen.
-5. Langfristiges Ziel bleibt, die MM3-Trefferberechnung vollständig zu verstehen:
-   Character Accuracy + Level-Bonus + Material-Bonus und weitere beteiligte Werte.
-
-Wichtig:
-Keine großen Umbauten am Tracker, solange die vorhandenen Capture-Werkzeuge funktionieren.
-Erst Daten sammeln und vergleichen, dann gezielt erweitern.
+- Read Trace funktioniert grundsätzlich.
+- Target 0x2BF35 wird korrekt gesetzt.
+- Nach dem relevanten Speicherzugriff werden 30 Runtime-Instruktionen erfasst.
+- MyImGui zeigt die Instruktionen mit Disassembly und Registerwerten an.
+- Aktuelles Problem: Start Read Trace verursacht starke Zeitlupe.
+- Der bisher beste Stand war:
+  Zeitlupe nur zwischen "Start Read Trace" und dem Schlag;
+  nach dem Capture wieder normale Geschwindigkeit.
+- Diesen funktionierenden Stand nicht wieder groß umbauen.
+- Nächster Schritt:
+  gezielt herausfinden, warum das aktive Read Tracking so stark bremst,
+  und nur die Wartephase optimieren.
+- Danach die 30 Instruktionen nach dem Read von 0x2BF35 analysieren,
+  um zu verfolgen, wie MM3 den Levelwert weiterverarbeitet.

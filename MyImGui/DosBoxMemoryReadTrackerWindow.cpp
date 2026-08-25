@@ -61,125 +61,68 @@ namespace MyImGui
             return;
         }
 
-        ImGui::TextUnformatted(
-            "Memory Read Tracker"
-        );
 
-        if (ImGui::Button(
-            "Compare 0x32057"
-        ))
-        {
-            m_scanner.compareMemoryAddress(
-                0x32057,
-                m_memoryCompareResult
-            );
-        }
-
-        ImGui::SameLine();
 
         ImGui::TextUnformatted(
-            "PHYS vs LINEAR test"
+            "Idle"
         );
 
-        if (!m_memoryCompareResult.empty())
+        ImGui::PushID(
+            "IdleRecord"
+        );
+
+        if (m_idleRecordButton.draw())
         {
-            ImGui::TextWrapped(
-                "%s",
-                m_memoryCompareResult.c_str()
-            );
+            if (m_idleRecordButton.recording())
+            {
+                m_previousAttackOnlyReadAddresses =
+                    m_attackOnlyReadAddresses;
+
+                m_scanner.clearReadTracking();
+                m_scanner.startReadTracking();
+            }
+            else
+            {
+                m_scanner.stopReadTracking();
+
+                m_scanner.getReadTrackingAddresses(
+                    m_idleReadAddresses
+                );
+            }
         }
 
-        ImGui::SameLine();
+        ImGui::PopID();
 
         ImGui::TextUnformatted(
-            "PHYS vs LINEAR test"
+            "Attack"
         );
 
-        if (ImGui::Button(
-            "Start Read Tracking"
-        ))
-        {
-            m_scanner.startReadTracking();
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Stop Read Tracking"
-        ))
-        {
-            m_scanner.stopReadTracking();
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Clear Read Tracking"
-        ))
-        {
-            m_scanner.clearReadTracking();
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Read Count"
-        ))
-        {
-            m_scanner.getReadTrackingCount(
-                m_readTrackingCount
-            );
-        }
-
-        ImGui::Text(
-            "Read tracking count: %zu",
-            m_readTrackingCount
+        ImGui::PushID(
+            "AttackRecord"
         );
 
-        if (ImGui::Button(
-            "Begin Idle"
-        ))
+        if (m_attackRecordButton.draw())
         {
-            m_previousAttackOnlyReadAddresses =
-                m_attackOnlyReadAddresses;
+            if (m_attackRecordButton.recording())
+            {
+                m_scanner.clearReadTracking();
+                m_scanner.startReadTracking();
+            }
+            else
+            {
+                m_scanner.stopReadTracking();
 
-            m_scanner.clearReadTracking();
-            m_scanner.startReadTracking();
+                m_scanner.getReadTrackingAddresses(
+                    m_attackReadAddresses
+                );
+
+                m_scanner.getReadTrackingInstructions(
+                    m_attackReadInstructions
+                );
+            }
         }
 
-        if (ImGui::Button(
-            "Capture Idle"
-        ))
-        {
-            m_scanner.stopReadTracking();
-
-            m_scanner.getReadTrackingAddresses(
-                m_idleReadAddresses
-            );
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Begin Attack"
-        ))
-        {
-            m_scanner.clearReadTracking();
-            m_scanner.startReadTracking();
-        }
-
-        if (ImGui::Button(
-            "Capture Attack"
-        ))
-        {
-            m_scanner.getReadTrackingAddresses(
-                m_attackReadAddresses
-            );
-
-            m_scanner.getReadTrackingInstructions(
-                m_attackReadInstructions
-            );
-        }
+		ImGui::PopID();
 
         if (ImGui::Button(
             "Compare"
@@ -312,7 +255,7 @@ namespace MyImGui
             "Previous attack only: %zu",
             m_previousAttackOnlyReadAddresses.size()
         );
-        
+
         ImGui::Separator();
 
         ImGui::Checkbox(
@@ -358,7 +301,7 @@ namespace MyImGui
             sizeof(m_rangeEndText)
         );
 
-		ImGui::SameLine();
+        ImGui::SameLine();
 
         ImGui::Checkbox(
             "Limit Instruction Range",
@@ -486,52 +429,73 @@ namespace MyImGui
             }
         }
 
+        size_t visibleInstructionReads = 0;
+
+        for (const auto& entry :
+            m_attackReadInstructions)
+        {
+            const size_t memoryAddress =
+                entry.first;
+
+            const size_t instructionAddress =
+                entry.second;
+
+            if (m_limitAddressRange &&
+                validRange &&
+                (memoryAddress < rangeStart ||
+                    memoryAddress > rangeEnd))
+            {
+                continue;
+            }
+
+            if (m_limitInstructionRange &&
+                validInstructionRange &&
+                (instructionAddress < instructionRangeStart ||
+                    instructionAddress > instructionRangeEnd))
+            {
+                continue;
+            }
+
+            ++visibleInstructionReads;
+        }
+
         ImGui::Text(
-            "Instruction reads: %zu",
+            "Instruction reads: %zu / %zu",
+            visibleInstructionReads,
             m_attackReadInstructions.size()
         );
 
         for (const auto& entry :
             m_attackReadInstructions)
         {
-            if (entry.first == 0x2BF35)
+            const size_t memoryAddress =
+                entry.first;
+
+            const size_t instructionAddress =
+                entry.second;
+
+            if (m_limitAddressRange &&
+                validRange &&
+                (memoryAddress < rangeStart ||
+                    memoryAddress > rangeEnd))
             {
-                ImGui::Text(
-                    "Level 0x2BF35 read by instruction: 0x%zX",
-                    entry.second
-                );
+                continue;
             }
-        }
 
-        ImGui::SetNextItemWidth(
-            100.0f
-        );
-
-        if (true)
-        {
-            ImGui::Separator();
-            ImGui::Text("Attack only addresses:");
-
-            for (const size_t address :
-            m_attackOnlyReadAddresses)
+            if (m_limitInstructionRange &&
+                validInstructionRange &&
+                (instructionAddress < instructionRangeStart ||
+                    instructionAddress > instructionRangeEnd))
             {
-                if (m_limitAddressRange &&
-                    validRange &&
-                    (address < rangeStart ||
-                        address > rangeEnd))
-                {
-                    continue;
-                }
-
-                ImGui::Text(
-                    "%zu  (0x%zX)",
-                    address,
-                    address
-                );
+                continue;
             }
-        }
 
-        
+            ImGui::Text(
+                "0x%zX -> 0x%zX",
+                memoryAddress,
+                instructionAddress
+            );
+        }
 
         ImGui::Separator();
 
@@ -1069,4 +1033,5 @@ namespace MyImGui
 
         loadSession();
     }
+    
 }

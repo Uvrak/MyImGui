@@ -172,6 +172,10 @@ namespace MyImGui
 
         bool getReadTraceInstruction(size_t index, RuntimeInstruction& instruction);
 
+        bool getReadTraceArmed(
+            bool& armed
+        );
+
         bool getReadTrackingCount(
             size_t& count
         );

@@ -26,6 +26,10 @@ namespace MyImGui
         m_executionCaptureWindow(
             m_scannerWindow.scanner()
         ),
+        m_executionTraceWindow(
+            m_scannerWindow.scanner(),
+            gameId
+        ),
         m_transitionTrackerWindow(
             m_scannerWindow.scanner(),
             gameId
@@ -69,6 +73,10 @@ namespace MyImGui
             nullptr
         );
 
+        m_executionTraceWindow.draw(
+            nullptr
+        );
+
         size_t selectedAddress = 0;
 
         if (m_scannerWindow.takeSelectedAddress(
@@ -101,6 +109,8 @@ namespace MyImGui
         m_readTrackerWindow.saveSession();
 
         m_transitionTrackerWindow.saveSession();
+
+        m_executionTraceWindow.saveSession();
     }
 
     void DosBoxMemoryTools::setGameId(
@@ -116,6 +126,10 @@ namespace MyImGui
         );
 
         m_transitionTrackerWindow.setGameId(
+            gameId
+        );
+
+        m_executionTraceWindow.setGameId(
             gameId
         );
     }
