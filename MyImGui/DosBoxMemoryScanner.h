@@ -131,6 +131,10 @@ namespace MyImGui
         bool stopReadTracking();
         bool clearReadTracking();
 
+        bool startTransitionTracking();
+        bool stopTransitionTracking();
+        bool clearTransitionTracking();
+
         bool setReadTrackingTransitionTarget(
             size_t address
         );

@@ -641,6 +641,37 @@ namespace MyImGui
         return true;
     }
 
+    bool DosBoxMemoryScanner::
+        startTransitionTracking()
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:TRANSITIONSTART",
+            response
+        ))
+        {
+            m_status =
+                "Could not start transition tracking.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Transition tracking start failed: " +
+                response;
+
+            return false;
+        }
+
+        m_status =
+            "Transition tracking started.";
+
+        return true;
+    }
+
     bool DosBoxMemoryScanner::stopReadTracking()
     {
         std::string response;
@@ -671,6 +702,37 @@ namespace MyImGui
         return true;
     }
 
+    bool DosBoxMemoryScanner::
+        stopTransitionTracking()
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:TRANSITIONSTOP",
+            response
+        ))
+        {
+            m_status =
+                "Could not stop transition tracking.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Transition tracking stop failed: " +
+                response;
+
+            return false;
+        }
+
+        m_status =
+            "Transition tracking stopped.";
+
+        return true;
+    }
+
     bool DosBoxMemoryScanner::clearReadTracking()
     {
         std::string response;
@@ -697,6 +759,34 @@ namespace MyImGui
 
         m_status =
             "Read tracking cleared.";
+
+        return true;
+    }
+
+    bool DosBoxMemoryScanner::
+        clearTransitionTracking()
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACK:TRANSITIONCLEAR",
+            response
+        ))
+        {
+            m_status =
+                "Could not clear transition tracking.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Transition tracking clear failed: " +
+                response;
+
+            return false;
+        }
 
         return true;
     }
@@ -930,15 +1020,6 @@ namespace MyImGui
             fields.push_back(
                 field
             );
-        }
-
-        if (fields.size() != 16)
-        {
-            m_status =
-                "Invalid execution capture field count: " +
-                std::to_string(fields.size());
-
-            return false;
         }
 
         try
@@ -2262,6 +2343,18 @@ namespace MyImGui
                 transitionIndex
             );
 
+        OutputDebugStringA(
+            "TRANSITION HISTORY REQUEST: "
+        );
+
+        OutputDebugStringA(
+            command.c_str()
+        );
+
+        OutputDebugStringA(
+            "\n"
+        );
+
         if (!m_pipeClient.request(
             command,
             response
@@ -2276,6 +2369,18 @@ namespace MyImGui
 
             return false;
         }
+
+        OutputDebugStringA(
+            "TRANSITION HISTORY RESPONSE: "
+        );
+
+        OutputDebugStringA(
+            response.c_str()
+        );
+
+        OutputDebugStringA(
+            "\n"
+        );
 
         if (response.rfind(
             "ERROR",
@@ -2327,8 +2432,9 @@ namespace MyImGui
                 );
             }
 
-            if (fields.size() != 15)
+            if (fields.size() != 16)
             {
+
                 OutputDebugStringA(
                     "HISTORY ERROR: FIELD COUNT\n"
                 );
@@ -2492,6 +2598,66 @@ namespace MyImGui
                     );
 
                     history.clear();
+
+                    return false;
+                }
+
+                std::stringstream stackByteStream(
+                    fields[15]
+                );
+
+                std::string stackByteText;
+                size_t stackByteIndex = 0;
+
+                while (std::getline(
+                    stackByteStream,
+                    stackByteText,
+                    '.'
+                ))
+                {
+                    if (stackByteIndex >=
+                        instruction.stackBytes.size())
+                    {
+                        history.clear();
+
+                        m_status =
+                            "Too many transition history stack bytes.";
+
+                        return false;
+                    }
+
+                    const unsigned long value =
+                        std::stoul(
+                            stackByteText
+                        );
+
+                    if (value > 255)
+                    {
+                        history.clear();
+
+                        m_status =
+                            "Invalid transition history stack byte.";
+
+                        return false;
+                    }
+
+                    instruction.stackBytes[
+                        stackByteIndex
+                    ] =
+                        static_cast<uint8_t>(
+                            value
+                            );
+
+                        ++stackByteIndex;
+                }
+
+                if (stackByteIndex !=
+                    instruction.stackBytes.size())
+                {
+                    history.clear();
+
+                    m_status =
+                        "Invalid transition history stack byte count.";
 
                     return false;
                 }

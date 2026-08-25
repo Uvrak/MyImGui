@@ -99,8 +99,8 @@ namespace MyImGui
                         )
                 );
 
-                m_scanner.clearReadTracking();
-                m_scanner.startReadTracking();
+                m_scanner.clearTransitionTracking();
+                m_scanner.startTransitionTracking();
             }
         }
 
@@ -110,7 +110,7 @@ namespace MyImGui
             "Capture"
         ))
         {
-            m_scanner.stopReadTracking();
+            m_scanner.stopTransitionTracking();
 
             m_scanner.getReadTrackingTransitions(
                 m_transitions
@@ -387,9 +387,12 @@ namespace MyImGui
                     "Runtime history:"
                 );
 
-                for (const auto& instruction :
-                    history)
+                for (size_t historyIndex = 0;
+                    historyIndex < history.size();
+                    ++historyIndex)
                 {
+                    const auto& instruction =
+                        history[historyIndex];
                     char instructionText[256] =
                         "<decode failed>";
 
@@ -432,8 +435,88 @@ namespace MyImGui
                     }
 
                     ImGui::Text(
-                        "  0x%zX  CS:IP %04X:%04X",
-                        instruction.address,
+                        "%03zu",
+                        historyIndex + 1
+                    );
+
+                    ImGui::SameLine();
+
+                    ImGui::PushID(
+                        static_cast<int>(
+                            historyIndex
+                            )
+                    );
+
+                    char addressText[32];
+
+                    sprintf_s(
+                        addressText,
+                        "0x%zX",
+                        instruction.address
+                    );
+
+                    ImGui::Selectable(
+                        addressText,
+                        false,
+                        ImGuiSelectableFlags_AllowDoubleClick,
+                        ImVec2(
+                            ImGui::CalcTextSize(
+                                addressText
+                            ).x,
+                            0.0f
+                        )
+                    );
+
+                    if (ImGui::IsItemHovered() &&
+                        ImGui::IsMouseDoubleClicked(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        sprintf_s(
+                            m_transitionTargetText,
+                            sizeof(m_transitionTargetText),
+                            "0x%zX",
+                            instruction.address
+                        );
+                    }
+
+                    ImGui::PopID();
+
+                    ImGui::SameLine();
+
+                    const size_t byteCount =
+                        decoded
+                        ? static_cast<size_t>(
+                            decodedInstruction.length
+                            )
+                        : instruction.bytes.size();
+
+                    for (size_t byteIndex = 0;
+                        byteIndex < byteCount;
+                        ++byteIndex)
+                    {
+                        if (byteIndex != 0)
+                        {
+                            ImGui::SameLine(
+                                0.0f,
+                                4.0f
+                            );
+                        }
+
+                        ImGui::Text(
+                            "%02X",
+                            static_cast<unsigned int>(
+                                instruction.bytes[
+                                    byteIndex
+                                ]
+                                )
+                        );
+                    }
+
+                    ImGui::SameLine();
+
+                    ImGui::Text(
+                        "CS:IP %04X:%04X",
                         static_cast<unsigned int>(
                             instruction.cs
                             ),
