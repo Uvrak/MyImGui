@@ -29,6 +29,14 @@ namespace MyImGui
     private:
         void loadTrace();
 
+        void saveTraceToFile(
+            const std::string& filename
+        ) const;
+
+        bool loadTraceFromFile(
+            const std::string& filename
+        );
+
         DosBoxMemoryScanner&
             m_scanner;
 

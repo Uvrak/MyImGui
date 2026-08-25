@@ -8,6 +8,8 @@
 #include <fstream>
 #include <filesystem>
 #include <cstring>
+#include <windows.h>
+#include <commdlg.h>
 
 namespace MyImGui
 {
@@ -176,6 +178,95 @@ namespace MyImGui
             m_trace.size()
         );
 
+        if (ImGui::Button(
+            "Save Trace..."
+        ))
+        {
+            char filename[4096] = {};
+
+            strncpy_s(
+                filename,
+                sizeof(filename),
+                m_targetText,
+                _TRUNCATE
+            );
+
+            OPENFILENAMEA dialog{};
+            dialog.lStructSize =
+                sizeof(dialog);
+
+            dialog.lpstrFile =
+                filename;
+
+            dialog.nMaxFile =
+                sizeof(filename);
+
+            dialog.lpstrFilter =
+                "Execution Trace (*.trace)\0*.trace\0"
+                "All Files (*.*)\0*.*\0";
+
+            dialog.nFilterIndex = 1;
+
+            dialog.lpstrDefExt =
+                "trace";
+
+            dialog.Flags =
+                OFN_PATHMUSTEXIST |
+                OFN_NOCHANGEDIR |
+                OFN_OVERWRITEPROMPT;
+
+            if (GetSaveFileNameA(
+                &dialog
+            ))
+            {
+                saveTraceToFile(
+                    filename
+                );
+            }
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button(
+            "Load Trace..."
+        ))
+        {
+            char filename[4096] = {};
+
+            OPENFILENAMEA dialog{};
+            dialog.lStructSize =
+                sizeof(dialog);
+
+            dialog.lpstrFile =
+                filename;
+
+            dialog.nMaxFile =
+                sizeof(filename);
+
+            dialog.lpstrFilter =
+                "Execution Trace (*.trace)\0*.trace\0"
+                "All Files (*.*)\0*.*\0";
+
+            dialog.nFilterIndex = 1;
+
+            dialog.lpstrDefExt =
+                "trace";
+
+            dialog.Flags =
+                OFN_FILEMUSTEXIST |
+                OFN_PATHMUSTEXIST |
+                OFN_NOCHANGEDIR;
+
+            if (GetOpenFileNameA(
+                &dialog
+            ))
+            {
+                loadTraceFromFile(
+                    filename
+                );
+            }
+        }
+
         for (size_t i = 0;
             i < m_trace.size();
             ++i)
@@ -228,9 +319,73 @@ namespace MyImGui
             ImGui::Separator();
 
             ImGui::Text(
-                "%03zu  0x%zX  CS:IP %04X:%04X",
-                i,
-                instruction.address,
+                "%03zu",
+                i + 1
+            );
+
+            ImGui::SameLine();
+
+            char addressText[32];
+
+            std::snprintf(
+                addressText,
+                sizeof(addressText),
+                "0x%zX",
+                instruction.address
+            );
+
+            ImGui::Selectable(
+                addressText,
+                false,
+                ImGuiSelectableFlags_AllowDoubleClick,
+                ImVec2(
+                    ImGui::CalcTextSize(
+                        addressText
+                    ).x,
+                    0.0f
+                )
+            );
+
+            if (ImGui::IsItemHovered() &&
+                ImGui::IsMouseDoubleClicked(
+                    ImGuiMouseButton_Left
+                ))
+            {
+                std::snprintf(
+                    m_targetText,
+                    sizeof(m_targetText),
+                    "0x%zX",
+                    instruction.address
+                );
+            }
+
+            ImGui::SameLine();
+
+            const size_t byteCount =
+                decoded
+                ? static_cast<size_t>(
+                    decodedInstruction.length
+                    )
+                : instruction.bytes.size();
+
+            for (size_t byteIndex = 0;
+                byteIndex < byteCount;
+                ++byteIndex)
+            {
+                ImGui::Text(
+                    "%02X",
+                    static_cast<unsigned int>(
+                        instruction.bytes[
+                            byteIndex
+                        ]
+                        )
+                );
+
+                ImGui::SameLine();
+            }
+
+            ImGui::Text(
+                "CS:IP %04X:%04X",
                 static_cast<unsigned int>(
                     instruction.cs
                     ),
@@ -253,6 +408,10 @@ namespace MyImGui
                     "<decode failed>"
                 );
             }
+
+            ImGui::Indent(
+                80.0f
+            );
 
             ImGui::Text(
                 "AX=%04X BX=%04X CX=%04X DX=%04X",
@@ -298,6 +457,10 @@ namespace MyImGui
                     instruction.registers.ss
                     )
             );
+
+            ImGui::Unindent(
+                80.0f
+            );
         }
 
         ImGui::End();
@@ -337,6 +500,15 @@ namespace MyImGui
         file <<
             m_targetText <<
             '\n';
+
+        const std::string traceFilename =
+            "settings/execution_trace_last_" +
+            m_gameId +
+            ".trace";
+
+        saveTraceToFile(
+            traceFilename
+        );
     }
 
     void ExecutionTraceWindow::loadSession()
@@ -394,6 +566,15 @@ namespace MyImGui
             target.c_str(),
             _TRUNCATE
         );
+
+        const std::string traceFilename =
+            "settings/execution_trace_last_" +
+            m_gameId +
+            ".trace";
+
+        loadTraceFromFile(
+            traceFilename
+        );
     }
 
     void ExecutionTraceWindow::setGameId(
@@ -447,5 +628,159 @@ namespace MyImGui
                 instruction
             );
         }
+    }
+    void ExecutionTraceWindow::saveTraceToFile(
+        const std::string& filename
+    ) const
+    {
+        std::ofstream file(
+            filename
+        );
+
+        if (!file)
+        {
+            return;
+        }
+
+        file <<
+            "ExecutionTrace 1\n";
+
+        file <<
+            m_trace.size() <<
+            '\n';
+
+        for (const RuntimeInstruction& instruction :
+            m_trace)
+        {
+            file
+                << instruction.address << ' '
+                << instruction.cs << ' '
+                << instruction.ip << ' '
+
+                << instruction.registers.ax << ' '
+                << instruction.registers.bx << ' '
+                << instruction.registers.cx << ' '
+                << instruction.registers.dx << ' '
+
+                << instruction.registers.si << ' '
+                << instruction.registers.di << ' '
+                << instruction.registers.bp << ' '
+                << instruction.registers.sp << ' '
+
+                << instruction.registers.ds << ' '
+                << instruction.registers.es << ' '
+                << instruction.registers.ss;
+
+            for (const uint8_t byte :
+            instruction.bytes)
+            {
+                file <<
+                    ' ' <<
+                    static_cast<unsigned int>(
+                        byte
+                        );
+            }
+
+            file << '\n';
+        }
+    }
+
+    bool ExecutionTraceWindow::loadTraceFromFile(
+        const std::string& filename
+    )
+    {
+        std::ifstream file(
+            filename
+        );
+
+        if (!file)
+        {
+            return false;
+        }
+
+        std::string header;
+
+        std::getline(
+            file,
+            header
+        );
+
+        if (header !=
+            "ExecutionTrace 1")
+        {
+            return false;
+        }
+
+        size_t instructionCount = 0;
+
+        if (!(file >>
+            instructionCount))
+        {
+            return false;
+        }
+
+        std::vector<RuntimeInstruction>
+            loadedTrace;
+
+        loadedTrace.reserve(
+            instructionCount
+        );
+
+        for (size_t instructionIndex = 0;
+            instructionIndex < instructionCount;
+            ++instructionIndex)
+        {
+            RuntimeInstruction instruction;
+
+            if (!(file
+                >> instruction.address
+                >> instruction.cs
+                >> instruction.ip
+
+                >> instruction.registers.ax
+                >> instruction.registers.bx
+                >> instruction.registers.cx
+                >> instruction.registers.dx
+
+                >> instruction.registers.si
+                >> instruction.registers.di
+                >> instruction.registers.bp
+                >> instruction.registers.sp
+
+                >> instruction.registers.ds
+                >> instruction.registers.es
+                >> instruction.registers.ss))
+            {
+                return false;
+            }
+
+            for (uint8_t& byte :
+                instruction.bytes)
+            {
+                unsigned int value = 0;
+
+                if (!(file >> value) ||
+                    value > 0xff)
+                {
+                    return false;
+                }
+
+                byte =
+                    static_cast<uint8_t>(
+                        value
+                        );
+            }
+
+            loadedTrace.push_back(
+                instruction
+            );
+        }
+
+        m_trace =
+            std::move(
+                loadedTrace
+            );
+
+        return true;
     }
 }
