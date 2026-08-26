@@ -11,6 +11,36 @@
 #include <windows.h>
 #include <commdlg.h>
 
+namespace
+{
+    const char* mm3ClassName(
+        uint8_t classId
+    )
+    {
+        static const char* names[] =
+        {
+            "knight",
+            "paladin",
+            "archer",
+            "cleric",
+            "sorcerer",
+            "robber",
+            "ninja",
+            "barbarian",
+            "druid",
+            "ranger"
+        };
+
+        if (classId >=
+            IM_ARRAYSIZE(names))
+        {
+            return "unknown";
+        }
+
+        return names[classId];
+    }
+}
+
 namespace MyImGui
 {
     ExecutionTraceWindow::
@@ -69,54 +99,6 @@ namespace MyImGui
             "Execution Trace"
         );
 
-        ImGui::SetNextItemWidth(
-            120.0f
-        );
-
-        ImGui::InputText(
-            "Target",
-            m_targetText,
-            sizeof(m_targetText)
-        );
-
-        if (m_recordButton.draw())
-        {
-            if (m_recordButton.recording())
-            {
-                char* end = nullptr;
-
-                const unsigned long long
-                    targetAddress =
-                    std::strtoull(
-                        m_targetText,
-                        &end,
-                        0
-                    );
-
-                if (end != m_targetText &&
-                    *end == '\0')
-                {
-                    m_trace.clear();
-
-                    m_scanner.setReadTraceTarget(
-                        static_cast<size_t>(
-                            targetAddress
-                            )
-                    );
-                }
-                else
-                {
-                    m_recordButton.stop();
-                }
-            }
-            else
-            {
-                m_scanner.setReadTraceTarget(
-                    0
-                );
-            }
-        }
-
         bool traceActive = false;
         bool traceArmed = false;
 
@@ -133,138 +115,41 @@ namespace MyImGui
         if (hasTraceActive &&
             hasTraceArmed)
         {
-            const char* state =
-                traceActive
-                ? "CAPTURING"
-                : traceArmed
-                ? "ARMED"
-                : "IDLE / COMPLETE";
-
-            ImGui::Text(
-                "Trace state: %s",
-                state
-            );
+            if (traceActive ||
+                traceArmed)
+            {
+                m_traceWasArmedOrActive = true;
+            }
 
             if (!traceActive &&
                 !traceArmed &&
-                m_recordButton.recording())
+                m_recordButton.recording() &&
+                m_traceWasArmedOrActive)
             {
                 loadTrace();
 
                 m_recordButton.stop();
-            }
-        }
 
-        size_t traceTarget = 0;
-
-        if (m_scanner.getReadTraceTarget(
-            traceTarget
-        ))
-        {
-            ImGui::Text(
-                "Trace target: 0x%zX",
-                traceTarget
-            );
-        }
-        else
-        {
-            ImGui::TextDisabled(
-                "Trace target unavailable."
-            );
-        }
-
-        ImGui::Text(
-            "Captured instructions: %zu",
-            m_trace.size()
-        );
-
-        if (ImGui::Button(
-            "Save Trace..."
-        ))
-        {
-            char filename[4096] = {};
-
-            strncpy_s(
-                filename,
-                sizeof(filename),
-                m_targetText,
-                _TRUNCATE
-            );
-
-            OPENFILENAMEA dialog{};
-            dialog.lStructSize =
-                sizeof(dialog);
-
-            dialog.lpstrFile =
-                filename;
-
-            dialog.nMaxFile =
-                sizeof(filename);
-
-            dialog.lpstrFilter =
-                "Execution Trace (*.trace)\0*.trace\0"
-                "All Files (*.*)\0*.*\0";
-
-            dialog.nFilterIndex = 1;
-
-            dialog.lpstrDefExt =
-                "trace";
-
-            dialog.Flags =
-                OFN_PATHMUSTEXIST |
-                OFN_NOCHANGEDIR |
-                OFN_OVERWRITEPROMPT;
-
-            if (GetSaveFileNameA(
-                &dialog
-            ))
-            {
-                saveTraceToFile(
-                    filename
-                );
+                m_traceWasArmedOrActive = false;
             }
         }
 
         ImGui::SameLine();
 
-        if (ImGui::Button(
-            "Load Trace..."
-        ))
+        if (m_selectedTraceIndex !=
+            static_cast<size_t>(-1))
         {
-            char filename[4096] = {};
-
-            OPENFILENAMEA dialog{};
-            dialog.lStructSize =
-                sizeof(dialog);
-
-            dialog.lpstrFile =
-                filename;
-
-            dialog.nMaxFile =
-                sizeof(filename);
-
-            dialog.lpstrFilter =
-                "Execution Trace (*.trace)\0*.trace\0"
-                "All Files (*.*)\0*.*\0";
-
-            dialog.nFilterIndex = 1;
-
-            dialog.lpstrDefExt =
-                "trace";
-
-            dialog.Flags =
-                OFN_FILEMUSTEXIST |
-                OFN_PATHMUSTEXIST |
-                OFN_NOCHANGEDIR;
-
-            if (GetOpenFileNameA(
-                &dialog
-            ))
-            {
-                loadTraceFromFile(
-                    filename
-                );
-            }
+            ImGui::Text(
+                "Found at trace #%zu - address 0x%zX",
+                m_selectedTraceIndex + 1,
+                m_trace[m_selectedTraceIndex].address
+            );
+        }
+        else
+        {
+            ImGui::TextDisabled(
+                "Not found"
+            );
         }
 
         for (size_t i = 0;
@@ -274,6 +159,84 @@ namespace MyImGui
             const RuntimeInstruction&
                 instruction =
                 m_trace[i];
+
+            size_t loopLength = 0;
+            size_t loopCount = 1;
+
+            constexpr size_t maxLoopLength = 64;
+
+            for (size_t candidateLength = 2;
+                candidateLength <= maxLoopLength;
+                ++candidateLength)
+            {
+                if (i + candidateLength * 2 >
+                    m_trace.size())
+                {
+                    break;
+                }
+
+                bool equal = true;
+
+                for (size_t j = 0;
+                    j < candidateLength;
+                    ++j)
+                {
+                    if (m_trace[i + j].address !=
+                        m_trace[
+                            i +
+                                candidateLength +
+                                j
+                        ].address)
+                    {
+                        equal = false;
+                        break;
+                    }
+                }
+
+                if (!equal)
+                {
+                    continue;
+                }
+
+                loopLength =
+                    candidateLength;
+
+                loopCount = 2;
+
+                while (i +
+                    loopLength *
+                    (loopCount + 1) <=
+                    m_trace.size())
+                {
+                    bool nextEqual = true;
+
+                    for (size_t j = 0;
+                        j < loopLength;
+                        ++j)
+                    {
+                        if (m_trace[i + j].address !=
+                            m_trace[
+                                i +
+                                    loopLength *
+                                    loopCount +
+                                    j
+                            ].address)
+                        {
+                            nextEqual = false;
+                            break;
+                        }
+                    }
+
+                    if (!nextEqual)
+                    {
+                        break;
+                    }
+
+                    ++loopCount;
+                }
+
+                break;
+            }
 
             char instructionText[256] =
                 "<decode failed>";
@@ -316,6 +279,18 @@ namespace MyImGui
                     );
             }
 
+            if (loopLength > 0 &&
+                loopCount > 1)
+            {
+                ImGui::Separator();
+
+                ImGui::Text(
+                    "Loop x%zu (%zu instructions)",
+                    loopCount,
+                    loopLength
+                );
+            }
+
             ImGui::Separator();
 
             ImGui::Text(
@@ -336,7 +311,7 @@ namespace MyImGui
 
             ImGui::Selectable(
                 addressText,
-                false,
+                i == m_selectedTraceIndex,
                 ImGuiSelectableFlags_AllowDoubleClick,
                 ImVec2(
                     ImGui::CalcTextSize(
@@ -345,6 +320,17 @@ namespace MyImGui
                     0.0f
                 )
             );
+
+            if (i == m_selectedTraceIndex &&
+                m_scrollToSelectedTrace)
+            {
+                ImGui::SetScrollHereY(
+                    0.5f
+                );
+
+                m_scrollToSelectedTrace =
+                    false;
+            }
 
             if (ImGui::IsItemHovered() &&
                 ImGui::IsMouseDoubleClicked(
@@ -358,6 +344,8 @@ namespace MyImGui
                     instruction.address
                 );
             }
+
+        
 
             ImGui::SameLine();
 
@@ -464,6 +452,227 @@ namespace MyImGui
         }
 
         ImGui::End();
+
+        m_navigationWindow.setScanner(
+            &m_scanner
+        );
+
+        m_navigationWindow.setRecordButton(
+            &m_recordButton
+        );
+
+        m_navigationWindow.setTargetText(
+            m_targetText,
+            sizeof(m_targetText)
+        );
+
+        m_navigationWindow.setTrace(
+            &m_trace
+        );
+
+        m_navigationWindow.setSelectedTraceIndex(
+            &m_selectedTraceIndex
+        );
+
+        m_navigationWindow.setScrollToSelectedTrace(
+            &m_scrollToSelectedTrace
+        );
+
+        m_navigationWindow.draw(
+            isOpen
+        );
+
+        if (m_navigationWindow.saveTraceRequested())
+        {
+            char filename[4096] = {};
+
+            size_t partySlot = 0;
+
+            constexpr uint16_t
+                firstCharacterOffset =
+                0xB9E2;
+
+            constexpr uint16_t
+                characterStride =
+                0x012F;
+
+            for (auto traceIt = m_trace.rbegin();
+                traceIt != m_trace.rend();
+                ++traceIt)
+            {
+                const uint16_t bx =
+                    traceIt->registers.bx;
+
+                if (bx < firstCharacterOffset)
+                {
+                    continue;
+                }
+
+                const uint16_t difference =
+                    static_cast<uint16_t>(
+                        bx - firstCharacterOffset
+                        );
+
+                if (difference %
+                    characterStride != 0)
+                {
+                    continue;
+                }
+
+                const size_t candidateSlot =
+                    difference /
+                    characterStride +
+                    1;
+
+                if (candidateSlot < 1 ||
+                    candidateSlot > 6)
+                {
+                    continue;
+                }
+
+                partySlot =
+                    candidateSlot;
+
+                break;
+            }
+
+            uint8_t classId = 0;
+            uint8_t level = 0;
+
+            bool hasCharacterInfo = false;
+
+            if (partySlot != 0 &&
+                m_scanner.refreshMemory())
+            {
+                constexpr size_t
+                    firstCharacterRecord =
+                    0x2BF12;
+
+                constexpr size_t
+                    characterStride =
+                    0x012F;
+
+                const size_t characterRecord =
+                    firstCharacterRecord +
+                    (partySlot - 1) *
+                    characterStride;
+
+                hasCharacterInfo =
+                    m_scanner.readCurrentValue(
+                        characterRecord + 0x13,
+                        classId
+                    ) &&
+                    m_scanner.readCurrentValue(
+                        characterRecord + 0x23,
+                        level
+                    );
+            }
+
+            if (partySlot != 0 &&
+                hasCharacterInfo)
+            {
+                std::snprintf(
+                    filename,
+                    sizeof(filename),
+                    "%s_slot%zu_%s_level%u",
+                    m_targetText,
+                    partySlot,
+                    mm3ClassName(
+                        classId
+                    ),
+                    static_cast<unsigned int>(
+                        level
+                        )
+                );
+            }
+            else
+            {
+                strncpy_s(
+                    filename,
+                    sizeof(filename),
+                    m_targetText,
+                    _TRUNCATE
+                );
+            }
+
+            OPENFILENAMEA dialog{};
+            dialog.lStructSize =
+                sizeof(dialog);
+
+            dialog.lpstrFile =
+                filename;
+
+            dialog.nMaxFile =
+                sizeof(filename);
+
+            dialog.lpstrFilter =
+                "Execution Trace (*.trace)\0*.trace\0"
+                "All Files (*.*)\0*.*\0";
+
+            dialog.nFilterIndex = 1;
+
+            dialog.lpstrDefExt =
+                "trace";
+
+            dialog.Flags =
+                OFN_PATHMUSTEXIST |
+                OFN_NOCHANGEDIR |
+                OFN_OVERWRITEPROMPT;
+
+            if (GetSaveFileNameA(
+                &dialog
+            ))
+            {
+                saveTraceToFile(
+                    filename
+                );
+            }
+        }
+
+        if (m_navigationWindow.loadTraceRequested())
+        {
+            char filename[4096] = {};
+
+            OPENFILENAMEA dialog{};
+            dialog.lStructSize =
+                sizeof(dialog);
+
+            dialog.lpstrFile =
+                filename;
+
+            dialog.nMaxFile =
+                sizeof(filename);
+
+            dialog.lpstrFilter =
+                "Execution Trace (*.trace)\0*.trace\0"
+                "All Files (*.*)\0*.*\0";
+
+            dialog.nFilterIndex = 1;
+
+            dialog.lpstrDefExt =
+                "trace";
+
+            dialog.Flags =
+                OFN_FILEMUSTEXIST |
+                OFN_PATHMUSTEXIST |
+                OFN_NOCHANGEDIR;
+
+            if (GetOpenFileNameA(
+                &dialog
+            ))
+            {
+                if (loadTraceFromFile(
+                    filename
+                ))
+                {
+                    m_selectedTraceIndex =
+                        static_cast<size_t>(-1);
+
+                    m_scrollToSelectedTrace =
+                        false;
+                }
+            }
+        }
     }
 
     void ExecutionTraceWindow::saveSession() const
@@ -784,3 +993,5 @@ namespace MyImGui
         return true;
     }
 }
+
+

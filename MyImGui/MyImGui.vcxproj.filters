@@ -153,6 +153,9 @@
     <ClInclude Include="ExecutionTraceWindow.h">
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClInclude>
+    <ClInclude Include="InstructionTransitionTrackerNavigationWindow.h">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MyImGui.cpp">
@@ -248,10 +251,19 @@
     <ClCompile Include="ExecutionTraceWindow.cpp">
       <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClCompile>
+    <ClCompile Include="ExectionTraceeNavigationWindow.cpp">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClCompile>
+    <ClCompile Include="InstructionTransitionTrackerNavigationWindow.cpp">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="MM3_MEMORY_FINDINGS.md">
       <Filter>Games\docs</Filter>
+    </None>
+    <None Include="ExecutionTraceNavigationWindow.h">
+      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

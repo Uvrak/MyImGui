@@ -24,6 +24,44 @@ namespace MyImGui
         )
     {
         loadSession();
+
+        m_navigationWindow.setScanner(
+            &m_scanner
+        );
+
+        m_navigationWindow.setTargetText(
+            m_transitionTargetText,
+            sizeof(m_transitionTargetText)
+        );
+
+        m_navigationWindow.
+            setExecutionCaptureCallback(
+                [this]()
+                {
+                    RuntimeInstruction instruction;
+
+                    if (m_scanner.getExecutionCapture(
+                        instruction
+                    ))
+                    {
+                        m_executionCapture =
+                            instruction;
+
+                        m_executionCaptureHit =
+                            true;
+                    }
+                }
+            );
+        m_navigationWindow.setTransitionHistories(
+            &m_transitionHistories
+        );
+
+        m_navigationWindow.setCaptureCallback(
+            [this]()
+            {
+                captureTransitions();
+            }
+        );
     }
 
     void InstructionTransitionTrackerWindow::draw(
@@ -54,6 +92,10 @@ namespace MyImGui
             return;
         }
 
+		m_navigationWindow.draw(
+			isOpen
+		);
+
         if (!ImGui::Begin(
             "Instruction Transition Tracker",
             isOpen
@@ -66,218 +108,6 @@ namespace MyImGui
         ImGui::TextUnformatted(
             "Instruction Transition Tracker"
         );
-
-        ImGui::SetNextItemWidth(
-            120.0f
-        );
-
-        ImGui::InputText(
-            "Transition Target",
-            m_transitionTargetText,
-            sizeof(m_transitionTargetText)
-        );
-
-        if (ImGui::Button(
-            "Start Tracking"
-        ))
-        {
-            char* end = nullptr;
-
-            const unsigned long long targetAddress =
-                std::strtoull(
-                    m_transitionTargetText,
-                    &end,
-                    0
-                );
-
-            if (end != m_transitionTargetText &&
-                *end == '\0')
-            {
-                m_scanner.setReadTrackingTransitionTarget(
-                    static_cast<size_t>(
-                        targetAddress
-                        )
-                );
-
-                m_scanner.clearTransitionTracking();
-                m_scanner.startTransitionTracking();
-            }
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Capture"
-        ))
-        {
-            m_scanner.stopTransitionTracking();
-
-            m_scanner.getReadTrackingTransitions(
-                m_transitions
-            );
-
-            m_scanner.getReadTrackingTransitionContexts(
-                m_transitionContexts
-            );
-
-            m_scanner.getReadTrackingTransitionBytes(
-                m_transitionBytes
-            );
-
-            m_transitionHistories.clear();
-
-            m_transitionHistories.resize(
-                m_transitions.size()
-            );
-
-            m_transitionNextInstructions.clear();
-
-            m_transitionNextInstructions.resize(
-                m_transitions.size()
-            );
-
-            for (size_t i = 0;
-                i < m_transitions.size();
-                ++i)
-            {
-                if (!m_scanner.getReadTrackingTransitionHistory(
-                    i,
-                    m_transitionHistories[i]
-                ))
-                {
-                    break;
-                }
-
-                m_scanner.getReadTrackingTransitionNextInstruction(
-                    i,
-                    m_transitionNextInstructions[i]
-                );
-            }
-        }
-
-        if (ImGui::Button(
-            "Set Execution Target"
-        ))
-        {
-            char* end = nullptr;
-
-            const unsigned long long targetAddress =
-                std::strtoull(
-                    m_transitionTargetText,
-                    &end,
-                    0
-                );
-
-            if (end !=
-                m_transitionTargetText &&
-                *end == '\0')
-            {
-                const bool ok =
-                    m_scanner.setExecutionCaptureTarget(
-                        static_cast<size_t>(
-                            targetAddress
-                            )
-                    );
-
-                if (ok)
-                {
-                    m_executionCaptureHit =
-                        false;
-
-                    m_executionCapture =
-                        RuntimeInstruction{};
-                }
-            }
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-            "Stop Execution Capture"
-        ))
-        {
-            if (m_scanner.clearExecutionCapture())
-            {
-                m_executionCaptureHit =
-                    false;
-
-                m_executionCapture =
-                    RuntimeInstruction{};
-            }
-        }
-
-        if (ImGui::Button(
-            "Get Execution Capture"
-        ))
-        {
-            RuntimeInstruction instruction;
-
-            if (m_scanner.getExecutionCapture(
-                instruction
-            ))
-            {
-                m_executionCapture =
-                    instruction;
-
-                m_executionCaptureHit =
-                    true;
-            }
-        }
-        bool executionHit = false;
-
-        if (m_scanner.getExecutionCaptureHit(
-            executionHit
-        ))
-        {
-            if (executionHit &&
-                !m_executionCaptureHit)
-            {
-                if (m_scanner.getExecutionCapture(
-                    m_executionCapture
-                ))
-                {
-                    m_executionCaptureHit =
-                        true;
-                }
-            }
-
-            ImGui::Text(
-                "Execution capture state: %s",
-                m_executionCaptureHit
-                ? "HIT"
-                : "ARMED / NO HIT"
-            );
-        }
-        else
-        {
-            ImGui::TextDisabled(
-                "Execution capture state unavailable."
-            );
-        }
-
-        size_t executionTarget = 0;
-
-        if (m_scanner.getExecutionCaptureTarget(
-            executionTarget
-        ))
-        {
-            ImGui::Text(
-                "DOSBox execution target: 0x%zX",
-                executionTarget
-            );
-        }
-        else
-        {
-            ImGui::TextDisabled(
-                "DOSBox execution target unavailable."
-            );
-        }
-
-        ImGui::Separator();
-
-        ImGui::Separator();
-
-      
         
         ImGui::Text(
             "Instruction transitions: %zu",
@@ -586,6 +416,7 @@ namespace MyImGui
         }
 
         ImGui::End();
+
     }
 
     void InstructionTransitionTrackerWindow::saveSession() const
@@ -1043,5 +874,55 @@ namespace MyImGui
             gameId;
 
         loadSession();
+    }
+
+    void InstructionTransitionTrackerWindow::
+        captureTransitions()
+    {
+        m_scanner.stopTransitionTracking();
+
+        m_scanner.getReadTrackingTransitions(
+            m_transitions
+        );
+
+        m_scanner.getReadTrackingTransitionContexts(
+            m_transitionContexts
+        );
+
+        m_scanner.getReadTrackingTransitionBytes(
+            m_transitionBytes
+        );
+
+        m_transitionHistories.clear();
+
+        m_transitionHistories.resize(
+            m_transitions.size()
+        );
+
+        m_transitionNextInstructions.clear();
+
+        m_transitionNextInstructions.resize(
+            m_transitions.size()
+        );
+
+        for (size_t i = 0;
+            i < m_transitions.size();
+            ++i)
+        {
+            if (!m_scanner.
+                getReadTrackingTransitionHistory(
+                    i,
+                    m_transitionHistories[i]
+                ))
+            {
+                break;
+            }
+
+            m_scanner.
+                getReadTrackingTransitionNextInstruction(
+                    i,
+                    m_transitionNextInstructions[i]
+                );
+        }
     }
 }

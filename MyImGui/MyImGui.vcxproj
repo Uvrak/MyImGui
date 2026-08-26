@@ -121,7 +121,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\zydis\include;$(SolutionDir)ThirdParty\zydis\dependencies\zycore\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Projects\dosbox-x\vs;$(SolutionDir)ThirdParty\zydis\include;$(SolutionDir)ThirdParty\zydis\dependencies\zycore\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -176,6 +176,7 @@
     <ClInclude Include="FloatingWindow.h" />
     <ClInclude Include="FlowLayout.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="InstructionTransitionTrackerNavigationWindow.h" />
     <ClInclude Include="InstructionTransitionTrackerWindow.h" />
     <ClInclude Include="Item.h" />
     <ClInclude Include="ItemExplorerWindow.h" />
@@ -207,11 +208,13 @@
     <ClCompile Include="DosBoxMouse.cpp" />
     <ClCompile Include="DosBoxView.cpp" />
     <ClCompile Include="DragDropRecoder.cpp" />
+    <ClCompile Include="ExectionTraceeNavigationWindow.cpp" />
     <ClCompile Include="ExecutionCaptureWindow.cpp" />
     <ClCompile Include="ExecutionTraceWindow.cpp" />
     <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
+    <ClCompile Include="InstructionTransitionTrackerNavigationWindow.cpp" />
     <ClCompile Include="InstructionTransitionTrackerWindow.cpp" />
     <ClCompile Include="ItemExplorerWindow.cpp" />
     <ClCompile Include="MainMenu.cpp" />
@@ -235,6 +238,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ExecutionTraceNavigationWindow.h" />
     <None Include="MM3_MEMORY_FINDINGS.md" />
   </ItemGroup>
   <ItemGroup>

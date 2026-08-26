@@ -4,9 +4,12 @@
 #include <vector>
 #include <utility>
 #include <array>
+#include <functional>
 
 #include "DosBoxMemoryScanner.h"
 #include "RecordButton.h"
+
+#include "InstructionTransitionTrackerNavigationWindow.h"
 
 namespace MyImGui
 {
@@ -28,6 +31,8 @@ namespace MyImGui
         void setGameId(
             const std::string& gameId
         );
+
+        void captureTransitions();
 
     private:
         DosBoxMemoryScanner&
@@ -63,5 +68,8 @@ namespace MyImGui
             m_transitionNextInstructions;
 
         std::string m_gameId;
+
+        InstructionTransitionTrackerNavigationWindow
+            m_navigationWindow;
     };
 }

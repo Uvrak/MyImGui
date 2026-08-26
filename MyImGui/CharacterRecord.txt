@@ -49,3 +49,153 @@ Instruction Transition Tracker:
 - Register snapshots are displayed in the tracker.
 - Session format upgraded to version 2.
 - Register snapshots survive save/load and restart.
+
+Hit-Chance Level Divisor / Class Dispatch
+25.08.2026
+
+Confirmed runtime path:
+
+The routine reads the character class from the character record.
+
+Relevant sequence:
+
+    mov al, [bx+0x13]
+    mov ah, 0x00
+    mov bx, ax
+    cmp bx, 0x09
+    jnbe ...
+    shl bx, 0x01
+    jmp cs:[bx+0x1753]
+
+Interpretation:
+- Character record field +0x13 is the class ID.
+- The class ID is loaded into BX.
+- Valid class IDs are 0..9.
+- BX is multiplied by 2 because the jump table contains 16-bit entries.
+- The jump table selects a class-specific code path.
+
+Confirmed class IDs:
+
+    0 = Knight
+    1 = Paladin
+    2 = Archer
+    3 = Cleric
+    4 = Sorcerer
+    5 = Robber
+    6 = Ninja
+    7 = Barbarian
+    8 = Druid
+    9 = Ranger
+
+Observed class dispatch:
+
+Knight:
+    class ID = 0
+    DI = 0x0001
+
+Paladin:
+    class ID = 1
+    DI = 0x0002
+
+Cleric:
+    class ID = 3
+    DI = 0x0003
+
+Robber:
+    class ID = 5
+    DI = 0x0002
+
+Barbarian:
+    class ID = 7
+    DI = 0x0001
+
+Confirmed purpose of DI:
+
+Later in the routine:
+
+    xor dx, dx
+    div di
+
+DI is therefore the class-specific divisor used for the
+level contribution to Hit Chance.
+
+Current divisor table:
+
+    Class       ID    Hit-Chance Level Divisor
+    ------------------------------------------------
+    Knight       0              1
+    Paladin      1              2
+    Archer       2              ?
+    Cleric       3              3
+    Sorcerer     4              ?
+    Robber       5              2
+    Ninja        6              ?
+    Barbarian    7              1
+    Druid        8              ?
+    Ranger       9              ?
+
+Current interpretation:
+
+    levelContribution =
+        level / classHitChanceDivisor
+
+The division is integer division.
+
+Examples:
+
+    Knight:
+        level / 1
+
+    Paladin:
+        level / 2
+
+    Cleric:
+        level / 3
+
+    Robber:
+        level / 2
+
+    Barbarian:
+        level / 1
+
+This explains the previously observed Paladin behavior where
+the level contribution increases only every two levels.
+
+Character record update:
+
+    +0x13: Class ID
+    +0x1E: Accuracy
+    +0x23: Level
+
+For character index 0:
+
+    record base = 0x2BF12
+
+therefore:
+
+    Class ID = 0x2BF25
+    Accuracy = 0x2BF30
+    Level    = 0x2BF35
+
+Execution Trace tooling update:
+
+- Execution Trace Navigation window added.
+- Navigation can follow previous changes of a selected register.
+- Register can be selected from a combo box.
+- Supported registers include AX, BX, CX, DX, SI, DI, BP, SP,
+  DS, ES and SS.
+- Selecting Previous updates the selected trace instruction and
+  scrolls the Execution Trace to it.
+- This was used to trace DI backwards from DIV DI and BX backwards
+  through the class-dispatch jump table.
+
+Still to determine:
+
+- Archer divisor (class ID 2)
+- Sorcerer divisor (class ID 4)
+- Ninja divisor (class ID 6)
+- Druid divisor (class ID 8)
+- Ranger divisor (class ID 9)
+
+After these five values are known, the complete class-specific
+Hit-Chance level-divisor table can be implemented in the Item Explorer.

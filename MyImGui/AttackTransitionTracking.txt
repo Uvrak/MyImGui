@@ -561,3 +561,1436 @@ verloren geht.
 
 "Stop Execution Capture" darf daher nur als separater Abbruch verwendet
 werden, wenn eine laufende Aufnahme bewusst verworfen werden soll.
+
+MM3 – Tracker-/Performance-Verbesserungen
+Stand: 25.08.2026
+=========================================
+
+Ausgangspunkt
+-------------
+
+Für die weitere Untersuchung der Hit-Chance-Berechnung war klar geworden,
+dass statisches Disassembly an den später untersuchten physischen Adressen
+nicht zuverlässig ist.
+
+Entscheidend sind deshalb Runtime-Daten:
+
+- tatsächlich ausgeführte Instruktionsadresse
+- CS:IP
+- Instruktionsbytes zum Ausführungszeitpunkt
+- Register
+- Kontrollfluss vor und nach einer Zieladresse
+
+
+Instruction Transition Tracker
+==============================
+
+Der Instruction Transition Tracker wurde wesentlich erweitert.
+
+Erfasst werden jetzt pro Transition:
+
+- vorherige ausgeführte Adresse
+- Transition Target
+- CS:IP
+- echte Runtime-Bytes
+- nächste tatsächlich ausgeführte Instruktion
+- Runtime History der 16 vorherigen Instruktionen
+- Registerzustand für jeden History-Eintrag
+
+Die Runtime History zeigt jetzt:
+
+    001  Adresse  Bytes  CS:IP  Disassembly
+         AX/BX/CX/DX
+         SI/DI/BP/SP
+         DS/ES
+
+Die Adressen in der History können per Doppelklick wieder in das
+Transition-Target-Feld übernommen werden.
+
+Wichtiger Performance-Fix
+-------------------------
+
+Eine erste Implementierung zeichnete vollständige RuntimeInstruction-
+Datensätze permanent für jede ausgeführte CPU-Instruktion auf.
+
+Dies verursachte starken Lag in DOSBox-X.
+
+Die Lösung besteht jetzt aus einem kleinen Ringpuffer für die letzten
+16 Transition-History-Einträge.
+
+Im normalen CPU-Hotpath werden dort nur gespeichert:
+
+- Adresse
+- CS:IP
+- Register
+
+Die Instruktionsbytes werden erst dann aus dem DOSBox-Speicher gelesen,
+wenn das Transition Target tatsächlich erreicht wurde.
+
+Dadurch bleiben die Runtime-Daten korrekt, ohne DOSBox-X permanent
+auszubremsen.
+
+
+Execution Trace
+===============
+
+Zusätzlich existiert jetzt ein eigenes Execution-Trace-Fenster.
+
+Der Trace zeichnet bis zu 1000 tatsächlich ausgeführte Instruktionen
+vor einem frei wählbaren Target auf.
+
+Angezeigt werden:
+
+- fortlaufende Nummer ab 001
+- physische Adresse
+- echte Instruktionsbytes
+- CS:IP
+- Zydis-Disassembly
+- AX/BX/CX/DX
+- SI/DI/BP/SP
+- DS/ES/SS
+
+Eine Trace-Adresse kann per Doppelklick direkt als neues Target
+übernommen werden.
+
+
+Execution-Trace Performance
+---------------------------
+
+Der Execution Trace verursachte zunächst ebenfalls Lag.
+
+Ursache war unter anderem die Verwaltung der letzten 1000 Instruktionen
+in einem std::vector mit:
+
+    erase(begin())
+
+Beim Überschreiten des Limits mussten dadurch laufend große Teile des
+Vectors verschoben werden.
+
+Die Trace-History verwendet deshalb jetzt:
+
+    std::deque<RuntimeInstruction>
+
+mit:
+
+    pop_front()
+
+Damit verschwand der beobachtete Lag.
+
+
+Runtime-Bytes ohne Hotpath-Kosten
+--------------------------------
+
+Die Instruktionsbytes werden beim Trace nicht mehr bei jeder ausgeführten
+CPU-Instruktion vollständig aus dem Speicher gelesen.
+
+Während der Aufnahme werden zunächst Adresse, Register und Kontext
+gespeichert.
+
+Beim Abrufen des fertigen Traces werden die 16 Bytes für die gespeicherten
+Instruktionsadressen nachgeladen.
+
+Dadurch erhält MyImGui echte Runtime-Bytes und korrektes Disassembly,
+ohne die permanente CPU-Ausführung merklich zu verlangsamen.
+
+
+Aktueller Werkzeugstand
+=======================
+
+Damit stehen jetzt zwei brauchbare Runtime-Werkzeuge zur Verfügung:
+
+1. Instruction Transition Tracker
+
+   Geeignet, um den unmittelbaren Kontrollfluss um eine bestimmte
+   Zieladresse zu untersuchen.
+
+2. Execution Trace
+
+   Geeignet, um bis zu 1000 tatsächlich ausgeführte Instruktionen vor
+   einer Zieladresse rückwärts nachvollziehen zu können.
+
+Beide Werkzeuge verwenden Runtime-Bytes statt später statisch gelesener
+Bytes.
+
+
+Konsequenz für das MM3 Reverse Engineering
+==========================================
+
+Für die weitere Hit-Chance-Untersuchung soll nicht mehr versucht werden,
+den Code vor 0x31C33 hauptsächlich über nachträgliches statisches
+Disassembly zu rekonstruieren.
+
+Stattdessen wird der Execution Trace verwendet.
+
+Nächstes Reverse-Engineering-Ziel bleibt:
+
+    Herausfinden, wann und wodurch DI vor
+
+        0x31C33  div di
+
+    auf den klassenspezifischen Wert gesetzt wird.
+
+Bekannte Vergleichswerte:
+
+    Ritter:
+        DI = 0001
+
+    weitere getestete Klasse:
+        DI = 0002
+
+    Kleriker:
+        DI = 0003
+
+Danach sollen die Traces dieser Klassen miteinander verglichen werden.
+
+Besonders interessant ist die erste Runtime-Stelle, an der sich entweder:
+
+- der Wert von DI
+- oder der ausgeführte Kontrollfluss
+
+zwischen den Klassen unterscheidet.
+
+Diese Stelle ist ein starker Kandidat für die Herkunft des
+klassenspezifischen Level-Divisors.
+
+
+Geplante spätere Erweiterung
+============================
+
+Execution Traces sollen gespeichert und geladen werden können.
+
+Dabei sollen mehrere benannte Traces erhalten bleiben, z.B.:
+
+    0x31C33_knight.trace
+    0x31C33_cleric.trace
+    0x31C33_hit.trace
+    0x31C33_miss.trace
+
+Damit kann später ein direkter Trace-Vergleich implementiert werden,
+um die erste voneinander abweichende Instruktion bzw. den ersten
+abweichenden Registerzustand automatisch zu finden.
+
+MM3 – Class ID / Hit-Chance Level Divisor vollständig rekonstruiert
+Stand: 25.08.2026
+===================================================================
+
+Ausgangspunkt
+-------------
+
+Das bisher offene Ziel war, herauszufinden, wodurch DI vor:
+
+    0x31C33  div di
+
+auf den klassenspezifischen Wert gesetzt wird.
+
+Diese Frage ist jetzt geklärt.
+
+
+Herkunft der Klassen-ID
+=======================
+
+Im Execution Trace wurde unmittelbar vor der Auswahl des Divisors
+folgender Runtime-Code gefunden:
+
+    mov al, [bx+0x13]
+    mov ah, 0x00
+    mov bx, ax
+    cmp bx, 0x09
+    jnbe ...
+    shl bx, 0x01
+    jmp cs:[bx+0x1753]
+
+Der ursprüngliche BX-Wert zeigt dabei auf den Datensatz des aktuell
+verarbeiteten Charakters.
+
+Damit wird das Byte:
+
+    CharacterRecord + 0x13
+
+gelesen.
+
+Der gelesene Wert stimmt mit der bereits bekannten Berufstabelle
+überein.
+
+Bestätigte Beispiele aus Runtime-Traces:
+
+    Ritter:
+        Class ID = 0
+
+    Paladin:
+        Class ID = 1
+
+    Kleriker:
+        Class ID = 3
+
+    Dieb:
+        Class ID = 5
+
+    Barbar:
+        Class ID = 7
+
+Damit ist:
+
+    CharacterRecord + 0x13 = Class ID
+
+bestätigt.
+
+
+Berufstabelle
+=============
+
+    ID   Beruf
+    ----------------
+     0   Ritter
+     1   Paladin
+     2   Bogenschütze
+     3   Kleriker
+     4   Zauberer
+     5   Dieb
+     6   Ninja
+     7   Barbar
+     8   Druide
+     9   Waldläufer
+
+
+Class-Dispatch Jump Table
+=========================
+
+Nach dem Laden der Class ID wird ausgeführt:
+
+    shl bx, 0x01
+    jmp cs:[bx+0x1753]
+
+Die Multiplikation mit 2 verwendet die Class ID als Index in einer
+Tabelle aus 16-Bit-Sprungzielen.
+
+Beim untersuchten Runtime-Kontext:
+
+    CS = 0x3055
+
+liegt die Jump Table physisch bei:
+
+    0x31CA3
+
+Die zehn 16-Bit-Einträge wurden direkt aus dem Speicher gelesen.
+
+Dekodierte Tabelle:
+
+    Class ID 0 -> 0x16C4
+    Class ID 1 -> 0x16C9
+    Class ID 2 -> 0x16C9
+    Class ID 3 -> 0x16CE
+    Class ID 4 -> 0x16D3
+    Class ID 5 -> 0x16C9
+    Class ID 6 -> 0x16C9
+    Class ID 7 -> 0x16C4
+    Class ID 8 -> 0x16C9
+    Class ID 9 -> 0x16C9
+
+
+Divisor-Zweige
+==============
+
+Die Sprungziele setzen DI auf den für die Klasse vorgesehenen
+Hit-Chance-Level-Divisor.
+
+Bestätigte Zweige:
+
+    0x16C4 -> DI = 1
+    0x16C9 -> DI = 2
+    0x16CE -> DI = 3
+    0x16D3 -> DI = 4
+
+Der Zauberer-Zweig wurde zusätzlich direkt im Speicher überprüft.
+
+Physische Adresse:
+
+    0x31C23
+
+Bytes:
+
+    BF 04 00
+
+entspricht:
+
+    mov di, 0x0004
+
+
+Vollständige Class-Divisor-Tabelle
+==================================
+
+    ID   Beruf          Hit-Chance Level Divisor
+    ------------------------------------------------
+     0   Ritter                    1
+     1   Paladin                   2
+     2   Bogenschütze              2
+     3   Kleriker                  3
+     4   Zauberer                  4
+     5   Dieb                      2
+     6   Ninja                     2
+     7   Barbar                    1
+     8   Druide                    2
+     9   Waldläufer                2
+
+
+Level-Anteil der Hit Chance
+===========================
+
+Unmittelbar danach wird ausgeführt:
+
+    xor dx, dx
+    div di
+
+AX enthält vor der Division den Levelwert.
+
+Damit lautet die rekonstruierte Berechnung:
+
+    LevelHitChance =
+        Level / ClassDivisor
+
+Es handelt sich um ganzzahlige Division.
+
+Damit ergeben sich die Progressionsgruppen:
+
+    /1:
+        Ritter
+        Barbar
+
+    /2:
+        Paladin
+        Bogenschütze
+        Dieb
+        Ninja
+        Druide
+        Waldläufer
+
+    /3:
+        Kleriker
+
+    /4:
+        Zauberer
+
+Die zuvor beobachtete Paladin-Progression wird dadurch erklärt:
+
+    Level / 2
+
+Der Level-Anteil erhöht sich beim Paladin daher nur alle zwei Level.
+
+
+Execution Trace Navigation
+==========================
+
+Das Execution-Trace-Werkzeug wurde zusätzlich um ein separates,
+dockbares Trace-Navigation-Fenster erweitert.
+
+Das Fenster zeigt die aktuell ausgewählte Trace-Position und erlaubt
+die Auswahl eines Registers über eine ComboBox.
+
+Unterstützt werden:
+
+    AX BX CX DX
+    SI DI BP SP
+    DS ES SS
+
+Mit "Previous" kann rückwärts zur vorherigen Änderung des ausgewählten
+Registers navigiert werden.
+
+Die Auswahl im Execution Trace wird dabei aktualisiert und der Trace
+scrollt automatisch zur gefundenen Position.
+
+Dieses Werkzeug wurde verwendet, um:
+
+    div di
+
+rückwärts zu:
+
+    mov di, ...
+
+und anschließend den BX-Wert rückwärts bis zur Class-Dispatch-Logik
+zu verfolgen.
+
+
+Behobener Execution-Trace-Fehler
+================================
+
+Beim Start einer neuen Trace-Aufnahme konnte m_trace geleert werden,
+während m_selectedTraceIndex noch auf einen Eintrag des vorherigen
+Traces zeigte.
+
+Dies führte zu:
+
+    vector subscript out of range
+
+Beim Leeren des Traces wird deshalb jetzt auch die Auswahl
+zurückgesetzt.
+
+
+Abgeschlossener Forschungsstand
+===============================
+
+Folgende Punkte gelten jetzt als geklärt:
+
+- CharacterRecord +0x13 enthält die Class ID.
+- Die Class ID entspricht der bekannten Berufstabelle 0..9.
+- Die Class ID wählt über eine Jump Table den Level-Divisor.
+- Die vollständige Jump Table wurde aus dem Speicher rekonstruiert.
+- Alle zehn Class-Divisoren sind bekannt.
+- DI enthält unmittelbar vor DIV den Class-Divisor.
+- Der Level-Anteil wird als Level / ClassDivisor berechnet.
+
+
+Nächstes Forschungsziel
+=======================
+
+Als nächstes wird die Accuracy-Komponente der Hit-Chance-Berechnung
+untersucht.
+
+Bereits bekannt:
+
+    CharacterRecord +0x1E = Accuracy
+
+für Character Index 0:
+
+    0x2BF30
+
+Zu klären ist insbesondere:
+
+- Wie Accuracy in einen Hit-Chance-Beitrag umgerechnet wird.
+- Ob Accuracy direkt addiert oder vorher transformiert wird.
+- Wie der Accuracy-Anteil mit dem Level-Anteil kombiniert wird.
+- Wo der bekannte Material-Hit-Bonus addiert wird.
+- Ob anschließend Caps, Mindestwerte oder weitere Modifikatoren
+  angewendet werden.
+
+  MM3 – Accuracy- und Material-Hit-Bonus
+Stand: 26.08.2026
+======================================
+
+Ausgangspunkt
+-------------
+
+Nach der Rekonstruktion des klassenabhängigen Level-Anteils wurde
+die Berechnung unmittelbar vor:
+
+    0x31C33  div di
+
+weiter rückwärts untersucht.
+
+Für die Vergleichstests wurde ein reproduzierbarer Charakterzustand
+verwendet:
+
+    Party Slot: 1
+    Klasse:     Ritter
+    Level:      10
+    Accuracy:   18
+
+Der Ritter verwendet den bereits bestätigten ClassDivisor 1.
+
+
+Accuracy-Anteil
+===============
+
+Im Runtime-Trace wurde vor der Materialverarbeitung beobachtet:
+
+    SI = 0003
+
+Dieser Wert blieb bei identischem Charakterzustand konstant, während
+ausschließlich das Waffenmaterial verändert wurde.
+
+Bei Accuracy 18 ergibt sich damit im untersuchten Pfad:
+
+    Accuracy 18 -> Hit-Beitrag 3
+
+Die genaue Lookup-/Berechnungslogik, durch die Accuracy 18 in den
+Wert 3 umgewandelt wird, muss noch weiter untersucht werden.
+
+
+Material-Hit-Bonus
+==================
+
+Unmittelbar danach wurde folgende Runtime-Sequenz gefunden:
+
+    mov si, ax
+    mov al, [0x9306]
+    cbw
+    add si, ax
+
+Die Adresse:
+
+    0x9306
+
+enthält während dieser Berechnung den aktuellen Material-Hit-Modifikator.
+
+Durch CBW wird der geladene Byte-Wert vorzeichenrichtig auf AX
+erweitert. Dadurch können auch negative Material-Hit-Modifikatoren
+verarbeitet werden.
+
+
+Experimentelle Bestätigung
+==========================
+
+Es wurden mehrere Angriffe mit identischem Charakterzustand und
+unterschiedlichem Waffenmaterial aufgezeichnet.
+
+Kein Material
+-------------
+
+Vor Materialaddition:
+
+    SI = 3
+
+Geladener Wert:
+
+    [0x9306] = 0
+
+Danach:
+
+    SI = 3
+
+
+Eisen
+-----
+
+Bekannter Hit-Modifikator:
+
+    +1
+
+Runtime:
+
+    [0x9306] = 1
+
+Vor ADD:
+
+    SI = 3
+    AX = 1
+
+Nach:
+
+    add si, ax
+
+ergibt sich:
+
+    SI = 4
+
+
+Lapis
+-----
+
+Bekannter Hit-Modifikator:
+
+    +2
+
+Runtime:
+
+    [0x9306] = 2
+
+Damit:
+
+    3 + 2 = 5
+
+und:
+
+    SI = 5
+
+
+Obsidian
+--------
+
+Bekannter Hit-Modifikator:
+
+    +10
+
+Runtime:
+
+    [0x9306] = 0x0A
+
+Vor ADD:
+
+    SI = 3
+    AX = 000A
+
+Nach:
+
+    add si, ax
+
+ergibt sich:
+
+    SI = 000D
+
+also dezimal:
+
+    3 + 10 = 13
+
+
+Bestätigte Zwischenformel
+=========================
+
+Für den untersuchten Ritter mit Accuracy 18 gilt unmittelbar nach
+der Materialaddition:
+
+    SI =
+        AccuracyHitContribution
+        + MaterialHitModifier
+
+Mit den beobachteten Werten:
+
+    kein Material: 3 +  0 =  3
+    Eisen:         3 +  1 =  4
+    Lapis:         3 +  2 =  5
+    Obsidian:      3 + 10 = 13
+
+Die Materialwerte stimmen exakt mit der bereits bekannten
+Material-Hit-Modifikator-Tabelle überein.
+
+Damit ist sehr stark bestätigt:
+
+    0x9306 = aktueller Material-Hit-Modifikator
+             während dieser Berechnung
+
+
+Zusammenhang mit dem Levelbonus
+===============================
+
+Der bereits rekonstruierte Level-Anteil lautet:
+
+    LevelHitChance =
+        Level / ClassDivisor
+
+Unmittelbar bei:
+
+    0x31C33  div di
+
+wird dieser Level-Anteil berechnet.
+
+Danach folgt:
+
+    mov dx, si
+    add dx, ax
+    mov si, dx
+
+Damit wird der Quotient aus der Level-Division zu dem zuvor in SI
+aufgebauten Accuracy-/Material-Anteil addiert.
+
+Für den aktuellen Test:
+
+    Ritter
+    Level 10
+    ClassDivisor 1
+    Accuracy 18
+
+gilt daher:
+
+    Accuracy-Anteil = 3
+    Materialbonus   = abhängig vom Material
+    Levelbonus      = 10 / 1 = 10
+
+Beispiel Obsidian:
+
+    3 + 10 + 10 = 23
+
+Damit ist die Struktur der untersuchten Hit-Chance-Berechnung jetzt
+wesentlich weiter eingegrenzt:
+
+    HitContribution =
+        AccuracyHitContribution
+        + MaterialHitModifier
+        + (Level / ClassDivisor)
+
+
+Execution Trace Navigation – Erweiterung
+========================================
+
+Das Trace-Navigation-Fenster wurde um eine allgemeine Suche nach
+direkten Speicheradressen erweitert.
+
+Neue Bedienung:
+
+    Memory Address: 0x9306
+    Find Memory
+
+Die Suche dekodiert die Runtime-Instruktionen mit Zydis und sucht
+nach Memory-Operands mit der eingegebenen Adresse.
+
+Dadurch kann beispielsweise direkt zu:
+
+    mov al, [0x9306]
+
+gesprungen werden.
+
+Die ausgewählte Trace-Position wird aktualisiert und das
+Execution-Trace-Fenster scrollt automatisch zum Treffer.
+
+Dies erleichtert den direkten Vergleich gleicher Speicherzugriffe
+zwischen mehreren gespeicherten Traces erheblich.
+
+
+Nächstes Forschungsziel
+=======================
+
+Als nächstes muss die Herkunft des Accuracy-Anteils:
+
+    Accuracy 18 -> 3
+
+vollständig rekonstruiert werden.
+
+Gesucht wird insbesondere:
+
+- wo Accuracy aus CharacterRecord +0x1E gelesen wird,
+- wie daraus der Wert 3 entsteht,
+- ob dafür eine Lookup-Tabelle verwendet wird,
+- welche Werte sich für andere Accuracy-Werte ergeben,
+- und ob negative bzw. sehr hohe Accuracy-Werte Sonderregeln besitzen.
+
+MM3 – Accuracy-Hit-Bonus vollständig rekonstruiert
+Stand: 26.08.2026
+===================================================
+
+Ausgangspunkt
+-------------
+
+Für den untersuchten Charakter wurde verwendet:
+
+    Party Slot: 1
+    Klasse:     Ritter
+    Level:      10
+    Accuracy:   18
+
+Bereits bekannt war:
+
+    CharacterRecord + 0x1E = Accuracy
+
+Für Party Slot 1:
+
+    Accuracy-Adresse = 0x2BF30
+
+Im Execution Trace wurde untersucht, wie aus Accuracy 18 der
+Hit-Chance-Beitrag entsteht.
+
+
+Accuracy-Grenzwertschleife
+==========================
+
+Im Runtime-Code wurde folgende Schleife gefunden:
+
+    inc si
+    mov bx, si
+    shl bx, 1
+    mov ax, [bx+0xF46]
+    cmp ax, [bp+0x06]
+    jbe ...
+
+SI wird dabei als Tabellenindex verwendet.
+
+Der Execution Trace bestätigte, dass die Schleife mit:
+
+    SI = 0
+
+beginnt.
+
+Die erste Instruktion:
+
+    inc si
+
+erhöht SI auf 1.
+
+Danach wird:
+
+    BX = SI * 2
+
+gebildet und ein 16-Bit-Grenzwert aus der Tabelle gelesen.
+
+
+Physische Grenzwerttabelle
+==========================
+
+Im untersuchten Runtime-Kontext gilt:
+
+    DS = 0x2053
+
+Segmentbasis:
+
+    0x2053 << 4 = 0x20530
+
+Die Tabelle wird über:
+
+    [BX + 0xF46]
+
+angesprochen.
+
+Physische Tabellenbasis:
+
+    0x20530 + 0x0F46
+    = 0x21476
+
+Die Werte sind 16-Bit Little Endian.
+
+Bestätigte Werte:
+
+    SI  0 ->   3
+    SI  1 ->   5
+    SI  2 ->   7
+    SI  3 ->   9
+    SI  4 ->  11
+    SI  5 ->  13
+    SI  6 ->  15
+    SI  7 ->  17
+    SI  8 ->  19
+    SI  9 ->  21
+    SI 10 ->  25
+    SI 11 ->  30
+    SI 12 ->  35
+    SI 13 ->  40
+    SI 14 ->  50
+    SI 15 ->  75
+    SI 16 -> 100
+    SI 17 -> 125
+    SI 18 -> 150
+    SI 19 -> 175
+    SI 20 -> 200
+
+
+Beispiel Accuracy 18
+====================
+
+Bei Accuracy 18 läuft die Schleife bis:
+
+    Tabellenwert 17 <= 18
+
+Der nächste Grenzwert ist:
+
+    19
+
+Dieser erfüllt die Bedingung nicht mehr:
+
+    19 <= 18  -> false
+
+Damit endet die Suche mit:
+
+    SI = 8
+
+
+Accuracy-Bonustabelle
+=====================
+
+Nach der Grenzwertsuche wird ausgeführt:
+
+    mov al, [si+0xF76]
+
+Im selben Runtime-Kontext:
+
+    DS = 0x2053
+
+Physische Basis:
+
+    0x20530 + 0x0F76
+    = 0x214A6
+
+Die Tabelle enthält signed Byte-Werte.
+
+Bestätigte Werte:
+
+    SI  0 -> FB = -5
+    SI  1 -> FC = -4
+    SI  2 -> FD = -3
+    SI  3 -> FE = -2
+    SI  4 -> FF = -1
+    SI  5 -> 00 =  0
+    SI  6 -> 01 = +1
+    SI  7 -> 02 = +2
+    SI  8 -> 03 = +3
+    SI  9 -> 04 = +4
+    SI 10 -> 05 = +5
+    SI 11 -> 06 = +6
+    SI 12 -> 07 = +7
+    SI 13 -> 08 = +8
+    SI 14 -> 09 = +9
+    SI 15 -> 0A = +10
+
+Damit gilt für diesen Tabellenbereich:
+
+    AccuracyBonus = SI - 5
+
+
+Bestätigter Accuracy-Test
+=========================
+
+Für:
+
+    Accuracy = 18
+
+ergibt die Grenzwertsuche:
+
+    SI = 8
+
+Die Bonustabelle liefert:
+
+    [0x214A6 + 8] = 0x03
+
+Damit:
+
+    Accuracy 18 -> Hit-Bonus +3
+
+
+Material-Hit-Bonus
+==================
+
+Unmittelbar nach der Accuracy-Berechnung wird der Materialbonus
+addiert.
+
+Relevanter Runtime-Code:
+
+    mov si, ax
+    mov al, [0x9306]
+    cbw
+    add si, ax
+
+Die Adresse:
+
+    0x9306
+
+enthält während dieser Berechnung den aktuellen Material-Hit-Modifikator.
+
+Experimentell bestätigt:
+
+    kein Material -> 0
+    Eisen         -> +1
+    Lapis         -> +2
+    Obsidian      -> +10
+
+Beispiele bei Accuracy 18:
+
+    kein Material:
+        3 + 0  = 3
+
+    Eisen:
+        3 + 1  = 4
+
+    Lapis:
+        3 + 2  = 5
+
+    Obsidian:
+        3 + 10 = 13
+
+
+Level-Hit-Bonus
+===============
+
+Anschließend wird der bereits rekonstruierte Level-Anteil berechnet:
+
+    xor dx, dx
+    div di
+
+mit:
+
+    LevelBonus =
+        Level / ClassDivisor
+
+Danach:
+
+    mov dx, si
+    add dx, ax
+    mov si, dx
+
+Damit wird der Levelbonus zum bereits aufgebauten
+Accuracy-/Material-Anteil addiert.
+
+
+Aktuell rekonstruierte Struktur
+===============================
+
+Die bisher bestätigte Berechnung lautet:
+
+    HitContribution =
+        AccuracyBonus
+        + MaterialHitModifier
+        + (Level / ClassDivisor)
+
+Beispiel:
+
+    Ritter
+    Level 10
+    Accuracy 18
+    Obsidian
+
+ergibt:
+
+    AccuracyBonus       = 3
+    MaterialHitModifier = 10
+    LevelBonus          = 10 / 1 = 10
+
+also:
+
+    3 + 10 + 10 = 23
+
+
+Execution Trace Navigation
+==========================
+
+Die Trace Navigation wurde für die Untersuchung erweitert.
+
+Neue Suchmöglichkeiten:
+
+    INC SI
+    MOV SI, ...
+
+Zusätzlich wurde:
+
+    Previous Instruction
+
+implementiert.
+
+Damit kann rückwärts zwischen mehreren Ausführungen derselben
+Instruktion navigiert werden.
+
+Dies wurde verwendet, um die Accuracy-Schleife rückwärts von:
+
+    SI = 7
+
+über:
+
+    SI = 6
+    SI = 5
+    SI = 4
+    ...
+
+bis zum Schleifenbeginn:
+
+    SI = 0
+
+zu verfolgen.
+
+Außerdem existiert eine allgemeine Memory-Address-Suche, mit der
+beispielsweise direkt zu Zugriffen auf:
+
+    0x9306
+
+gesprungen werden kann.
+
+
+Aktueller Forschungsstand
+=========================
+
+Damit gelten jetzt als stark bzw. direkt bestätigt:
+
+- Accuracy wird nicht direkt zur Hit Chance addiert.
+- Accuracy wird zunächst über eine Grenzwerttabelle klassifiziert.
+- Die Grenzwerttabelle liegt im untersuchten Runtime-Kontext physisch
+  bei 0x21476.
+- Das Ergebnis der Grenzwertsuche ist ein SI-Index.
+- Dieser Index wird über eine zweite Tabelle in einen signed
+  Hit-Chance-Bonus umgesetzt.
+- Die Bonustabelle liegt physisch bei 0x214A6.
+- Accuracy 18 ergibt Index 8 und damit Hit-Bonus +3.
+- Der Material-Hit-Modifikator wird separat über 0x9306 addiert.
+- Der Level-Anteil wird anschließend als Level / ClassDivisor addiert.
+
+
+Nächstes Forschungsziel
+=======================
+
+Als nächstes soll untersucht werden:
+
+- wie die komplette Accuracy-Grenzwerttabelle für sehr niedrige und
+  sehr hohe Accuracy-Werte verwendet wird,
+- ob der Accuracy-Bonus außerhalb des bisher beobachteten Bereichs
+  begrenzt wird,
+- welche weiteren Hit-Chance-Komponenten nach der Leveladdition folgen,
+- und wie der so berechnete Wert schließlich für die tatsächliche
+  Trefferentscheidung verwendet wird.
+
+  MM3 – Hit-Trace / Damage-Pfad und Trace-Navigation
+Stand: 26.08.2026
+==================================================
+
+Ausgangspunkt
+-------------
+
+Nach der Rekonstruktion von Accuracy-, Material- und Levelbonus wurde
+der Execution Trace weiter in Richtung der tatsächlichen
+Treffer-/Schadensverarbeitung verfolgt.
+
+Bekannte bisher rekonstruierte Struktur:
+
+    HitContribution =
+        AccuracyBonus
+        + MaterialHitModifier
+        + (Level / ClassDivisor)
+
+
+Beobachteter Runtime-Bereich
+============================
+
+Im späteren Execution Trace wurde wiederholt Code im Bereich:
+
+    0x31C53 ...
+
+untersucht.
+
+Dabei wurde unter anderem folgende Sequenz beobachtet:
+
+    0x31C53  mov bx, [bp+0x06]
+    0x31C56  mov al, [bx+0x113]
+    0x31C5A  mov ah, 0x00
+    0x31C5C  sub si, ax
+    0x31C5E  mov al, [0x4BF4]
+    0x31C61  mov ah, 0x00
+    0x31C63  shl ax, 0x01
+    0x31C65  mov bx, ax
+
+Später folgen weitere Tabellen-/Speicherzugriffe und Vergleiche.
+
+Die genaue Bedeutung dieses Bereichs ist NOCH NICHT abschließend geklärt.
+
+
+Adresse 0x4BF4
+===============
+
+Besonders interessant ist:
+
+    0x31C5E  mov al, [0x4BF4]
+
+Der dort gelesene Wert änderte sich zwischen verschiedenen
+Angriffen.
+
+Beobachtet wurden unter anderem Werte:
+
+    2
+    3
+    4
+
+Diese Werte korrelierten teilweise mit unterschiedlich starken
+Treffern bzw. den sichtbaren Blutanimationen.
+
+Die Blutdarstellung ist allerdings nicht eindeutig:
+
+- teilweise scheinen mehrere Blutbilder übereinander dargestellt zu werden
+- ein Gegner kann ohne deutlich sichtbare Blutanimation sterben
+- bei bereits stark geschwächten Gegnern ist ein Kill daher kein
+  zuverlässiger Indikator für die Höhe des aktuellen Schadens
+
+Deshalb ist momentan NICHT bewiesen, dass 0x4BF4 direkt den
+verursachten Schaden enthält.
+
+Mögliche Bedeutungen sind weiterhin:
+
+- Schadenswert
+- Schadens-/Trefferstufe
+- Index für eine Effekt-/Blutanimation
+- temporärer Kampfwert
+- Ergebnis oder Zwischenwert einer vorherigen Berechnung
+
+
+Neues Reverse-Engineering-Ziel
+==============================
+
+Um die Bedeutung von 0x4BF4 zu klären, soll herausgefunden werden:
+
+    Welche Runtime-Instruktion schreibt 0x4BF4?
+
+Dazu wurde die Trace Navigation um eine neue Instruktionssuche
+erweitert.
+
+
+Trace Navigation – Instruction Search
+=====================================
+
+Neben der bisherigen Register- und Memory-Suche existiert jetzt eine
+Instruction-Auswahl.
+
+Bereits vorhandene bzw. verwendete Suchtypen umfassen unter anderem:
+
+    DIV DI
+    INC SI
+    MOV SI, ...
+    WRITE [Memory Address]
+
+Zusätzlich existieren:
+
+    Search Start
+    Previous Instruction
+
+Search Start sucht vom Beginn des gespeicherten Traces nach der
+gewählten Instruktionsart.
+
+Previous Instruction sucht rückwärts nach der vorherigen passenden
+Instruktion.
+
+
+WRITE [Memory Address]
+======================
+
+Für die Suche nach dem Ursprung von 0x4BF4 wurde:
+
+    Memory Address = 0x4BF4
+
+und:
+
+    WRITE [Memory Address]
+
+eingeführt.
+
+Die erste Implementierung erkannte nur direkte Speicheroperanden,
+beispielsweise:
+
+    mov [0x4BF4], al
+
+Das reicht nicht aus.
+
+MM3 könnte dieselbe Adresse auch indirekt schreiben, beispielsweise:
+
+    mov bx, 0x4BF4
+    mov [bx], al
+
+oder:
+
+    mov [si+disp], al
+
+Deshalb muss die Suche die tatsächliche effektive 16-Bit-Adresse
+eines Memory-Operands berechnen.
+
+
+Geplante Berechnung der effektiven Adresse
+==========================================
+
+Die Trace-Einträge enthalten bereits die benötigten Registerwerte.
+
+Für einen Memory-Operand soll deshalb berechnet werden:
+
+    EffectiveAddress =
+        BaseRegister
+        + IndexRegister
+        + Displacement
+
+mit 16-Bit-Wraparound.
+
+Beispiel:
+
+    BX = 0x4BF4
+
+    mov [bx], al
+
+muss damit als Schreibzugriff auf:
+
+    0x4BF4
+
+erkannt werden.
+
+
+Aktueller Implementierungsstand
+===============================
+
+Dafür wird matchesInstruction() zusätzlich der aktuelle
+RuntimeInstruction-Eintrag übergeben.
+
+Geplante Signatur:
+
+    bool matchesInstruction(
+        const ZydisDecodedInstruction& decodedInstruction,
+        const ZydisDecodedOperand* operands,
+        int instructionIndex,
+        uint16_t memoryAddress,
+        const MyImGui::RuntimeInstruction& runtimeInstruction
+    )
+
+Eine Hilfsfunktion:
+
+    registerValue(...)
+
+soll Zydis-Register wie:
+
+    AX BX CX DX
+    SI DI BP SP
+
+auf die beim jeweiligen Trace-Eintrag gespeicherten Registerwerte
+abbilden.
+
+
+Aktueller Codefehler
+====================
+
+Beim Einfügen von registerValue() trat:
+
+    E1578:
+    case label value has already appeared in this switch
+
+bei:
+
+    ZYDIS_REGISTER_NONE
+
+auf.
+
+Ursache:
+
+    ZYDIS_REGISTER_NONE == 0
+
+und registerValue() wurde offenbar versehentlich innerhalb des
+bestehenden:
+
+    switch (instructionIndex)
+
+von matchesInstruction() eingefügt.
+
+Dort existiert bereits:
+
+    case 0:
+
+Dadurch kollidiert:
+
+    case ZYDIS_REGISTER_NONE:
+
+mit:
+
+    case 0:
+
+
+Nächster konkreter Schritt
+==========================
+
+registerValue() muss als vollständig eigenständige Hilfsfunktion
+VOR matchesInstruction() stehen.
+
+Struktur:
+
+    namespace
+    {
+        uint16_t registerValue(...)
+        {
+            switch (reg)
+            {
+                ...
+            }
+        }
+
+        bool matchesInstruction(...)
+        {
+            switch (instructionIndex)
+            {
+                ...
+            }
+        }
+    }
+
+Danach zunächst kompilieren.
+
+Erst wenn dieser Stand fehlerfrei kompiliert, wird WRITE
+[Memory Address] weiter implementiert und erneut mit:
+
+    Memory Address = 0x4BF4
+
+getestet.
+
+
+Wichtig
+=======
+
+Der Execution Trace enthält weiterhin maximal 1000 Instruktionen.
+
+Es existiert derzeit keine Bedienmöglichkeit, diese Trace-Kapazität
+zur Laufzeit zu erhöhen.
+
+Mehrfaches Verschieben des Trace-Targets weiter nach hinten brachte
+bei der bisherigen WRITE-Suche keinen Treffer.
+
+Bevor daraus geschlossen wird, dass der Write außerhalb des
+1000-Instruktionen-Fensters liegt, muss deshalb zuerst die indirekte
+Adressberechnung der WRITE-Suche korrekt funktionieren.

@@ -27,6 +27,15 @@ namespace MyImGui
         bool begin();
         void end();
 
+        void sameLineIfFits(
+            float nextItemWidth,
+            const char* label = nullptr
+        ) const;
+
+        bool beginInlineGroupIfFits(
+            float groupWidth
+        ) const;
+
         bool isOpen() const;
         void open();
         void close();

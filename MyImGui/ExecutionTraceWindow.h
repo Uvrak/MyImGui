@@ -4,6 +4,7 @@
 
 #include "DosBoxMemoryScanner.h"
 #include "RecordButton.h"
+#include "ExecutionTraceNavigationWindow.h"
 
 namespace MyImGui
 {
@@ -51,5 +52,17 @@ namespace MyImGui
 
         std::string
             m_gameId;
+
+        size_t m_selectedTraceIndex =
+            static_cast<size_t>(-1);
+
+        bool m_traceWasArmedOrActive = false;
+
+        bool m_scrollToSelectedTrace = false;
+
+        int m_previousRegisterIndex = 5;
+
+        ExecutionTraceNavigationWindow
+            m_navigationWindow;
     };
 }

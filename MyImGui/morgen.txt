@@ -1,16 +1,158 @@
-Weiter nach der Pause:
+MM3 / Execution Trace – Weiterarbeit 26.08.2026
+================================================
 
-- Read Trace funktioniert grundsätzlich.
-- Target 0x2BF35 wird korrekt gesetzt.
-- Nach dem relevanten Speicherzugriff werden 30 Runtime-Instruktionen erfasst.
-- MyImGui zeigt die Instruktionen mit Disassembly und Registerwerten an.
-- Aktuelles Problem: Start Read Trace verursacht starke Zeitlupe.
-- Der bisher beste Stand war:
-  Zeitlupe nur zwischen "Start Read Trace" und dem Schlag;
-  nach dem Capture wieder normale Geschwindigkeit.
-- Diesen funktionierenden Stand nicht wieder groß umbauen.
-- Nächster Schritt:
-  gezielt herausfinden, warum das aktive Read Tracking so stark bremst,
-  und nur die Wartephase optimieren.
-- Danach die 30 Instruktionen nach dem Read von 0x2BF35 analysieren,
-  um zu verfolgen, wie MM3 den Levelwert weiterverarbeitet.
+Aktueller Stand
+---------------
+
+Das neue dockbare Fenster:
+
+    Trace Navigation
+
+wird zur zentralen Bedienung für die Execution-Trace-Analyse ausgebaut.
+
+Aktuelles geplantes Layout:
+
+    Instruction [DIV DI ▼] [Search Start]
+    Register    [DI     ▼] [Previous]
+
+Später darüber zusätzlich:
+
+    Target [0x31C33] [Record] [Save] [Load]
+
+
+Navigation
+----------
+
+Register-Navigation funktioniert:
+
+    Register [AX/BX/CX/DX/SI/DI/BP/SP/DS/ES/SS]
+    Previous
+
+"Previous" sucht rückwärts nach der vorherigen Änderung des
+ausgewählten Registers.
+
+Wenn keine weitere Änderung gefunden wird, bleibt die aktuelle
+Trace-Position erhalten.
+
+Die ausgewählte Trace-Zeile wird im Execution Trace automatisch
+angesprungen und sichtbar gescrollt.
+
+
+Instruction-Navigation
+----------------------
+
+Die Instruction-ComboBox enthält momentan:
+
+    DIV DI
+    MOV DI, imm
+    MOV BX, AX
+    SHL BX, 1
+    JMP CS:[BX+...]
+
+WICHTIG:
+
+Es wird KEIN zusätzlicher Instruction-"Previous"-Button benötigt.
+
+Die Bedienung soll sein:
+
+    Search Start
+        -> sucht die ausgewählte Instruktion im Trace
+        -> springt zum gefundenen Trace-Eintrag
+
+Danach:
+
+    Register auswählen
+    Previous
+        -> verfolgt die Registeränderungen rückwärts
+
+Der zwischenzeitlich eingeführte separate
+m_instructionSearchIndex ist für dieses Bedienkonzept nicht nötig.
+
+
+Search Start – implementiert / begonnen
+---------------------------------------
+
+DIV DI:
+
+    ZYDIS_MNEMONIC_DIV
+    Operand 0 = Register DI
+
+MOV DI, imm:
+
+    ZYDIS_MNEMONIC_MOV
+    Operand 0 = Register DI
+    Operand 1 = Immediate
+
+MOV BX, AX:
+
+    ZYDIS_MNEMONIC_MOV
+    Operand 0 = Register BX
+    Operand 1 = Register AX
+
+
+Morgen zuerst
+-------------
+
+1. Search Start für folgende ComboBox-Einträge fertigstellen:
+
+       SHL BX, 1
+       JMP CS:[BX+...]
+
+2. Alle fünf Instruction-Suchen testen:
+
+       DIV DI
+       MOV DI, imm
+       MOV BX, AX
+       SHL BX, 1
+       JMP CS:[BX+...]
+
+3. Danach folgende vorhandene Controls aus ExecutionTraceWindow
+   in Trace Navigation übernehmen:
+
+       Target Edit
+       Record Button
+       Save
+       Load
+
+4. Erst wenn alles im Trace-Navigation-Fenster funktioniert,
+   die alten Controls aus ExecutionTraceWindow entfernen.
+
+5. Keine funktionierende Register-Previous-Logik mehr umbauen.
+
+
+MM3 Forschungsstand für morgen
+------------------------------
+
+Der berufsspezifische Hit-Chance-Level-Modifikator ist geklärt:
+
+    LevelHitChance = Level / ClassDivisor
+
+Class-Divisoren:
+
+    Ritter         1
+    Paladin        2
+    Bogenschütze   2
+    Kleriker       3
+    Zauberer       4
+    Dieb           2
+    Ninja          2
+    Barbar         1
+    Druide         2
+    Waldläufer     2
+
+Nächstes eigentliches MM3-Forschungsziel nach Fertigstellung
+des Trace-Navigation-Fensters:
+
+    Accuracy-Komponente der Hit-Chance
+
+Bekannt:
+
+    CharacterRecord + 0x1E = Accuracy
+    Index 0 physisch: 0x2BF30
+
+Zu klären:
+
+    - Wie wird Accuracy in Hit Chance umgerechnet?
+    - Wo wird der Accuracy-Anteil mit LevelHitChance kombiniert?
+    - Wo wird der Material-Hit-Bonus addiert?
+    - Gibt es danach Caps oder weitere Modifikatoren?

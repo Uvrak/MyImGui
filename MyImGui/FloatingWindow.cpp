@@ -131,6 +131,72 @@ namespace MyImGui
         m_contentVisible = false;
     }
 
+    void FloatingWindow::sameLineIfFits(
+        float nextItemWidth,
+        const char* label
+    ) const
+    {
+        const ImGuiStyle& style =
+            ImGui::GetStyle();
+
+        float requiredWidth =
+            nextItemWidth +
+            style.ItemSpacing.x;
+
+        if (label &&
+            label[0] != '\0')
+        {
+            requiredWidth +=
+                style.ItemInnerSpacing.x +
+                ImGui::CalcTextSize(
+                    label
+                ).x;
+        }
+
+        constexpr float rightMargin =
+            12.0f;
+
+        requiredWidth +=
+            rightMargin;
+
+        if (ImGui::GetContentRegionAvail().x >=
+            requiredWidth)
+        {
+            ImGui::SameLine();
+        }
+    }
+
+    bool FloatingWindow::beginInlineGroupIfFits(
+        float groupWidth
+    ) const
+    {
+        const ImGuiStyle& style =
+            ImGui::GetStyle();
+
+        const ImGuiWindow* window =
+            ImGui::GetCurrentWindow();
+
+        const float groupStart =
+            ImGui::GetItemRectMax().x +
+            style.ItemSpacing.x;
+
+        const float groupEnd =
+            groupStart +
+            groupWidth;
+
+        const float windowRight =
+            window->WorkRect.Max.x;
+
+        if (groupEnd <=
+            windowRight)
+        {
+            ImGui::SameLine();
+            return true;
+        }
+
+        return false;
+    }
+
     bool FloatingWindow::isOpen() const
     {
         return m_isOpen;
