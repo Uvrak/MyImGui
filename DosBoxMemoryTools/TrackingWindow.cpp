@@ -145,6 +145,8 @@ namespace DosBoxMemoryTools
 
                 drawTransitions();
 
+
+
                 ImGui::EndTabItem();
             }
 
@@ -152,9 +154,7 @@ namespace DosBoxMemoryTools
                 "Exec"
             ))
             {
-                ImGui::TextUnformatted(
-                    "Execution Capture"
-                );
+                drawExecutionCapture();
 
                 ImGui::EndTabItem();
             }
@@ -1283,6 +1283,208 @@ namespace DosBoxMemoryTools
         m_scanner.getReadTrackingTransitionBytes(
             m_transitionBytes
         );
+    }
+
+    void TrackingWindow::drawExecutionCapture()
+    {
+        ImGui::SetNextItemWidth(
+            140.0f
+        );
+
+        ImGui::InputText(
+            "Execution Target",
+            m_executionTargetText,
+            sizeof(m_executionTargetText)
+        );
+
+        ImGui::TextUnformatted(
+            "Capture"
+        );
+
+        if (m_executionRecordButton.draw())
+        {
+            if (m_executionRecordButton.recording())
+            {
+                char* end = nullptr;
+
+                const unsigned long long targetAddress =
+                    std::strtoull(
+                        m_executionTargetText,
+                        &end,
+                        0
+                    );
+
+                if (end != m_executionTargetText &&
+                    *end == '\0')
+                {
+                    if (m_scanner.setExecutionCaptureTarget(
+                        static_cast<size_t>(
+                            targetAddress
+                            )
+                    ))
+                    {
+                        m_executionCaptureHit =
+                            false;
+                    }
+                }
+            }
+        }
+
+        bool executionHit = false;
+
+        if (m_scanner.getExecutionCaptureHit(
+            executionHit
+        ))
+        {
+            if (executionHit &&
+                m_executionRecordButton.recording())
+            {
+                RuntimeInstruction instruction;
+
+                if (m_scanner.getExecutionCapture(
+                    instruction
+                ))
+                {
+                    m_executionCapture =
+                        instruction;
+
+                    m_executionCaptureHit =
+                        true;
+
+                    m_executionRecordButton.stop();
+                }
+            }
+        }
+
+        if (m_scanner.getExecutionCaptureHit(
+            executionHit
+        ))
+        {
+            ImGui::Text(
+                "State: %s",
+                executionHit
+                ? "HIT"
+                : m_executionRecordButton.recording()
+                ? "ARMED / NO HIT"
+                : "IDLE"
+            );
+        }
+        else
+        {
+            ImGui::TextDisabled(
+                "State unavailable."
+            );
+        }
+
+        ImGui::Text(
+            "Scanner status: %s",
+            m_scanner.status().c_str()
+        );
+        
+        if (m_executionCaptureHit)
+        {
+            ImGui::Separator();
+
+            ImGui::Text(
+                "Address: 0x%zX",
+                m_executionCapture.address
+            );
+
+            ImGui::Text(
+                "CS:IP %04X:%04X",
+                static_cast<unsigned int>(
+                    m_executionCapture.cs
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.ip
+                    )
+            );
+
+            ImGui::Text(
+                "AX=%04X BX=%04X CX=%04X DX=%04X",
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.ax
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.bx
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.cx
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.dx
+                    )
+            );
+
+            ImGui::Text(
+                "SI=%04X DI=%04X BP=%04X SP=%04X",
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.si
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.di
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.bp
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.sp
+                    )
+            );
+
+            ImGui::Text(
+                "DS=%04X ES=%04X SS=%04X",
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.ds
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.es
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.registers.ss
+                    )
+            );
+        }
+
+        ImGui::Separator();
+
+        ImGui::TextUnformatted(
+            "Stack at SS:SP:"
+        );
+
+        for (size_t i = 0;
+            i < m_executionCapture.stackBytes.size();
+            i += 8)
+        {
+            ImGui::Text(
+                "+%02zX: %02X %02X %02X %02X %02X %02X %02X %02X",
+                i,
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 0]
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 1]
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 2]
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 3]
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 4]
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 5]
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 6]
+                    ),
+                static_cast<unsigned int>(
+                    m_executionCapture.stackBytes[i + 7]
+                    )
+            );
+        }
     }
 
     void TrackingWindow::loadTrace()

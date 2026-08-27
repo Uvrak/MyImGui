@@ -35,6 +35,7 @@ namespace DosBoxMemoryTools
         void drawTrace();
         void drawTransitions();
         void captureTransitions();
+        void drawExecutionCapture();
 
         void loadTrace();
 
@@ -102,6 +103,17 @@ namespace DosBoxMemoryTools
         bool
             m_scrollToSelectedHistoryInstruction = false;
 
+        char m_executionTargetText[32] =
+            "0xEC4B";
+
+        bool m_executionCaptureHit =
+            false;
+
+        RuntimeInstruction
+            m_executionCapture{};
+
+        MyImGui::RecordButton
+            m_executionRecordButton;
 
    
     };
