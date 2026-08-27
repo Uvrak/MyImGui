@@ -1994,3 +1994,317 @@ bei der bisherigen WRITE-Suche keinen Treffer.
 Bevor daraus geschlossen wird, dass der Write außerhalb des
 1000-Instruktionen-Fensters liegt, muss deshalb zuerst die indirekte
 Adressberechnung der WRITE-Suche korrekt funktionieren.
+
+MM3 – Memory Write Tracker / neuer Rückwärtspfad
+Stand: 27.08.2026
+===============================================
+
+Memory Write Tracker
+====================
+
+Heute wurde ein neuer Memory-Write-Tracker aufgebaut.
+
+Ziel:
+Eine physische RAM-Adresse beobachten und beim ersten Schreibzugriff
+die tatsächlich schreibende Runtime-Instruktion einschließlich
+Registerzustand und Stack erfassen.
+
+Aktueller Zustand:
+- Memory Write Target frei eingebbar.
+- Record startet die Überwachung.
+- Bei einem Write wird automatisch HIT erkannt.
+- Die Aufnahme beendet sich nach dem Treffer.
+- Angezeigt werden:
+  - physische Instruction-Adresse
+  - CS:IP
+  - AX/BX/CX/DX
+  - SI/DI/BP/SP
+  - DS/ES/SS
+  - Stack ab SS:SP
+- Stack-Capture funktioniert inzwischen.
+- Der Tracker ist funktional, aber noch deutlich unfertiger als
+  Transition Tracker und Execution Trace.
+
+Performance
+===========
+
+Während der Entwicklung entstand starker DOSBox-Lag.
+
+Ursache:
+Register-/Stack-/Runtime-Daten wurden zu häufig im CPU-Hotpath
+vorbereitet bzw. Stackdaten unnötig gelesen.
+
+Nach Einschränkung der teuren Erfassung auf tatsächlich benötigte
+Situationen verschwand der starke Lag.
+
+Ein leichter Lag bei aktivem Memory-Write-Watch ist noch vorhanden,
+momentan aber akzeptabel.
+
+Wichtig für weitere Änderungen:
+Keine permanenten umfangreichen Speicherlesevorgänge pro ausgeführter
+CPU-Instruktion einbauen.
+
+
+Erfolgreicher Test: Write auf 0x2068E
+=====================================
+
+Memory Write Target:
+
+    0x2068E
+
+Der Tracker fand:
+
+    Writer: 0x10DD1
+    CS:IP:  10CD:0101
+
+Runtime-Instruktion:
+
+    0x10DD1  mov [0x015E], al
+
+Beim beobachteten Treffer:
+
+    AX = 0003
+    DS = 2053
+
+Damit:
+
+    AL = 03
+
+und:
+
+    DS:015E
+    = 2053:015E
+    = physisch 0x2068E
+
+Die Adresse 0x2068E wird also tatsächlich durch:
+
+    mov [0x015E], al
+
+beschrieben.
+
+
+Routine 0x10D61
+===============
+
+Die zugehörige Routine beginnt bei:
+
+    0x10D61  push bp
+    0x10D62  mov bp, sp
+
+Am Anfang:
+
+    0x10D64  mov al, [0x015E]
+    0x10D67  cbw
+    0x10D68  cmp ax, [bp+0x06]
+    0x10D6B  jz 0x10DD4
+
+Zusätzlich existieren Sonderbehandlungen für:
+
+    [0x015E] == FE
+    [0x015E] == FF
+
+Am Ende:
+
+    0x10DCE  mov al, [bp+0x06]
+    0x10DD1  mov [0x015E], al
+    0x10DD4  pop bp
+    0x10DD5  ret far
+
+Damit ist bestätigt:
+
+    [BP+06]
+
+ist der neue Wert, der nach [0x015E] übernommen wird.
+
+
+Dynamischer Caller von 0x10D61
+==============================
+
+Der statische Find-Callers-Versuch fand keinen Caller.
+
+Deshalb wurde der Transition Tracker verwendet.
+
+Transition Target:
+
+    0x10D61
+
+Ergebnis:
+
+    0x31B4C -> 0x10D61
+
+Runtime History unmittelbar davor:
+
+    0x31B43  or ax, ax
+    0x31B45  jnz ...
+    0x31B47  mov al, [0x014F]
+    0x31B4A  cbw
+    0x31B4B  push ax
+    0x31B4C  call far 0x10CD:0x0091
+
+Damit stammt das Argument für 0x10D61 aus:
+
+    [0x014F]
+
+Bei DS = 2053 entspricht das physisch:
+
+    0x20530 + 0x014F
+    = 0x2067F
+
+
+Memory Write Target 0x2067F
+===========================
+
+Als nächstes wurde deshalb beobachtet:
+
+    0x2067F
+
+Der Memory Write Tracker fand:
+
+    Writer: 0x31A95
+    CS:IP:  3055:1545
+
+Register beim Treffer:
+
+    AX=0003
+    BX=0005
+    CX=B9E2
+    DX=0005
+    SI=0001
+    DI=0000
+    BP=FF9C
+    SP=FF96
+    DS=2053
+    ES=8747
+    SS=2053
+
+Runtime-Code:
+
+    0x31A8F  mov bx, ax
+    0x31A91  mov al, [bx-0x52A0]
+    0x31A95  mov [0x014F], al
+
+Damit kommt die 03, die nach 0x2067F geschrieben wird,
+unmittelbar aus:
+
+    DS:[BX-0x52A0]
+
+Beim beobachteten Test:
+
+    BX = 0005
+
+16-Bit-Wraparound:
+
+    0005 - 52A0 = AD65
+
+Mit DS=2053:
+
+    2053:AD65
+    = 0x20530 + 0xAD65
+    = 0x2B295
+
+WICHTIG:
+Dieser Test wurde mit PARTY-SLOT 1 durchgeführt.
+
+0x2B295 darf NICHT mit der bekannten Slot-3-Adresse 0x2C295
+verwechselt werden.
+
+0x2B295 ist daher nach aktuellem Stand eine andere Datenstruktur
+bzw. Tabelle und KEIN direkter Zugriff auf den bekannten
+Charakterdatensatz von Slot 3.
+
+
+Aktuelle rekonstruierte Kette
+=============================
+
+    0x2B295
+        |
+        |  Wert 03
+        v
+    0x31A91
+        mov al,[bx-0x52A0]
+        |
+        v
+    0x31A95
+        mov [0x014F],al
+        |
+        v
+    DS:014F = physisch 0x2067F
+        |
+        v
+    0x31B47
+        mov al,[0x014F]
+    0x31B4A
+        cbw
+    0x31B4B
+        push ax
+    0x31B4C
+        call far 0x10CD:0x0091
+        |
+        v
+    Routine 0x10D61
+        |
+        v
+    [BP+06] = 03
+        |
+        v
+    0x10DCE
+        mov al,[bp+06]
+    0x10DD1
+        mov [0x015E],al
+        |
+        v
+    DS:015E = physisch 0x2068E
+
+
+Nächster Schritt für morgen
+===========================
+
+Nicht wieder bei 0x2068E anfangen.
+
+Wir sind inzwischen bis zur Quelle:
+
+    0x31A91  mov al,[bx-0x52A0]
+
+zurückgegangen.
+
+Beim Slot-1-Test gilt dort:
+
+    BX = 0005
+    Quelle = physisch 0x2B295
+    gelesener Wert = 03
+
+Unmittelbar davor:
+
+    0x31A8F  mov bx, ax
+
+Damit lautet die nächste konkrete Frage:
+
+    Woher kommt AX = 0005 vor 0x31A8F?
+
+Diesen Wert rückwärts verfolgen.
+
+Danach muss geklärt werden, was die Struktur um 0x2B295
+tatsächlich darstellt und warum dort beim Slot-1-Test der Wert
+03 gelesen wird.
+
+
+Noch offene UI-/Tracker-Arbeiten
+================================
+
+Execution Trace:
+- Record-Bedienung fehlt bzw. ist noch nicht wie gewünscht integriert.
+
+Trace Navigation:
+- Navigationsleiste ist noch nicht vollständig fertig.
+
+Memory Write Tracker:
+- grundsätzlich funktionsfähig
+- Datensatzanzeige funktioniert
+- Stack funktioniert
+- leichter Lag bei aktivem Watch vorhanden
+- Bedienung und Darstellung noch unfertig
+
+Load/Save:
+- macht vor allem beim Execution Trace Sinn, damit interessante
+  Runtime-Traces dauerhaft gespeichert und später verglichen werden können.
+- Für den einfachen Memory Write Tracker derzeit deutlich weniger wichtig.
