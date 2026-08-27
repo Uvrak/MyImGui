@@ -163,17 +163,13 @@ namespace DosBoxMemoryTools
                 "MemWr"
             ))
             {
-                ImGui::TextUnformatted(
-                    "Memory Write Watch"
-                );
+                drawMemoryWriteWatch();
 
                 ImGui::EndTabItem();
             }
 
             ImGui::EndTabBar();
         }
-
-
 
         if (traceTabActive)
         {
@@ -1484,6 +1480,212 @@ namespace DosBoxMemoryTools
                     m_executionCapture.stackBytes[i + 7]
                     )
             );
+        }
+    }
+
+    void TrackingWindow::drawMemoryWriteWatch()
+    {
+        ImGui::SetNextItemWidth(
+            140.0f
+        );
+
+        ImGui::InputText(
+            "Memory Write Target",
+            m_memoryWriteTargetText,
+            sizeof(m_memoryWriteTargetText)
+        );
+
+        ImGui::TextUnformatted(
+            "Watch"
+        );
+
+        if (m_memoryWriteRecordButton.draw())
+        {
+            if (m_memoryWriteRecordButton.recording())
+            {
+                char* end = nullptr;
+
+                const unsigned long long targetAddress =
+                    std::strtoull(
+                        m_memoryWriteTargetText,
+                        &end,
+                        0
+                    );
+
+                if (end != m_memoryWriteTargetText &&
+                    *end == '\0')
+                {
+                    if (m_scanner.setMemoryWriteWatchTarget(
+                        static_cast<size_t>(
+                            targetAddress
+                            )
+                    ))
+                    {
+                        m_memoryWriteCaptureHit =
+                            false;
+                    }
+                }
+            }
+            else
+            {
+                m_scanner.clearMemoryWriteWatch();
+            }
+        }
+
+        bool memoryWriteHit = false;
+
+        if (m_scanner.getMemoryWriteWatchHit(
+            memoryWriteHit
+        ))
+        {
+            if (memoryWriteHit &&
+                m_memoryWriteRecordButton.recording())
+            {
+                RuntimeInstruction instruction;
+
+                if (m_scanner.getMemoryWriteWatchCapture(
+                    instruction
+                ))
+                {
+                    m_memoryWriteCapture =
+                        instruction;
+
+                    m_memoryWriteCaptureHit =
+                        true;
+
+                    m_memoryWriteRecordButton.stop();
+                }
+            }
+        }
+
+        if (m_scanner.getMemoryWriteWatchHit(
+            memoryWriteHit
+        ))
+        {
+            ImGui::Text(
+                "State: %s",
+                memoryWriteHit
+                ? "HIT"
+                : m_memoryWriteRecordButton.recording()
+                ? "ARMED / NO HIT"
+                : "IDLE"
+            );
+        }
+        else
+        {
+            ImGui::TextDisabled(
+                "State unavailable."
+            );
+        }
+
+        ImGui::Text(
+            "Scanner status: %s",
+            m_scanner.status().c_str()
+        );
+
+        if (m_memoryWriteCaptureHit)
+        {
+            ImGui::Separator();
+
+            ImGui::Text(
+                "Address: 0x%zX",
+                m_memoryWriteCapture.address
+            );
+
+            ImGui::Text(
+                "CS:IP %04X:%04X",
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.cs
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.ip
+                    )
+            );
+
+            ImGui::Text(
+                "AX=%04X BX=%04X CX=%04X DX=%04X",
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.ax
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.bx
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.cx
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.dx
+                    )
+            );
+
+            ImGui::Text(
+                "SI=%04X DI=%04X BP=%04X SP=%04X",
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.si
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.di
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.bp
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.sp
+                    )
+            );
+
+            ImGui::Text(
+                "DS=%04X ES=%04X SS=%04X",
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.ds
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.es
+                    ),
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.registers.ss
+                    )
+            );
+
+            ImGui::Separator();
+
+            ImGui::TextUnformatted(
+                "Stack at SS:SP:"
+            );
+
+            for (size_t i = 0;
+                i < m_memoryWriteCapture.stackBytes.size();
+                i += 8)
+            {
+                ImGui::Text(
+                    "+%02zX: %02X %02X %02X %02X %02X %02X %02X %02X",
+                    i,
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 0]
+                        ),
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 1]
+                        ),
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 2]
+                        ),
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 3]
+                        ),
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 4]
+                        ),
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 5]
+                        ),
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 6]
+                        ),
+                    static_cast<unsigned int>(
+                        m_memoryWriteCapture.stackBytes[i + 7]
+                        )
+                );
+            }
         }
     }
 

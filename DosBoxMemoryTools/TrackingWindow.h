@@ -36,6 +36,7 @@ namespace DosBoxMemoryTools
         void drawTransitions();
         void captureTransitions();
         void drawExecutionCapture();
+        void drawMemoryWriteWatch();
 
         void loadTrace();
 
@@ -114,6 +115,18 @@ namespace DosBoxMemoryTools
 
         MyImGui::RecordButton
             m_executionRecordButton;
+
+        char m_memoryWriteTargetText[32] =
+            "0xEC4B";
+
+        bool m_memoryWriteCaptureHit =
+            false;
+
+        RuntimeInstruction
+            m_memoryWriteCapture{};
+
+        MyImGui::RecordButton
+            m_memoryWriteRecordButton;
 
    
     };
