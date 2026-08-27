@@ -27,9 +27,10 @@
     <ClCompile Include="MemorySnapshot.cpp" />
     <ClCompile Include="MemoryTools.cpp" />
     <ClCompile Include="MemoryViewerWindow.cpp" />
-    <ClCompile Include="ExectionTraceeNavigationWindow.cpp" />
+    <ClCompile Include="TrackingNavigationWindow.cpp" />
     <ClCompile Include="ExecutionCaptureWindow.cpp" />
-    <ClCompile Include="ExecutionTraceWindow.cpp" />
+    <ClCompile Include="TraceWindow.cpp" />
+    <ClCompile Include="TrackingWindow.cpp" />
     <ClCompile Include="InstructionTransitionTrackerNavigationWindow.cpp" />
     <ClCompile Include="InstructionTransitionTrackerWindow.cpp" />
   </ItemGroup>
@@ -43,8 +44,9 @@
     <ClInclude Include="MemoryTools.h" />
     <ClInclude Include="MemoryViewerWindow.h" />
     <ClInclude Include="ExecutionCaptureWindow.h" />
-    <ClInclude Include="ExecutionTraceNavigationWindow.h" />
-    <ClInclude Include="ExecutionTraceWindow.h" />
+    <ClInclude Include="TrackingNavigationWindow.h" />
+    <ClInclude Include="TraceWindow.h" />
+    <ClInclude Include="TrackingWindow.h" />
     <ClInclude Include="InstructionTransitionTrackerNavigationWindow.h" />
     <ClInclude Include="InstructionTransitionTrackerWindow.h" />
   </ItemGroup>

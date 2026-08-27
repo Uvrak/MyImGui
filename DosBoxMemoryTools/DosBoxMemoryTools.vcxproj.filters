@@ -66,14 +66,17 @@
     <ClCompile Include="MemoryReadTrackerWindow.cpp">
       <Filter>Source Files\Tracking</Filter>
     </ClCompile>
-    <ClCompile Include="ExectionTraceeNavigationWindow.cpp">
+    <ClCompile Include="TrackingNavigationWindow.cpp">
       <Filter>Source Files\Trace</Filter>
     </ClCompile>
     <ClCompile Include="ExecutionCaptureWindow.cpp">
       <Filter>Source Files\Trace</Filter>
     </ClCompile>
-    <ClCompile Include="ExecutionTraceWindow.cpp">
-      <Filter>Source Files\Trace</Filter>
+    <ClCompile Include="TraceWindow.cpp">
+      <Filter>Source Files\Tracking</Filter>
+    </ClCompile>
+    <ClCompile Include="TrackingWindow.cpp">
+      <Filter>Source Files\Tracking</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -110,11 +113,14 @@
     <ClInclude Include="ExecutionCaptureWindow.h">
       <Filter>Source Files\Trace</Filter>
     </ClInclude>
-    <ClInclude Include="ExecutionTraceNavigationWindow.h">
+    <ClInclude Include="TrackingNavigationWindow.h">
       <Filter>Source Files\Trace</Filter>
     </ClInclude>
-    <ClInclude Include="ExecutionTraceWindow.h">
-      <Filter>Source Files\Trace</Filter>
+    <ClInclude Include="TraceWindow.h">
+      <Filter>Source Files\Tracking</Filter>
+    </ClInclude>
+    <ClInclude Include="TrackingWindow.h">
+      <Filter>Source Files\Tracking</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

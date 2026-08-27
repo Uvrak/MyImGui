@@ -1,5 +1,5 @@
-#include "ExecutionTraceNavigationWindow.h"
-#include "ExecutionTraceWindow.h"
+#include "TrackingNavigationWindow.h"
+#include "TrackingWindow.h"
 
 #include <cstdlib>
 
@@ -303,7 +303,7 @@ namespace
 
 namespace DosBoxMemoryTools
 {
-    void ExecutionTraceNavigationWindow::draw(
+    void TrackingNavigationWindow::draw(
         bool* isOpen
     )
     {
@@ -427,65 +427,90 @@ namespace DosBoxMemoryTools
                     );
                 }
             }
+        }
 
-            bool traceActive = false;
-            bool traceArmed = false;
+        if (m_trace &&
+            m_selectedTraceIndex)
+        {
+            const bool hasTrace =
+                !m_trace->empty();
 
-            const bool hasTraceActive =
-                m_scanner->getReadTraceActive(
-                    traceActive
-                );
+            const bool hasSelection =
+                hasTrace &&
+                *m_selectedTraceIndex !=
+                static_cast<size_t>(-1) &&
+                *m_selectedTraceIndex <
+                m_trace->size();
 
-            const bool hasTraceArmed =
-                m_scanner->getReadTraceArmed(
-                    traceArmed
-                );
-
-            if (hasTraceActive &&
-                hasTraceArmed)
+            if (!hasSelection)
             {
-                const char* state =
-                    traceActive
-                    ? "CAPTURING"
-                    : traceArmed
-                    ? "ARMED"
-                    : "IDLE / COMPLETE";
-
-                ImGui::Text(
-                    "Trace state: %s",
-                    state
-                );
+                ImGui::BeginDisabled();
             }
 
-            size_t traceTarget = 0;
+            if (ImGui::Button("<"))
+            {
+                if (*m_selectedTraceIndex > 0)
+                {
+                    --(*m_selectedTraceIndex);
 
-            if (m_scanner->getReadTraceTarget(
-                traceTarget
-            ))
+                    if (m_scrollToSelectedTrace)
+                    {
+                        *m_scrollToSelectedTrace = true;
+                    }
+                }
+            }
+
+            if (!hasSelection)
+            {
+                ImGui::EndDisabled();
+            }
+
+            ImGui::SameLine();
+
+            if (hasSelection)
             {
                 ImGui::Text(
-                    "Trace target: 0x%zX",
-                    traceTarget
+                    "Instruction %zu / %zu",
+                    *m_selectedTraceIndex + 1,
+                    m_trace->size()
                 );
             }
             else
             {
-                ImGui::TextDisabled(
-                    "Trace target unavailable."
-                );
-            }
-
-            if (m_trace)
-            {
                 ImGui::Text(
-                    "Captured instructions: %zu",
+                    "Instruction - / %zu",
                     m_trace->size()
                 );
             }
 
-            ImGui::Separator();
-        }
+            ImGui::SameLine();
 
+            const bool canNext =
+                hasSelection &&
+                *m_selectedTraceIndex + 1 <
+                m_trace->size();
+
+            if (!canNext)
+            {
+                ImGui::BeginDisabled();
+            }
+
+            if (ImGui::Button(">"))
+            {
+                ++(*m_selectedTraceIndex);
+
+                if (m_scrollToSelectedTrace)
+                {
+                    *m_scrollToSelectedTrace = true;
+                }
+            }
+
+            if (!canNext)
+            {
+                ImGui::EndDisabled();
+            }
+        }
+        /*
         uint32_t instructionMemoryAddress = 0;
 
         char* instructionMemoryEnd = nullptr;
@@ -979,7 +1004,8 @@ namespace DosBoxMemoryTools
 
 
         }
-    
+		*/
+
         m_window.end();
 
         if (isOpen)
@@ -989,7 +1015,7 @@ namespace DosBoxMemoryTools
         }
     }
 
-    bool ExecutionTraceNavigationWindow::
+    bool TrackingNavigationWindow::
         saveTraceRequested()
     {
         const bool requested =
@@ -1000,7 +1026,7 @@ namespace DosBoxMemoryTools
         return requested;
     }
 
-    bool ExecutionTraceNavigationWindow::
+    bool TrackingNavigationWindow::
         loadTraceRequested()
     {
         const bool requested =
@@ -1011,7 +1037,7 @@ namespace DosBoxMemoryTools
         return requested;
     }
 
-    void ExecutionTraceNavigationWindow::setScanner(
+    void TrackingNavigationWindow::setScanner(
         MemoryScanner* scanner
     )
     {
@@ -1019,7 +1045,7 @@ namespace DosBoxMemoryTools
             scanner;
     }
 
-    void ExecutionTraceNavigationWindow::setRecordButton(
+    void TrackingNavigationWindow::setRecordButton(
         MyImGui::RecordButton* recordButton
     )
     {
@@ -1027,7 +1053,7 @@ namespace DosBoxMemoryTools
             recordButton;
     }
 
-    void ExecutionTraceNavigationWindow::setTargetText(
+    void TrackingNavigationWindow::setTargetText(
         char* targetText,
         size_t targetTextSize
     )
@@ -1039,7 +1065,7 @@ namespace DosBoxMemoryTools
             targetTextSize;
     }
 
-    void ExecutionTraceNavigationWindow::
+    void TrackingNavigationWindow::
         setSelectedTraceIndex(
             size_t* selectedTraceIndex
         )
@@ -1048,7 +1074,7 @@ namespace DosBoxMemoryTools
             selectedTraceIndex;
     }
 
-    void ExecutionTraceNavigationWindow::setTrace(
+    void TrackingNavigationWindow::setTrace(
         std::vector<RuntimeInstruction>* trace
     )
     {
@@ -1056,7 +1082,7 @@ namespace DosBoxMemoryTools
             trace;
     }
     
-    void ExecutionTraceNavigationWindow::
+    void TrackingNavigationWindow::
         setScrollToSelectedTrace(
             bool* scrollToSelectedTrace
         )
@@ -1064,4 +1090,5 @@ namespace DosBoxMemoryTools
         m_scrollToSelectedTrace =
             scrollToSelectedTrace;
     }
+    
 }

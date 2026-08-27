@@ -1,17 +1,21 @@
 #pragma once
 
 #include <vector>
+#include <utility>
+#include <array>
 
 #include "MemoryScanner.h"
 #include "RecordButton.h"
-#include "ExecutionTraceNavigationWindow.h"
+#include "TrackingNavigationWindow.h"
+#include "InstructionTransitionTrackerNavigationWindow.h"
+
 
 namespace DosBoxMemoryTools
 {
-    class ExecutionTraceWindow
+    class TrackingWindow
     {
     public:
-        ExecutionTraceWindow(
+        TrackingWindow(
             MemoryScanner& scanner,
             const std::string& gameId
         );
@@ -28,6 +32,10 @@ namespace DosBoxMemoryTools
         );
 
     private:
+        void drawTrace();
+        void drawTransitions();
+        void captureTransitions();
+
         void loadTrace();
 
         void saveTraceToFile(
@@ -62,7 +70,39 @@ namespace DosBoxMemoryTools
 
         int m_previousRegisterIndex = 5;
 
-        ExecutionTraceNavigationWindow
+        TrackingNavigationWindow
             m_navigationWindow;
+
+        InstructionTransitionTrackerNavigationWindow
+            m_transitionNavigationWindow;
+
+        std::vector<std::pair<size_t, size_t>>
+            m_transitions;
+
+        std::vector<std::pair<uint16_t, uint16_t>>
+            m_transitionContexts;
+
+        std::vector<std::array<uint8_t, 16>>
+            m_transitionBytes;
+
+        char m_transitionTargetText[32] =
+            "0xEC4B";
+
+        std::vector<
+            std::vector<RuntimeInstruction>
+        >
+            m_transitionHistories;
+
+        std::vector<RuntimeInstruction>
+            m_transitionNextInstructions;
+
+        size_t
+            m_selectedHistoryInstruction = 0;
+
+        bool
+            m_scrollToSelectedHistoryInstruction = false;
+
+
+   
     };
 }

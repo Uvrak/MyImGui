@@ -5,15 +5,17 @@
 #include "MemoryReadTrackerWindow.h"
 #include "DisassemblyWindow.h"
 #include "InstructionTransitionTrackerWindow.h"
-#include "ExecutionCaptureWindow.h"
-#include "ExecutionTraceWindow.h"
+#include "TrackingWindow.h"
 
-#include "imgui.h"
+#include <string>
+
+namespace DosBoxX
+{
+    class View;
+}
 
 namespace DosBoxMemoryTools
 {
-    class DosBoxView;
-
     class MemoryTools
     {
     public:
@@ -34,7 +36,7 @@ namespace DosBoxMemoryTools
 
         bool refreshMemory();
 
-    private:
+    private:    
         bool m_liveView = false;
         double m_lastLiveRefresh = 0.0;
 
@@ -50,16 +52,14 @@ namespace DosBoxMemoryTools
         MemoryReadTrackerWindow
             m_readTrackerWindow;
 
+        TrackingWindow
+            m_trackingWindow;
+
+ 
         InstructionTransitionTrackerWindow
             m_transitionTrackerWindow;
 
-        ExecutionCaptureWindow
-            m_executionCaptureWindow;
-
-        ExecutionTraceWindow
-            m_executionTraceWindow;
-
-        DisassemblyWindow  
+        DisassemblyWindow
             m_disassemblyWindow;
     };
-}              
+}

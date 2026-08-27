@@ -23,10 +23,8 @@ namespace DosBoxMemoryTools
             m_scannerWindow,
             gameId
         ),
-        m_executionCaptureWindow(
-            m_scannerWindow.scanner()
-        ),
-        m_executionTraceWindow(
+        
+        m_trackingWindow(
             m_scannerWindow.scanner(),
             gameId
         ),
@@ -65,15 +63,7 @@ namespace DosBoxMemoryTools
             nullptr
         );
 
-        m_transitionTrackerWindow.draw(
-            nullptr
-        );
-
-        m_executionCaptureWindow.draw(
-            nullptr
-        );
-
-        m_executionTraceWindow.draw(
+        m_trackingWindow.draw(
             nullptr
         );
 
@@ -106,11 +96,9 @@ namespace DosBoxMemoryTools
 
     void MemoryTools::saveSession()
     {
-        m_readTrackerWindow.saveSession();
-
         m_transitionTrackerWindow.saveSession();
 
-        m_executionTraceWindow.saveSession();
+        m_trackingWindow.saveSession();
     }
 
     void MemoryTools::setGameId(
@@ -129,7 +117,7 @@ namespace DosBoxMemoryTools
             gameId
         );
 
-        m_executionTraceWindow.setGameId(
+        m_trackingWindow.setGameId(
             gameId
         );
     }

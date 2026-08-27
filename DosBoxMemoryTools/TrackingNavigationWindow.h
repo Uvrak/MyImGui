@@ -9,10 +9,10 @@
 
 namespace DosBoxMemoryTools
 {
-    class ExecutionTraceNavigationWindow
+    class TrackingNavigationWindow
     {
     public:
-        ExecutionTraceNavigationWindow() = default;
+        TrackingNavigationWindow() = default;
 
         void draw(
             bool* isOpen
@@ -86,8 +86,8 @@ namespace DosBoxMemoryTools
         true,   // movable
         true,   // resizable
         true,   // collapsible
-        true,   // closable
-        true,   // titleBar
+        false,   // closable
+        false,   // titleBar
         false,  // autoResizeHeight
         true    // dockable
         }
