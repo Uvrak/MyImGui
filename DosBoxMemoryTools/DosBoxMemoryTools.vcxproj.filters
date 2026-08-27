@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Source Files\Core">
+      <UniqueIdentifier>{4d7ae073-cb62-4c0f-a4f6-f788234de111}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Memory">
+      <UniqueIdentifier>{442b5bf4-bc72-4c54-82c5-e798c5487c5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Scanner">
+      <UniqueIdentifier>{790f0a1c-379a-4a2e-bf5f-9bdc480f3747}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Viewer">
+      <UniqueIdentifier>{a4940971-5094-41e5-98a3-ec95fd64947b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Dissasembly">
+      <UniqueIdentifier>{22f43b72-92ee-4b05-9370-e1f1bea4dad1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Tracking">
+      <UniqueIdentifier>{76deb51d-c45f-47b7-930b-c512f2849ff6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Trace">
+      <UniqueIdentifier>{db1ab5e0-0425-4573-aafa-2bac1fc1ae58}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryTools.cpp">
+      <Filter>Source Files\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Reader.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="MemorySnapshot.cpp">
+      <Filter>Source Files\Memory</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryScanner.cpp">
+      <Filter>Source Files\Scanner</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryScannerWindow.cpp">
+      <Filter>Source Files\Scanner</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryViewerWindow.cpp">
+      <Filter>Source Files\Viewer</Filter>
+    </ClCompile>
+    <ClCompile Include="DisassemblyWindow.cpp">
+      <Filter>Source Files\Dissasembly</Filter>
+    </ClCompile>
+    <ClCompile Include="InstructionTransitionTrackerNavigationWindow.cpp">
+      <Filter>Source Files\Tracking</Filter>
+    </ClCompile>
+    <ClCompile Include="InstructionTransitionTrackerWindow.cpp">
+      <Filter>Source Files\Tracking</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryReadTrackerWindow.cpp">
+      <Filter>Source Files\Tracking</Filter>
+    </ClCompile>
+    <ClCompile Include="ExectionTraceeNavigationWindow.cpp">
+      <Filter>Source Files\Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="ExecutionCaptureWindow.cpp">
+      <Filter>Source Files\Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="ExecutionTraceWindow.cpp">
+      <Filter>Source Files\Trace</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MemoryTools.h">
+      <Filter>Source Files\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryReader.h">
+      <Filter>Source Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="MemorySnapshot.h">
+      <Filter>Source Files\Memory</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryScanner.h">
+      <Filter>Source Files\Scanner</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryScannerWindow.h">
+      <Filter>Source Files\Scanner</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryViewerWindow.h">
+      <Filter>Source Files\Viewer</Filter>
+    </ClInclude>
+    <ClInclude Include="DisassemblyWindow.h">
+      <Filter>Source Files\Dissasembly</Filter>
+    </ClInclude>
+    <ClInclude Include="InstructionTransitionTrackerNavigationWindow.h">
+      <Filter>Source Files\Tracking</Filter>
+    </ClInclude>
+    <ClInclude Include="InstructionTransitionTrackerWindow.h">
+      <Filter>Source Files\Tracking</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryReadTrackerWindow.h">
+      <Filter>Source Files\Tracking</Filter>
+    </ClInclude>
+    <ClInclude Include="ExecutionCaptureWindow.h">
+      <Filter>Source Files\Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="ExecutionTraceNavigationWindow.h">
+      <Filter>Source Files\Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="ExecutionTraceWindow.h">
+      <Filter>Source Files\Trace</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

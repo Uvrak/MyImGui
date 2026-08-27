@@ -2,7 +2,7 @@
 
 #include "ItemSource.h"
 
-#include "DosBoxMemoryReader.h"
+#include "MemoryReader.h"
 
 namespace MightAndMagic3
 {
@@ -11,7 +11,7 @@ namespace MightAndMagic3
     {
     public:
         ItemSource(
-            MyImGui::DosBoxMemoryReader& memoryReader
+            DosBoxMemoryTools::MemoryReader& memoryReader
         );
 
         const char* gameName()
@@ -51,7 +51,7 @@ namespace MightAndMagic3
             ItemExplorer::Item
         > m_items;
 
-        MyImGui::DosBoxMemoryReader&
+        DosBoxMemoryTools::MemoryReader&
             m_memoryReader;
 
         std::string readString(

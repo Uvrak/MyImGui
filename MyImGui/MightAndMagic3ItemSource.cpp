@@ -6,7 +6,7 @@ namespace MightAndMagic3
     constexpr int MaxItemId = 100;
 
     ItemSource::ItemSource(
-        MyImGui::DosBoxMemoryReader& memoryReader
+        DosBoxMemoryTools::MemoryReader& memoryReader
     )
         :
         m_memoryReader(

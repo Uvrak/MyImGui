@@ -19,18 +19,6 @@
     <Filter Include="Internal">
       <UniqueIdentifier>{6c6876c2-c207-4b8c-aae8-5af9e083eb3c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="DosBoxX">
-      <UniqueIdentifier>{191309e8-e84a-42d7-ac04-f7d51d936ec7}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DosBoxMemoryScanner">
-      <UniqueIdentifier>{a1215f16-0a08-4936-bc97-fb0ece38cca1}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DosBoxMemoryScanner\DosboxMemoryTools">
-      <UniqueIdentifier>{a676c1e8-c40c-435e-bae0-d6b36d246eac}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader">
-      <UniqueIdentifier>{725298d1-f83f-4467-b5ea-7cac525f40e0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="UiSettings">
       <UniqueIdentifier>{a8cb85f4-3b66-4fef-a737-0aa442e379fc}</UniqueIdentifier>
     </Filter>
@@ -72,48 +60,6 @@
     <ClInclude Include="MainMenu.h">
       <Filter>Layout</Filter>
     </ClInclude>
-    <ClInclude Include="DosBoxFrameReader.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxFrameTexture.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="ExternalWindow.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxKeyboard.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxMouse.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxView.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxController.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="NamedPipeClient.h">
-      <Filter>DosBoxX</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxMemorySnapshot.h">
-      <Filter>DosBoxMemoryScanner</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxMemoryReader.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxMemoryScanner.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxMemoryViewerWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxMemoryScannerWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
-    <ClInclude Include="DosBoxMemoryTools.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
-    </ClInclude>
     <ClInclude Include="MyImGuiSettings.h">
       <Filter>UiSettings</Filter>
     </ClInclude>
@@ -132,29 +78,11 @@
     <ClInclude Include="MightAndMagic3ItemSource.h">
       <Filter>Games</Filter>
     </ClInclude>
-    <ClInclude Include="DosBoxMemoryReadTrackerWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
     <ClInclude Include="MightAndMagic3Inventory.h">
       <Filter>Games</Filter>
     </ClInclude>
-    <ClInclude Include="DosBoxDisassemblyWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
-    <ClInclude Include="InstructionTransitionTrackerWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
-    <ClInclude Include="ExecutionCaptureWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
     <ClInclude Include="RecordButton.h">
       <Filter>RecordButton</Filter>
-    </ClInclude>
-    <ClInclude Include="ExecutionTraceWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClInclude>
-    <ClInclude Include="InstructionTransitionTrackerNavigationWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -179,48 +107,6 @@
     <ClCompile Include="MainMenu.cpp">
       <Filter>Layout</Filter>
     </ClCompile>
-    <ClCompile Include="DosBoxFrameReader.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxFrameTexture.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="ExternalWindow.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxKeyboard.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxMouse.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxView.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxController.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="NamedPipeClient.cpp">
-      <Filter>DosBoxX</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxMemorySnapshot.cpp">
-      <Filter>DosBoxMemoryScanner</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxMemoryReader.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxMemoryScanner.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxMemoryViewerWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxMemoryScannerWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxMemoryTools.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools</Filter>
-    </ClCompile>
     <ClCompile Include="MyImGuiSettings.cpp">
       <Filter>UiSettings</Filter>
     </ClCompile>
@@ -233,37 +119,13 @@
     <ClCompile Include="MightAndMagic3ItemSource.cpp">
       <Filter>Games</Filter>
     </ClCompile>
-    <ClCompile Include="DosBoxMemoryReadTrackerWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="DosBoxDisassemblyWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="InstructionTransitionTrackerWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="ExecutionCaptureWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
     <ClCompile Include="RecordButton.cpp">
       <Filter>RecordButton</Filter>
-    </ClCompile>
-    <ClCompile Include="ExecutionTraceWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="ExectionTraceeNavigationWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
-    </ClCompile>
-    <ClCompile Include="InstructionTransitionTrackerNavigationWindow.cpp">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="MM3_MEMORY_FINDINGS.md">
       <Filter>Games\docs</Filter>
-    </None>
-    <None Include="ExecutionTraceNavigationWindow.h">
-      <Filter>DosBoxMemoryScanner\DosboxMemoryTools\DosBoxMemoryReader</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

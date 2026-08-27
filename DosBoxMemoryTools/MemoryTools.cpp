@@ -1,0 +1,136 @@
+
+#include "MemoryTools.h"
+
+#include "imgui.h"
+
+namespace DosBoxMemoryTools
+{
+    MemoryTools::
+        MemoryTools(
+            const std::string& gameId,
+            DosBoxX::View* dosBoxView
+        )
+        : m_scannerWindow(
+            m_memoryReader,
+            gameId,
+            dosBoxView
+        ),
+        m_viewerWindow(
+            m_memoryReader
+        ),
+        m_readTrackerWindow(
+            m_scannerWindow.scanner(),
+            m_scannerWindow,
+            gameId
+        ),
+        m_executionCaptureWindow(
+            m_scannerWindow.scanner()
+        ),
+        m_executionTraceWindow(
+            m_scannerWindow.scanner(),
+            gameId
+        ),
+        m_transitionTrackerWindow(
+            m_scannerWindow.scanner(),
+            gameId
+        ),
+        m_disassemblyWindow(
+            m_memoryReader
+        )
+    {}
+
+    void MemoryTools::draw()
+    {
+        if (m_liveView)
+        {
+            const double currentTime =
+                ImGui::GetTime();
+
+            if (currentTime -
+                m_lastLiveRefresh >= 0.2)
+            {
+                m_scannerWindow.refreshMemory();
+
+                m_lastLiveRefresh =
+                    currentTime;
+            }
+        }
+
+        m_scannerWindow.draw(
+            nullptr,
+            m_liveView
+        );
+
+        m_readTrackerWindow.draw(
+            nullptr
+        );
+
+        m_transitionTrackerWindow.draw(
+            nullptr
+        );
+
+        m_executionCaptureWindow.draw(
+            nullptr
+        );
+
+        m_executionTraceWindow.draw(
+            nullptr
+        );
+
+        size_t selectedAddress = 0;
+
+        if (m_scannerWindow.takeSelectedAddress(
+            selectedAddress
+        ))
+        {
+            m_viewerWindow.goToAddress(
+                selectedAddress
+            );
+        }
+
+        m_viewerWindow.draw(
+            nullptr,
+            m_liveView
+        );
+
+        m_disassemblyWindow.draw(
+            nullptr
+        );
+    }
+
+    MemoryReader&
+        MemoryTools::memoryReader()
+    {
+        return m_memoryReader;
+    }
+
+    void MemoryTools::saveSession()
+    {
+        m_readTrackerWindow.saveSession();
+
+        m_transitionTrackerWindow.saveSession();
+
+        m_executionTraceWindow.saveSession();
+    }
+
+    void MemoryTools::setGameId(
+        const std::string& gameId
+    )
+    {
+        m_scannerWindow.setGameId(
+            gameId
+        );
+
+        m_readTrackerWindow.setGameId(
+            gameId
+        );
+
+        m_transitionTrackerWindow.setGameId(
+            gameId
+        );
+
+        m_executionTraceWindow.setGameId(
+            gameId
+        );
+    }
+}

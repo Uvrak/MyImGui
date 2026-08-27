@@ -3,6 +3,8 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Project Path="DosBoxMemoryTools/DosBoxMemoryTools.vcxproj" Id="eeab584f-b05a-4e0d-a2b7-e94e0e107fa8" />
+  <Project Path="DosBoxX/DosBoxX.vcxproj" Id="c5542076-9232-495f-91c7-92cf22e2f0df" />
   <Project Path="ImGui/ImGui.vcxproj" Id="7400f32b-42d9-432d-81d4-e5b8e0fd510d" />
   <Project Path="MyImGui/MyImGui.vcxproj" Id="df47b7a7-9d08-45a7-afe0-485bef09fe61" />
   <Project Path="MyImGuiTest/MyImGuiTest.vcxproj" Id="4e6e6b43-8718-4f86-8a37-4750650077e8" />

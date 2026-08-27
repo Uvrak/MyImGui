@@ -9,24 +9,24 @@
 #include "imgui.h"
 #include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
-#include "DosBoxFrameReader.h"
-#include "DosBoxFrameTexture.h"
+#include "FrameReader.h"
+#include "FrameTexture.h"
 #include <d3d11.h>
 #include <tchar.h>
 #include <algorithm>
 #include "ExternalWindow.h"
 #include "MainMenu.h"
-#include "DosBoxKeyboard.h"
-#include "DosBoxMouse.h"
-#include "DosBoxView.h"
-#include "DosBoxController.h"
-#include "DosBoxMemoryScannerWindow.h"
-#include "DosBoxMemoryTools.h"
+#include "Keyboard.h"
+#include "Mouse.h"
+#include "View.h"
+#include "Controller.h"
+#include "MemoryScannerWindow.h"
+#include "MemoryTools.h"
 #include "MyImGuiSettings.h"
 #include "MyImGuiSettingsWindow.h"
 
 #include "NamedPipeClient.h"
-MyImGui::NamedPipeClient NamedPipeClient(
+DosBoxX::NamedPipeClient NamedPipeClient(
     R"(\\.\pipe\GridBuilderDOSBox)"
 );
 
@@ -130,8 +130,8 @@ int main(int, char**)
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
     //IM_ASSERT(font != nullptr);
 
-    MyImGui::DosBoxController dosBoxController;
-    dosBoxController.closeExistingInstances();
+    DosBoxX::Controller Controller;
+    Controller.closeExistingInstances();
 
     MyImGui::MainMenu mainMenu;
 
@@ -144,7 +144,7 @@ int main(int, char**)
 
     settings.apply();
 
-	MyImGui::ExternalWindow externalWindow;
+	DosBoxX::ExternalWindow externalWindow;
 
     externalWindow.startProcess(
         R"(C:\Projects\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe)"
@@ -190,20 +190,20 @@ int main(int, char**)
         dosBoxFound ? "YES" : "NO"
     );
 
-    MyImGui::DosBoxFrameReader dosBoxFrameReader;
+    DosBoxX::FrameReader frameReader;
 
-    MyImGui::DosBoxFrameTexture dosBoxFrameTexture(
+    DosBoxX::FrameTexture frameTexture(
         g_pd3dDevice,
         g_pd3dDeviceContext
     );
 
-    MyImGui::DosBoxKeyboard dosBoxKeyboard;
-    MyImGui::DosBoxMouse dosBoxMouse;   
-    MyImGui::DosBoxView dosBoxView;
-    MyImGui::DosBoxMemoryTools
+    DosBoxX::Keyboard keyboard;
+    DosBoxX::Mouse mouse;   
+    DosBoxX::View view;
+    DosBoxMemoryTools::MemoryTools
         memoryTools(
             mainMenu.gameFilename(),
-            &dosBoxView
+            &view
         );
 
     memoryTools.setGameId(
@@ -278,9 +278,9 @@ int main(int, char**)
             {
                 if (now >= autoStartAt)
                 {
-                    dosBoxController.setKeyboardLayout(
+                    Controller.setKeyboardLayout(
                         NamedPipeClient,
-                        MyImGui::KeyboardLayout::German
+                        DosBoxX::KeyboardLayout::German
                     );
 
                     autoStartState =
@@ -295,12 +295,12 @@ int main(int, char**)
                 switch (autoStartState)
                 {
                 case AutoStartState::Mount:
-                    dosBoxController.sendDosText(
+                    Controller.sendDosText(
                         NamedPipeClient,
                         "MOUNT C \"C:\\GOG Galaxy\\Games\\Might and Magic 3\""
                     );
 
-                    dosBoxController.sendDosKey(
+                    Controller.sendDosKey(
                         NamedPipeClient,
                         "ENTER"
                     );
@@ -314,12 +314,12 @@ int main(int, char**)
                     break;
 
                 case AutoStartState::ChangeDrive:
-                    dosBoxController.sendDosText(
+                    Controller.sendDosText(
                         NamedPipeClient,
                         "C:"
                     );
 
-                    dosBoxController.sendDosKey(
+                    Controller.sendDosKey(
                         NamedPipeClient,
                         "ENTER"
                     );
@@ -333,12 +333,12 @@ int main(int, char**)
                     break;
 
                 case AutoStartState::StartGame:
-                    dosBoxController.sendDosText(
+                    Controller.sendDosText(
                         NamedPipeClient,
                         "MM3"
                     );
 
-                    dosBoxController.sendDosKey(
+                    Controller.sendDosKey(
                         NamedPipeClient,
                         "ENTER"
                     );
@@ -414,17 +414,17 @@ int main(int, char**)
 
         if (mainMenu.consumeGermanKeyboardLayoutRequest())
         {
-            dosBoxController.setKeyboardLayout(
+            Controller.setKeyboardLayout(
                 NamedPipeClient,
-                MyImGui::KeyboardLayout::German
+                DosBoxX::KeyboardLayout::German
             );
         }
 
         if (mainMenu.consumeUSKeyboardLayoutRequest())
         {
-            dosBoxController.setKeyboardLayout(
+            Controller.setKeyboardLayout(
                 NamedPipeClient,
-                MyImGui::KeyboardLayout::US
+                DosBoxX::KeyboardLayout::US
             );
         }
 
@@ -433,7 +433,7 @@ int main(int, char**)
             memoryTools.setGameId(
                 mainMenu.gameFilename()
             );
-                dosBoxController.openGame(
+                Controller.openGame(
                 NamedPipeClient,
                 mainMenu.mountDirectory(),
                 mainMenu.dosDirectory(),
@@ -464,12 +464,12 @@ int main(int, char**)
         itemExplorerWindow.draw();
 
         {
-            dosBoxView.draw(
+            view.draw(
                 NamedPipeClient,
-                dosBoxFrameReader,
-                dosBoxFrameTexture,
-                dosBoxKeyboard,
-                dosBoxMouse,
+                frameReader,
+                frameTexture,
+                keyboard,
+                mouse,
                 mainMenu.gameFilename()
             );
         }
