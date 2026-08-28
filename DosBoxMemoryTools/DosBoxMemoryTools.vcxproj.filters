@@ -57,20 +57,8 @@
     <ClCompile Include="DisassemblyWindow.cpp">
       <Filter>Source Files\Dissasembly</Filter>
     </ClCompile>
-    <ClCompile Include="InstructionTransitionTrackerNavigationWindow.cpp">
-      <Filter>Source Files\Tracking</Filter>
-    </ClCompile>
-    <ClCompile Include="InstructionTransitionTrackerWindow.cpp">
-      <Filter>Source Files\Tracking</Filter>
-    </ClCompile>
     <ClCompile Include="MemoryReadTrackerWindow.cpp">
       <Filter>Source Files\Tracking</Filter>
-    </ClCompile>
-    <ClCompile Include="TrackingNavigationWindow.cpp">
-      <Filter>Source Files\Trace</Filter>
-    </ClCompile>
-    <ClCompile Include="ExecutionCaptureWindow.cpp">
-      <Filter>Source Files\Trace</Filter>
     </ClCompile>
     <ClCompile Include="TraceWindow.cpp">
       <Filter>Source Files\Tracking</Filter>
@@ -101,20 +89,8 @@
     <ClInclude Include="DisassemblyWindow.h">
       <Filter>Source Files\Dissasembly</Filter>
     </ClInclude>
-    <ClInclude Include="InstructionTransitionTrackerNavigationWindow.h">
-      <Filter>Source Files\Tracking</Filter>
-    </ClInclude>
-    <ClInclude Include="InstructionTransitionTrackerWindow.h">
-      <Filter>Source Files\Tracking</Filter>
-    </ClInclude>
     <ClInclude Include="MemoryReadTrackerWindow.h">
       <Filter>Source Files\Tracking</Filter>
-    </ClInclude>
-    <ClInclude Include="ExecutionCaptureWindow.h">
-      <Filter>Source Files\Trace</Filter>
-    </ClInclude>
-    <ClInclude Include="TrackingNavigationWindow.h">
-      <Filter>Source Files\Trace</Filter>
     </ClInclude>
     <ClInclude Include="TraceWindow.h">
       <Filter>Source Files\Tracking</Filter>

@@ -27,12 +27,8 @@
     <ClCompile Include="MemorySnapshot.cpp" />
     <ClCompile Include="MemoryTools.cpp" />
     <ClCompile Include="MemoryViewerWindow.cpp" />
-    <ClCompile Include="TrackingNavigationWindow.cpp" />
-    <ClCompile Include="ExecutionCaptureWindow.cpp" />
     <ClCompile Include="TraceWindow.cpp" />
     <ClCompile Include="TrackingWindow.cpp" />
-    <ClCompile Include="InstructionTransitionTrackerNavigationWindow.cpp" />
-    <ClCompile Include="InstructionTransitionTrackerWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DisassemblyWindow.h" />
@@ -43,12 +39,8 @@
     <ClInclude Include="MemorySnapshot.h" />
     <ClInclude Include="MemoryTools.h" />
     <ClInclude Include="MemoryViewerWindow.h" />
-    <ClInclude Include="ExecutionCaptureWindow.h" />
-    <ClInclude Include="TrackingNavigationWindow.h" />
     <ClInclude Include="TraceWindow.h" />
     <ClInclude Include="TrackingWindow.h" />
-    <ClInclude Include="InstructionTransitionTrackerNavigationWindow.h" />
-    <ClInclude Include="InstructionTransitionTrackerWindow.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">

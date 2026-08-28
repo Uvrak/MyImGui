@@ -4,7 +4,6 @@
 #include "MemoryViewerWindow.h"
 #include "MemoryReadTrackerWindow.h"
 #include "DisassemblyWindow.h"
-#include "InstructionTransitionTrackerWindow.h"
 #include "TrackingWindow.h"
 
 #include <string>
@@ -56,8 +55,8 @@ namespace DosBoxMemoryTools
             m_trackingWindow;
 
  
-        InstructionTransitionTrackerWindow
-            m_transitionTrackerWindow;
+        //InstructionTransitionTrackerWindow
+        //    m_transitionTrackerWindow;
 
         DisassemblyWindow
             m_disassemblyWindow;

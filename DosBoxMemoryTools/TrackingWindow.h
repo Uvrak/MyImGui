@@ -6,9 +6,6 @@
 
 #include "MemoryScanner.h"
 #include "RecordButton.h"
-#include "TrackingNavigationWindow.h"
-#include "InstructionTransitionTrackerNavigationWindow.h"
-
 
 namespace DosBoxMemoryTools
 {
@@ -27,11 +24,15 @@ namespace DosBoxMemoryTools
         void saveSession() const;
         void loadSession();
 
+
         void setGameId(
             const std::string& gameId
         );
 
     private:
+        void drawNavigation();
+        void drawRecorder();
+
         void drawTrace();
         void drawTransitions();
         void captureTransitions();
@@ -51,6 +52,9 @@ namespace DosBoxMemoryTools
         MemoryScanner&
             m_scanner;
 
+        std::string
+            m_gameId;
+
         std::vector<RuntimeInstruction>
             m_trace;
 
@@ -60,9 +64,6 @@ namespace DosBoxMemoryTools
         char m_targetText[32] =
             "0x31C33";
 
-        std::string
-            m_gameId;
-
         size_t m_selectedTraceIndex =
             static_cast<size_t>(-1);
 
@@ -70,13 +71,19 @@ namespace DosBoxMemoryTools
 
         bool m_scrollToSelectedTrace = false;
 
+        bool m_saveTraceRequested = false;
+        bool m_loadTraceRequested = false;
+
         int m_previousRegisterIndex = 5;
 
-        TrackingNavigationWindow
-            m_navigationWindow;
+        MyImGui::RecordButton
+            m_transitionRecordButton;
 
-        InstructionTransitionTrackerNavigationWindow
-            m_transitionNavigationWindow;
+        size_t m_lastTransitionCount = 0;
+
+        double m_lastTransitionChangeTime = 0.0;
+
+        bool m_transitionSeen = false;
 
         std::vector<std::pair<size_t, size_t>>
             m_transitions;
@@ -99,7 +106,8 @@ namespace DosBoxMemoryTools
             m_transitionNextInstructions;
 
         size_t
-            m_selectedHistoryInstruction = 0;
+            m_selectedHistoryInstruction =
+            static_cast<size_t>(-1);
 
         bool
             m_scrollToSelectedHistoryInstruction = false;
@@ -128,6 +136,16 @@ namespace DosBoxMemoryTools
         MyImGui::RecordButton
             m_memoryWriteRecordButton;
 
+        enum class TrackingTab
+        {
+            Trace,
+            Trans,
+            Exec,
+            MemWr
+        };
+
+        TrackingTab m_activeTab =
+            TrackingTab::Trace;
    
     };
 }
