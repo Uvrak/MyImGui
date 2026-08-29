@@ -457,8 +457,9 @@ int main(int, char**)
 
         mm3ItemSource.refresh();
 
-        itemExplorerWindow.selectItem(
-            mm3ItemSource.selectedItemId()
+        itemExplorerWindow.updateSelection(
+            mm3ItemSource.selectedItemId(),
+            mm3ItemSource.selectedCharacterIndex()
         );
 
         itemExplorerWindow.draw();

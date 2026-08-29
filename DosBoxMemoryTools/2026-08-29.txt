@@ -1,0 +1,657 @@
+MM3 – WICHTIGE REVERSE-ENGINEERING-ERKENNTNISSE
+Stand: 29.08.2026
+==================================================
+
+Zweck
+-----
+Diese Datei fasst die wichtigen, weiterhin relevanten Erkenntnisse aus den
+bisherigen MM3-/DOSBox-X-/MyImGui-Notizen zusammen.
+
+Unklare oder überholte Zwischenstände wurden möglichst nicht als bestätigte
+Fakten übernommen. Offene Punkte sind ausdrücklich als solche markiert.
+
+
+1. GRUNDREGEL FÜR DAS REVERSE ENGINEERING
+==========================================
+
+MM3 verwendet offenbar dynamisch geladenen bzw. überschriebenen Code /
+Overlay-Mechanismen.
+
+Deshalb kann ein späteres statisches Disassembly an derselben physischen
+Adresse von dem Code abweichen, der dort tatsächlich ausgeführt wurde.
+
+Für die Forschung gelten daher Runtime-Daten als maßgeblich:
+
+- physische Instruction-Adresse
+- CS:IP
+- echte Instruction-Bytes zum Ausführungszeitpunkt
+- Register
+- Stack
+- tatsächlicher Kontrollfluss
+
+Bevorzugte Werkzeuge:
+
+1. Memory Read Tracker
+   RAM-Adresse -> lesende Instruktion
+
+2. Memory Write Tracker
+   RAM-Adresse -> schreibende Instruktion
+
+3. Instruction Transition Tracker
+   unmittelbarer Kontrollfluss um ein Target
+
+4. Execution Trace
+   bis zu 1000 tatsächlich ausgeführte Instruktionen vor einem Target
+
+5. Trace Navigation
+   Rückwärtsverfolgung von Registeränderungen, Instruktionen und
+   Speicherzugriffen.
+
+
+2. MM3 CHARACTER RECORD
+=======================
+
+Bestätigte Character-Record-Basis für Character Index 0:
+
+    0x2BF12
+
+Record-Größe / Stride:
+
+    0x012F = 303 Bytes
+
+Allgemein:
+
+    CharacterRecord =
+        0x2BF12 + characterIndex * 0x012F
+
+Bestätigte Felder:
+
+    +0x13   Class ID
+    +0x1E   Accuracy
+    +0x23   Level
+
+Für Character Index 0:
+
+    Class ID = 0x2BF25
+    Accuracy = 0x2BF30
+    Level    = 0x2BF35
+
+Runtime-Ableitung:
+
+    DS = 0x2053
+    Offset = 0xB9E2 + characterIndex * 0x012F
+    physical = DS * 0x10 + Offset
+
+
+3. KLASSEN UND HIT-CHANCE-LEVEL-DIVISOR
+=======================================
+
+Class IDs:
+
+    0  Ritter
+    1  Paladin
+    2  Bogenschütze
+    3  Kleriker
+    4  Zauberer
+    5  Dieb
+    6  Ninja
+    7  Barbar
+    8  Druide
+    9  Waldläufer
+
+Die Class ID wird aus:
+
+    CharacterRecord + 0x13
+
+gelesen und über eine Jump Table in einen klassenspezifischen Divisor
+umgesetzt.
+
+Vollständige bestätigte Divisor-Tabelle:
+
+    Ritter         /1
+    Paladin        /2
+    Bogenschütze   /2
+    Kleriker       /3
+    Zauberer       /4
+    Dieb           /2
+    Ninja          /2
+    Barbar         /1
+    Druide         /2
+    Waldläufer     /2
+
+Der Runtime-Code führt aus:
+
+    xor dx, dx
+    div di
+
+Dabei enthält AX den Levelwert und DI den ClassDivisor.
+
+Damit:
+
+    LevelHitBonus =
+        Level / ClassDivisor
+
+Ganzzahlige Division.
+
+
+4. ACCURACY-HIT-BONUS
+=====================
+
+Accuracy liegt bei:
+
+    CharacterRecord + 0x1E
+
+für Character Index 0:
+
+    0x2BF30
+
+Accuracy wird NICHT direkt zur Hit Chance addiert.
+
+Sie wird zunächst über eine Grenzwerttabelle klassifiziert.
+
+Im untersuchten Runtime-Kontext:
+
+    Grenzwerttabelle: 0x21476
+    Bonus-Tabelle:    0x214A6
+
+Die Grenzwertsuche erzeugt einen SI-Index.
+
+Bestätigter Bereich der Bonus-Tabelle:
+
+    SI  0 -> -5
+    SI  1 -> -4
+    SI  2 -> -3
+    SI  3 -> -2
+    SI  4 -> -1
+    SI  5 ->  0
+    SI  6 -> +1
+    SI  7 -> +2
+    SI  8 -> +3
+    SI  9 -> +4
+    SI 10 -> +5
+    SI 11 -> +6
+    SI 12 -> +7
+    SI 13 -> +8
+    SI 14 -> +9
+    SI 15 -> +10
+
+Für diesen Tabellenbereich:
+
+    AccuracyBonus = SI - 5
+
+Bestätigtes Beispiel:
+
+    Accuracy 18
+        -> SI = 8
+        -> Accuracy Hit Bonus = +3
+
+
+5. MATERIALSYSTEM
+=================
+
+Material-IDs sind 1-basiert.
+
+    1  Holz
+    2  Leder
+    3  Messing
+    4  Bronze
+    5  Eisen
+    6  Silber
+    7  Stahl
+    8  Gold
+    9  Platin
+   10  Glas
+   11  Korallen
+   12  Kristall
+   13  Lapis
+   14  Perlen
+   15  Bernstein
+   16  Ebenholz
+   17  Quarz
+   18  Rubin
+   19  Smaragd
+   20  Saphir
+   21  Diamant
+   22  Obsidian
+
+Material-Modifier:
+
+    ID  Material      Hit   Damage   AC
+    ------------------------------------
+     1  Holz           -3      -3    -3
+     2  Leder          -4      -6     0
+     3  Messing        +3      -4    -2
+     4  Bronze         +2      -2    -1
+     5  Eisen          +1      +2    +1
+     6  Silber         +2      +4    +2
+     7  Stahl          +3      +6    +4
+     8  Gold           +4      +8    +6
+     9  Platin         +6     +10    +8
+    10  Glas            0       0     0
+    11  Korallen       +1      +1    +1
+    12  Kristall       +1      +1    +1
+    13  Lapis          +2      +2    +2
+    14  Perlen         +2      +2    +2
+    15  Bernstein      +3      +3    +3
+    16  Ebenholz       +4      +4    +4
+    17  Quarz          +5      +5    +5
+    18  Rubin          +6     +10   +10
+    19  Smaragd        +7     +20   +12
+    20  Saphir         +8     +30   +14
+    21  Diamant        +9     +40   +16
+    22  Obsidian      +10     +50   +20
+
+Modifier-Tabellen im MM3-Speicher:
+
+    0x20FA2 = Hit
+    0x20FB9 = Damage
+    0x20FD0 = AC
+
+Jede Tabelle enthält 22 Materialwerte.
+
+Negative Werte sind signed Bytes.
+
+
+6. MATERIAL-HIT-BONUS IM RUNTIME-PFAD
+=====================================
+
+Während der untersuchten Hit-Berechnung enthält:
+
+    0x9306
+
+den aktuellen Material-Hit-Modifikator.
+
+Runtime-Code sinngemäß:
+
+    mov si, ax
+    mov al, [0x9306]
+    cbw
+    add si, ax
+
+Experimentell bestätigt:
+
+    kein Material ->  0
+    Eisen         -> +1
+    Lapis         -> +2
+    Obsidian      -> +10
+
+
+7. BISHER BESTÄTIGTE HIT-CHANCE-STRUKTUR
+========================================
+
+Der bislang direkt rekonstruierte Beitrag lautet:
+
+    HitContribution =
+        AccuracyBonus
+        + MaterialHitModifier
+        + (Level / ClassDivisor)
+
+Beispiel:
+
+    Ritter
+    Level 10
+    Accuracy 18
+    Obsidian
+
+    AccuracyBonus       = +3
+    MaterialHitModifier = +10
+    LevelBonus          = 10 / 1 = +10
+
+    HitContribution = 23
+
+WICHTIG:
+Das ist der bisher bestätigte Beitrag im Berechnungspfad, nicht zwingend
+bereits die vollständige endgültige Trefferwahrscheinlichkeit.
+
+Spätere Modifikatoren, Gegnerwerte, Caps oder die eigentliche
+Trefferentscheidung müssen weiterhin untersucht werden.
+
+
+8. INVENTORY / ITEM-AUSWAHL
+===========================
+
+Ausgewählter Party-Slot:
+
+    0x2068E = primärer zero-based Party Index
+    0x304F4 = beobachteter Mirror / related value
+
+Ausgewählter Inventory-Slot:
+
+    0x304D0 = primärer zero-based Slot Index
+    0x304D2 = beobachteter Mirror / related value
+
+Item-ID-Array für Party Slot 1:
+
+    0x2BFEE
+
+Allgemein:
+
+    itemIdAddress =
+        0x2BFEE
+        + partyIndex * 0x12F
+        + inventorySlotIndex
+
+Material-Array für Party Slot 1:
+
+    0x2BFC8 - 0x2BFD9
+
+Allgemein:
+
+    materialAddress =
+        0x2BFC8
+        + partyIndex * 0x12F
+        + inventorySlotIndex
+
+Inventory Symbol/Type für Party Slot 1 beginnt bei:
+
+    0x2BF8F
+
+Das Symbol/Type-Byte ist NICHT die eigentliche Item ID.
+
+Bestätigte Item IDs unter anderem:
+
+    1  Lang Schwert
+    5  Messer
+    7  Stock
+    41 Platten Rüstung
+    42 Schild
+    43 Helm
+
+Beispiel:
+
+    Item ID 7 = Stock
+
+Das sichtbare "Bronze Stock" entsteht, weil das Material separat
+gespeichert wird.
+
+
+9. DAMAGE – BISHER BEKANNT
+==========================
+
+Für Waffen ist die Basis-Damage beispielsweise als Würfelausdruck bekannt:
+
+    Messer:
+        Damage = 2d4
+
+Daraus folgt mathematisch der Basisbereich:
+
+    2 - 8
+
+Die Material-Damage-Modifikatoren sind bereits vollständig bekannt
+(siehe Materialtabelle).
+
+Beispiel:
+
+    Obsidian:
+        Hit    +10
+        Damage +50
+        AC     +20
+
+WICHTIG:
+Hit-, Damage- und AC-Materialbonus sind drei getrennte Werte.
+
+Die vollständige Runtime-Schadensberechnung ist NOCH NICHT rekonstruiert.
+
+Insbesondere zu klären:
+
+- Wie der Waffenwürfelwert verarbeitet wird.
+- Wo der Material-Damage-Modifikator addiert wird.
+- Wie Buffs in den Schaden eingehen.
+- Ob Charakterwerte weitere Damage-Modifikatoren liefern.
+- Wie Minimum/Maximum bzw. der konkrete Würfelwurf behandelt werden.
+- Welche Caps oder Sonderregeln existieren.
+
+Sehr interessantes neues Target:
+
+    Material Damage Modifier Table = 0x20FB9
+
+Nächster sinnvoller Runtime-Test:
+
+    Während eines Angriffs feststellen,
+    welche Instruktion aus 0x20FB9 ... 0x20FCE liest.
+
+Am besten mit stark unterschiedlichen Materialien vergleichen:
+
+    Glas      Damage +0
+    Eisen     Damage +2
+    Obsidian  Damage +50
+
+Damit sollte die Damage-Berechnung im Runtime-Trace gut erkennbar werden.
+
+
+10. ROUTINE 0xEC4B – GENERISCHE BONUS-/STAT-BERECHNUNG
+======================================================
+
+Untersuchte Routine ungefähr:
+
+    0xEC4B - 0xED80
+
+Sie besitzt eine Jump Table, deren Parameter [bp+0x0A] verschiedene
+Berechnungszweige auswählt.
+
+Beobachtete Feldpaare:
+
+    +0x16 / +0x17
+    +0x18 / +0x19
+    ...
+    +0x1E / +0x1F
+    +0x20 / +0x21
+
+Der untersuchte +0x1E/+0x1F-Zweig enthält Accuracy.
+
+Gemeinsame Struktur sinngemäß:
+
+    SI = Ausgangswert
+    SI += Ergebnis von 0xEB05
+    SI += optional Ergebnis einer FAR-Funktion
+    SI += zweiter Wert
+
+Am Ende ungefähr:
+
+    return (SI < 1) ? 0 : SI
+
+0xEB05 iteriert über 18 Item-/Equipment-Einträge und akkumuliert
+tabellenbasierte Boni.
+
+WICHTIG:
+Die Routine ist nicht als reine Damage-Funktion bestätigt.
+Sie sieht vielmehr nach einer generischen Berechnung mehrerer
+Charakter-/Combat-Werte aus.
+
+Ein interessantes späteres Ziel ist daher:
+
+    Welcher Jump-Table-Fall entspricht Damage?
+
+
+11. TRACKER – WICHTIGER TECHNISCHER STAND
+=========================================
+
+Memory Read Tracking:
+
+    RAM-Adresse
+        -> lesende Runtime-Instruktion
+
+Instruction Tracking / Transition Tracking:
+
+    Instruktion A
+        -> Instruktion B
+
+Execution Capture enthält unter anderem:
+
+- physische Adresse
+- CS:IP
+- AX/BX/CX/DX
+- SI/DI/BP/SP
+- DS/ES/SS
+- 16 Instruction-Bytes
+- 32 Stack-Bytes
+
+Instruction Transition Tracker:
+
+- Runtime-Bytes
+- CS:IP
+- Register
+- nächste tatsächlich ausgeführte Instruktion
+- Runtime History
+
+Execution Trace:
+
+- bis zu 1000 tatsächlich ausgeführte Instruktionen vor Target
+- echte Runtime-Bytes
+- Registerzustände
+- Zydis-Disassembly
+
+Trace Navigation unterstützt unter anderem:
+
+- Previous Register Change
+- Previous Instruction
+- Memory Address Search
+- Suche nach bestimmten Instruktionsmustern
+
+Performance-Grundregel:
+
+Instruktionsbytes nicht permanent im CPU-Hotpath lesen.
+Bytes möglichst erst bei tatsächlichem Target-Hit erfassen.
+
+
+12. SELECTED PARTY SLOT – WRITE-PFAD
+====================================
+
+Für die Untersuchung des ausgewählten Party-Slots wurde:
+
+    0x2068E
+
+als primäre UI-/Auswahladresse verwendet.
+
+Ein rückwärts verfolgter Pfad führte unter anderem über:
+
+    0x2067F
+        -> Writer 0x31A95
+
+Runtime-Code:
+
+    0x31A8F  mov bx, ax
+    0x31A91  mov al, [bx-0x52A0]
+    0x31A95  mov [0x014F], al
+
+Beim beobachteten Test:
+
+    BX = 0005
+    Quelle physisch = 0x2B295
+    gelesener Wert  = 03
+
+WICHTIG:
+
+    0x2B295 != 0x2C295
+
+0x2B295 ist nach aktuellem Stand eine andere Struktur/Tabelle und
+nicht der bekannte Character Record von Party Slot 3.
+
+Dieser Pfad bleibt interessant, ist für das aktuelle Damage-Ziel aber
+vorläufig nachrangig.
+
+
+13. AKTUELLES FORSCHUNGSZIEL
+============================
+
+Aktueller Schwerpunkt:
+
+    GENAUE DAMAGE-BERECHNUNG FÜR DAS IM ITEM EXPLORER GEWÄHLTE ITEM
+
+Gewünschte spätere Anzeige sinngemäß:
+
+    Item
+    Damage Dice
+    Base Damage Range
+    Material Damage Bonus
+    Buff Damage Bonus
+    weitere bestätigte Damage-Modifikatoren
+    möglicher / endgültiger Damage-Bereich
+
+Dabei nur Werte anzeigen, deren Herkunft im MM3-Code bzw. Speicher
+hinreichend bestätigt wurde.
+
+Konkreter nächster Einstieg:
+
+    0x20FB9 = Material Damage Modifier Table
+
+Ziel:
+
+    Reader-Instruktion dieser Tabelle während eines Angriffs finden
+        ->
+    Runtime-Trace um diesen Read untersuchen
+        ->
+    Material-Damage-Pfad verfolgen
+        ->
+    Basis-Waffenschaden und Buff-Pfad zuordnen
+        ->
+    vollständige Damage-Formel rekonstruieren.
+
+
+14. OFFENE WICHTIGE FRAGEN
+==========================
+
+Hit Chance:
+- Welche Komponenten folgen nach dem bekannten HitContribution?
+- Welche Gegner-/Zielwerte werden abgezogen oder verglichen?
+- Gibt es Minimum/Maximum/Caps?
+- Wie erfolgt die endgültige Trefferentscheidung?
+
+Damage:
+- Wo wird 2d4 / der jeweilige Waffenwürfel verarbeitet?
+- Wo wird 0x20FB9 gelesen?
+- Wie wird der Material-Damage-Bonus addiert?
+- Wo kommt der mögliche Damage-Buff her?
+- Welche Charakterwerte beeinflussen Damage?
+- Wie wird der konkrete Schadenswurf erzeugt?
+
+Routine 0xEC4B:
+- Bedeutung aller Jump-Table-Fälle.
+- Welcher Fall berechnet Damage?
+- Bedeutung der noch nicht identifizierten benachbarten Felder.
+- Exakte Rolle der optionalen FAR-Funktion.
+
+Tracker/UI:
+- Werkzeuge nur erweitern, wenn ein konkretes Reverse-Engineering-Problem
+  eine neue Funktion erfordert.
+- Item Explorer als Forschungsoberfläche verwenden:
+  bestätigte Werte dort schrittweise sichtbar machen.
+
+
+15. ARBEITSMETHODE
+==================
+
+Bevorzugter Ablauf:
+
+    konkrete MM3-Frage
+        ->
+    bekannten RAM-/Tabellenwert als Target wählen
+        ->
+    Reader/Writer finden
+        ->
+    Runtime Trace aufnehmen
+        ->
+    Register und Kontrollfluss rückwärts/vorwärts verfolgen
+        ->
+    Hypothese mit gezielt verändertem Einzelwert testen
+        ->
+    erst nach Bestätigung in Item Explorer / Notizen übernehmen
+
+Für Vergleichstests möglichst immer nur EINE Variable verändern.
+
+Beispiel Damage:
+
+    gleiches Item
+    gleicher Charakter
+    gleicher Gegner
+    kein Buff
+
+nur Material ändern:
+
+    Glas -> Eisen -> Obsidian
+
+Danach Buff separat testen.
+
+==================================================
+ENDE DER ZUSAMMENFASSUNG
+==================================================

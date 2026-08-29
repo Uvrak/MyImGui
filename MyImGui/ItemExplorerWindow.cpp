@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "ItemExplorerWindow.h"
 
+#include <algorithm>
+#include <fstream>
+
 #include "imgui.h"
 
 namespace ItemExplorer
@@ -16,8 +19,62 @@ namespace ItemExplorer
         int itemId
     )
     {
+        if (itemId <= 0)
+        {
+            return;
+        }
+
+        if (m_selectedItemId ==
+            itemId)
+        {
+            return;
+        }
+
         m_selectedItemId =
             itemId;
+
+        saveSelectedItem();
+    }
+
+    void ItemExplorerWindow::loadSelectedItem()
+    {
+        std::ifstream file(
+            "settings/item_explorer.cfg"
+        );
+
+        if (!file)
+        {
+            return;
+        }
+
+        int itemId = 0;
+        int characterIndex = -1;
+
+        if (file >> itemId >> characterIndex)
+        {
+            m_selectedItemId =
+                itemId;
+
+            m_selectedCharacterIndex =
+                characterIndex;
+        }
+    }
+
+    void ItemExplorerWindow::saveSelectedItem() const
+    {
+        std::ofstream file(
+            "settings/item_explorer.cfg"
+        );
+
+        if (!file)
+        {
+            return;
+        }
+
+        file <<
+            m_selectedItemId <<
+            " " <<
+            m_selectedCharacterIndex;
     }
 
     void ItemExplorerWindow::draw(
@@ -28,6 +85,14 @@ namespace ItemExplorer
             !*isOpen)
         {
             return;
+        }
+
+        if (!m_selectedItemLoaded)
+        {
+            loadSelectedItem();
+
+            m_selectedItemLoaded =
+                true;
         }
 
         if (!ImGui::Begin(
@@ -69,56 +134,55 @@ namespace ItemExplorer
             return;
         }
 
-        ImGui::Text(
-            "Game: %s",
-            m_source->gameName()
-        );
-
-        ImGui::Text(
-            "Selected Item ID: %d",
-            m_selectedItemId
-        );
-
         const int characterLevel =
-            m_source->selectedCharacterLevel();
-
-        const int characterAccuracy =
-            m_source->selectedCharacterAccuracy();
-
-        const int characterAccuracyBonus =
-            m_source->selectedCharacterAccuracyBonus();
-
-        if (characterLevel > 0)
-        {
-            ImGui::Text(
-                "Character Level: %d",
-                characterLevel
+            m_source->characterLevel(
+                m_selectedCharacterIndex
             );
-        }
-
-		ImGui::SameLine();
-
-        ImGui::Text(
-            "Character Accuracy: %d",
-            characterAccuracy
-        );
-
-		ImGui::SameLine();                  
-
-        ImGui::Text(
-            "Accuracy Bonus: +%d",
-            characterAccuracyBonus
-        );
 
         const int characterClassId =
-            m_source->selectedCharacterClassId();
+            m_source->characterClassId(
+                m_selectedCharacterIndex
+            );
 
-		ImGui::SameLine();
+        const std::vector<std::string> classNames =
+             m_source->classNames();
+
+        const bool characterDataValid =
+            m_selectedCharacterIndex >= 0 &&
+            characterLevel > 0 &&
+            characterClassId >= 0 &&
+            static_cast<size_t>(
+                characterClassId
+                ) < classNames.size();
 
         ImGui::Text(
-            "Character Class ID: %d",
-            characterClassId
+            "DEBUG char=%d level=%d class=%d names=%zu",
+            m_selectedCharacterIndex,
+            characterLevel,
+            characterClassId,
+            classNames.size()
         );
+
+        if (characterDataValid)
+
+        if (characterDataValid)
+        {
+            ImGui::Text(
+                "%s    Level %d",
+                classNames[
+                    static_cast<size_t>(
+                        characterClassId
+                        )
+                ].c_str(),
+                        characterLevel
+                        );
+        }
+        else
+        {
+            ImGui::TextUnformatted(
+                "--    Level --"
+            );
+        }
 
         ImGui::Separator();
 
@@ -153,6 +217,71 @@ namespace ItemExplorer
                         property.value.c_str()
                     );
                 }
+
+                const int materialHitBonus =
+                    m_source->selectedMaterialHitBonus();
+
+                const int materialDamageBonus =
+                    m_source->selectedMaterialDamageBonus();
+
+                ImGui::Separator();
+
+                ImGui::TextUnformatted(
+                    "To Hit"
+                );
+
+                ImGui::Text(
+                    "Material: %+d",
+                    materialHitBonus
+                );
+
+                if (selectedItem->diceCount > 0 &&
+                    selectedItem->diceSides > 0)
+                {
+                    const int baseDamageMin =
+                        selectedItem->diceCount;
+
+                    const int baseDamageMax =
+                        selectedItem->diceCount *
+                        selectedItem->diceSides;
+
+                    const int weaponDamageMin =
+                        std::max(
+                            1,
+                            baseDamageMin +
+                            materialDamageBonus
+                        );
+
+                    const int weaponDamageMax =
+                        std::max(
+                            1,
+                            baseDamageMax +
+                            materialDamageBonus
+                        );
+
+                    ImGui::Separator();
+
+                    ImGui::TextUnformatted(
+                        "Damage"
+                    );
+
+                    ImGui::Text(
+                        "Base: %d - %d",
+                        baseDamageMin,
+                        baseDamageMax
+                    );
+
+                    ImGui::Text(
+                        "Material: %+d",
+                        materialDamageBonus
+                    );
+
+                    ImGui::Text(
+                        "Calculated: %d - %d",
+                        weaponDamageMin,
+                        weaponDamageMax
+                    );
+                }
             }
             else
             {
@@ -182,5 +311,33 @@ namespace ItemExplorer
         }
 
         ImGui::End();
+    }
+
+    void ItemExplorerWindow::updateSelection(
+        int itemId,
+        int characterIndex
+    )
+    {
+        if (itemId <= 0 ||
+            characterIndex < 0)
+        {
+            return;
+        }
+
+        if (m_selectedItemId == itemId &&
+            m_selectedCharacterIndex ==
+            characterIndex)
+        {
+            return;
+        }
+
+        // Item UND Owner gemeinsam wechseln
+        m_selectedItemId =
+            itemId;
+
+        m_selectedCharacterIndex =
+            characterIndex;
+
+        saveSelectedItem();
     }
 }

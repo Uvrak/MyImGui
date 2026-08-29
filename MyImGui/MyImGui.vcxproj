@@ -199,17 +199,6 @@
       <Project>{7400f32b-42d9-432d-81d4-e5b8e0fd510d}</Project>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="MM3_MEMORY_FINDINGS.md" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="220826.txt" />
-    <Text Include="AttackTransitionTracking.txt" />
-    <Text Include="CharacterRecord.txt" />
-    <Text Include="morgen.txt" />
-    <Text Include="NotizenZumMemoryTracking.txt" />
-    <Text Include="ReverseE%27ngineering.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

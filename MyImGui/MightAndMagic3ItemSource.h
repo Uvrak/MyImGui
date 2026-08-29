@@ -26,11 +26,31 @@ namespace MightAndMagic3
                 int id
             ) const override;
 
+        std::vector<std::string>
+            classNames() const;
+
         bool refresh();
 
         int selectedItemId() const;
 
+        int selectedMaterialId() const override;
+
+        int selectedMaterialHitBonus() const override;
+
+        int selectedMaterialDamageBonus() const override;
+
         std::string selectedItemName() const override;
+
+        int selectedCharacterIndex() const override;
+
+        int characterLevel(
+            int characterIndex
+        ) const override;
+
+        int characterClassId(
+            int characterIndex
+        ) const override;
+
 
         int selectedCharacterLevel() const override;
 
@@ -40,11 +60,11 @@ namespace MightAndMagic3
 
         int selectedCharacterClassId() const override;
 
-        int selectedMaterialId() const;
-
         std::string materialName(
             int materialId
         ) const;
+
+
 
     private:
         std::vector<
@@ -57,5 +77,7 @@ namespace MightAndMagic3
         std::string readString(
             size_t address
         ) const;
+
+        bool itemWindowActive() const;
     };
 }

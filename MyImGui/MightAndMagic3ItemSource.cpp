@@ -97,6 +97,71 @@ namespace MightAndMagic3
         return result;
     }
 
+    std::vector<std::string>
+        ItemSource::classNames() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t ClassTextAddress =
+            0x246C0;
+
+        std::vector<std::string> result;
+
+        size_t address =
+            ClassTextAddress;
+
+        while (address + 4 < memory.size() &&
+            result.size() < 10)
+        {
+            if (memory[address] == 0x0C &&
+                memory[address + 1] == 0x25 &&
+                memory[address + 2] == 0x32 &&
+                memory[address + 3] == 0x64)
+            {
+                address += 4;
+
+                std::string name;
+
+                while (address < memory.size())
+                {
+                    const uint8_t value =
+                        memory[address];
+
+                    const bool letter =
+                        (value >= 'A' && value <= 'Z') ||
+                        (value >= 'a' && value <= 'z');
+
+                    if (!letter)
+                    {
+                        break;
+                    }
+
+                    name.push_back(
+                        static_cast<char>(
+                            value
+                            )
+                    );
+
+                    ++address;
+                }
+
+                if (!name.empty())
+                {
+                    result.push_back(
+                        name
+                    );
+                }
+
+                continue;
+            }
+
+            ++address;
+        }
+
+        return result;
+    }
+
     bool ItemSource::refresh()
     {
         if (!m_memoryReader.isOpen())
@@ -183,6 +248,16 @@ namespace MightAndMagic3
                     const uint8_t diceSides =
                         memory[diceSidesAddress];
 
+                    item.diceCount =
+                        static_cast<int>(
+                            diceCount
+                            );
+
+                    item.diceSides =
+                        static_cast<int>(
+                            diceSides
+                            );
+
                     item.properties.push_back(
                         {
                             "Damage",
@@ -212,6 +287,11 @@ namespace MightAndMagic3
     
     int ItemSource::selectedItemId() const
     {
+        if (!itemWindowActive())
+        {
+            return 0;
+        }
+
         const std::vector<uint8_t>& memory =
             m_memoryReader.memory();
 
@@ -278,6 +358,7 @@ namespace MightAndMagic3
             );
     }
 
+    
     std::string ItemSource::selectedItemName() const
     {
         const int itemId =
@@ -404,6 +485,122 @@ namespace MightAndMagic3
             " " +
             item->name;
     }
+
+    int ItemSource::selectedCharacterIndex() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        if (SelectedPartySlotAddress >=
+            memory.size())
+        {
+            return -1;
+        }
+
+        const int characterIndex =
+            static_cast<int>(
+                memory[
+                    SelectedPartySlotAddress
+                ]
+                );
+
+        if (characterIndex < 0 ||
+            characterIndex >= 6)
+        {
+            return -1;
+        }
+
+        return characterIndex;
+    }
+
+    int ItemSource::characterLevel(
+        int characterIndex
+    ) const
+    {
+        if (characterIndex < 0 ||
+            characterIndex >= 6)
+        {
+            return 0;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t FirstCharacterAddress =
+            0x2BF00;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        constexpr size_t LevelOffset =
+            0x35;
+
+        const size_t levelAddress =
+            FirstCharacterAddress +
+            static_cast<size_t>(
+                characterIndex
+                ) *
+            CharacterRecordSize +
+            LevelOffset;
+
+        if (levelAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[
+                levelAddress
+            ]
+            );
+    }
+
+    int ItemSource::characterClassId(
+        int characterIndex
+    ) const
+    {
+        if (characterIndex < 0 ||
+            characterIndex >= 6)
+        {
+            return 0;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t FirstCharacterAddress =
+            0x2BF00;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        constexpr size_t ClassOffset =
+            0x25;
+
+        const size_t classAddress =
+            FirstCharacterAddress +
+            static_cast<size_t>(
+                characterIndex
+                ) *
+            CharacterRecordSize +
+            ClassOffset;
+
+        if (classAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[
+                classAddress
+            ]
+            );
+    }
+
+
 
     int ItemSource::selectedCharacterLevel() const
     {
@@ -642,6 +839,72 @@ namespace MightAndMagic3
             );
     }
 
+    int ItemSource::selectedMaterialHitBonus() const
+    {
+        const int materialId =
+            selectedMaterialId();
+
+        if (materialId <= 0 ||
+            materialId > 22)
+        {
+            return 0;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t MaterialHitBonusAddress =
+            0x20FA2;
+
+        const size_t address =
+            MaterialHitBonusAddress +
+            static_cast<size_t>(
+                materialId - 1
+                );
+
+        if (address >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int8_t>(
+            memory[address]
+            );
+    }
+
+    int ItemSource::selectedMaterialDamageBonus() const
+    {
+        const int materialId =
+            selectedMaterialId();
+
+        if (materialId <= 0 ||
+            materialId > 22)
+        {
+            return 0;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t MaterialDamageBonusAddress =
+            0x20FB9;
+
+        const size_t address =
+            MaterialDamageBonusAddress +
+            static_cast<size_t>(
+                materialId - 1
+                );
+
+        if (address >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int8_t>(
+            memory[address]
+            );
+    }
+
     std::string ItemSource::materialName(
         int materialId
     ) const
@@ -685,5 +948,75 @@ namespace MightAndMagic3
         }
 
         return result;
+    }
+
+    bool ItemSource::itemWindowActive() const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t SelectedPartySlotAddress =
+            0x2068E;
+
+        constexpr size_t SelectedPartySlotMirrorAddress =
+            0x304F4;
+
+        constexpr size_t SelectedInventorySlotAddress =
+            0x304D0;
+
+        constexpr size_t SelectedInventorySlotMirrorAddress =
+            0x304D2;
+
+        if (SelectedPartySlotAddress >= memory.size() ||
+            SelectedPartySlotMirrorAddress >= memory.size() ||
+            SelectedInventorySlotAddress + 1 >= memory.size() ||
+            SelectedInventorySlotMirrorAddress + 1 >= memory.size())
+        {
+            return false;
+        }
+
+        const uint8_t partyIndex =
+            memory[
+                SelectedPartySlotAddress
+            ];
+
+        const uint8_t partyMirror =
+            memory[
+                SelectedPartySlotMirrorAddress
+            ];
+
+        const uint16_t inventorySlot =
+            static_cast<uint16_t>(
+                memory[
+                    SelectedInventorySlotAddress
+                ]
+                ) |
+            (
+                static_cast<uint16_t>(
+                    memory[
+                        SelectedInventorySlotAddress + 1
+                    ]
+                    ) << 8
+                );
+
+        const uint16_t inventorySlotMirror =
+            static_cast<uint16_t>(
+                memory[
+                    SelectedInventorySlotMirrorAddress
+                ]
+                ) |
+            (
+                static_cast<uint16_t>(
+                    memory[
+                        SelectedInventorySlotMirrorAddress + 1
+                    ]
+                    ) << 8
+                );
+
+        return
+            partyIndex < 6 &&
+            partyIndex == partyMirror &&
+            inventorySlot < 18 &&
+            inventorySlot == inventorySlotMirror;
     }
 }

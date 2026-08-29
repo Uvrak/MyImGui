@@ -19,6 +19,11 @@ namespace ItemExplorer
             bool* isOpen = nullptr
         );
 
+        void updateSelection(
+            int itemId,
+            int characterIndex
+        );
+
     private:
         ItemSource* m_source =
             nullptr;
@@ -27,7 +32,14 @@ namespace ItemExplorer
 
         int m_selectedItemId = 0;
 
+        int m_selectedCharacterIndex = -1;
+
         float m_memoryRowHeight = 0.0f;
 
+        bool m_selectedItemLoaded = false;
+
+        void loadSelectedItem();
+
+        void saveSelectedItem() const;
     };
 }

@@ -264,8 +264,6 @@ namespace MyImGui
         ImGui::EndMainMenuBar();
     }
     
-
-
     const std::string&
         MainMenu::selectedGameExe() const
     {

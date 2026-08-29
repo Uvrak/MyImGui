@@ -21,9 +21,34 @@ namespace ItemExplorer
             int id
         ) const = 0;
 
+        virtual std::vector<std::string>
+            classNames() const
+        {
+            return {};
+        }
+
+        virtual int characterLevel(
+            int characterIndex
+        ) const
+        {
+            return 0;
+        }
+
+        virtual int characterClassId(
+            int characterIndex
+        ) const
+        {
+            return 0;
+        }
+
         virtual std::string selectedItemName() const
         {
             return {};
+        }
+
+        virtual int selectedCharacterIndex() const
+        {
+            return -1;
         }
 
         virtual int selectedCharacterLevel() const
@@ -42,6 +67,21 @@ namespace ItemExplorer
         }
 
         virtual int selectedCharacterClassId() const
+        {
+            return 0;
+        }
+
+        virtual int selectedMaterialId() const
+        {
+            return 0;
+        }
+
+        virtual int selectedMaterialHitBonus() const
+        {
+            return 0;
+        }
+
+        virtual int selectedMaterialDamageBonus() const
         {
             return 0;
         }

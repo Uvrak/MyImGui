@@ -34,6 +34,12 @@
     <Filter Include="Source Files\Trace">
       <UniqueIdentifier>{db1ab5e0-0425-4573-aafa-2bac1fc1ae58}</UniqueIdentifier>
     </Filter>
+    <Filter Include="MightAndMagic3">
+      <UniqueIdentifier>{76953754-1f01-46a1-8267-2119dd52dc8b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="MightAndMagic3\docs">
+      <UniqueIdentifier>{41171958-3035-4e9b-a6f6-110fec8f946e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MemoryTools.cpp">
@@ -98,5 +104,10 @@
     <ClInclude Include="TrackingWindow.h">
       <Filter>Source Files\Tracking</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="2026-08-29.txt">
+      <Filter>MightAndMagic3\docs</Filter>
+    </Text>
   </ItemGroup>
 </Project>

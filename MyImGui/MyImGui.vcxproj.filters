@@ -123,29 +123,4 @@
       <Filter>RecordButton</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="MM3_MEMORY_FINDINGS.md">
-      <Filter>Games\docs</Filter>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="NotizenZumMemoryTracking.txt">
-      <Filter>Games\docs</Filter>
-    </Text>
-    <Text Include="morgen.txt">
-      <Filter>Games\docs</Filter>
-    </Text>
-    <Text Include="AttackTransitionTracking.txt">
-      <Filter>Games\docs</Filter>
-    </Text>
-    <Text Include="220826.txt">
-      <Filter>Games\docs</Filter>
-    </Text>
-    <Text Include="ReverseE%27ngineering.txt">
-      <Filter>Games\docs</Filter>
-    </Text>
-    <Text Include="CharacterRecord.txt">
-      <Filter>Games\docs</Filter>
-    </Text>
-  </ItemGroup>
 </Project>
