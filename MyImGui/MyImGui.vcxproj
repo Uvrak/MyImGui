@@ -121,7 +121,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)DosBoxX;C:\Projects\dosbox-x\vs;$(SolutionDir)ThirdParty\zydis\include;$(SolutionDir)ThirdParty\zydis\dependencies\zycore\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)DosBoxX;$(SolutionDir)dosbox-x\src;$(SolutionDir)dosbox-x\include;$(SolutionDir)dosbox-x\vs;$(SolutionDir)ThirdParty\zydis\include;$(SolutionDir)ThirdParty\zydis\dependencies\zycore\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -186,6 +186,9 @@
     <ClCompile Include="WindowCapture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\dosbox-x\vs\dosbox-x.vcxproj">
+      <Project>{8a52284e-5115-453e-ad4b-87b8fcdb1244}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">
       <Project>{c5542076-9232-495f-91c7-92cf22e2f0df}</Project>
     </ProjectReference>

@@ -19,6 +19,12 @@
 #include "DosBoxProgramReader.h"
 #include "imgui.h"
 
+enum class DosBoxInputMode
+{
+    Focused,
+    AlwaysActive
+};
+
 class DosBoxWindow
 {
 public:
@@ -33,6 +39,9 @@ public:
     bool start();
 
     bool inputActive() const;
+
+    DosBoxX::NamedPipeClient&
+        pipeClient();
 
     const MightAndMagic1State&
         mightAndMagic1State() const;
@@ -88,6 +97,10 @@ private:
     DosBoxX::Mouse m_mouse;
 
     bool m_inputActive = false;
+
+    DosBoxInputMode m_inputMode =
+        DosBoxInputMode::Focused;
+
     std::string m_gameFilename;
 
     bool m_pingTested = false;

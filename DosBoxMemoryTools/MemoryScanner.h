@@ -88,6 +88,10 @@ namespace DosBoxMemoryTools
             const std::vector<uint8_t>& pattern
         );
 
+        void keepDifference(
+            int difference
+        );
+
         void reset();
 
         bool readPreviousValue(

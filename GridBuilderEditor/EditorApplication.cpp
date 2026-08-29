@@ -19,26 +19,26 @@
 #include <cstdio>
 
 
-    
-    namespace
-    {
-        struct SaveMapRequest
-        {
-            EditorApplication* application;
-            std::string filename;
-        };
 
-        struct OpenMapRequest
-        {
-            EditorApplication* application;
-            std::string filename;
-        };
-    }
+namespace
+{
+    struct SaveMapRequest
+    {
+        EditorApplication* application;
+        std::string filename;
+    };
+
+    struct OpenMapRequest
+    {
+        EditorApplication* application;
+        std::string filename;
+    };
+}
 
 
 EditorApplication::EditorApplication()
 {
-   
+
     if (!initializeSDL())
     {
         throw std::runtime_error(
@@ -142,6 +142,29 @@ EditorApplication::EditorApplication()
             m_renderer
         );
 
+    m_memoryTools =
+        std::make_unique<
+        DosBoxMemoryTools::MemoryTools
+        >(
+            "MM3.EXE",
+            nullptr
+        );
+
+    m_memoryTools->setGameId(
+        "MM3.EXE"
+    );
+
+    m_mm3ItemSource =
+        std::make_unique<
+        MightAndMagic3::ItemSource
+        >(
+            m_memoryTools->memoryReader()
+        );
+
+    m_itemExplorerWindow.setSource(
+        m_mm3ItemSource.get()
+    );
+
     loadRecentMaps();
     refreshMapFiles();
     loadLastMap();
@@ -209,6 +232,17 @@ void EditorApplication::processEvents()
         {
             requestExit();
         }
+    }
+}
+
+void EditorApplication::run()
+{
+    while (m_running)
+    {
+        processEvents();
+        render();
+        ImGui::GetIO().FontGlobalScale =
+            m_fontScale;
     }
 }
 
@@ -379,6 +413,44 @@ void EditorApplication::render()
 
     dosBoxWindow->draw();
 
+    if (m_memoryTools)
+    {
+        m_memoryTools->refreshMemory();
+    }
+
+    const int selectedItemId =
+        m_mm3ItemSource->selectedItemId();
+
+    const int selectedCharacterIndex =
+        m_mm3ItemSource->selectedCharacterIndex();
+
+    ImGui::Text(
+        "MM3 DEBUG item=%d char=%d",
+        selectedItemId,
+        selectedCharacterIndex
+    );
+
+    m_itemExplorerWindow.updateSelection(
+        selectedItemId,
+        selectedCharacterIndex
+    );
+    if (m_mm3ItemSource)
+    {
+        m_mm3ItemSource->refresh();
+
+        m_itemExplorerWindow.updateSelection(
+            m_mm3ItemSource->selectedItemId(),
+            m_mm3ItemSource->selectedCharacterIndex()
+        );
+    }
+
+    if (m_showItemExplorer)
+    {
+        m_itemExplorerWindow.draw(
+            &m_showItemExplorer
+        );
+    }
+
     const MightAndMagic1State& mm1State =
         dosBoxWindow->mightAndMagic1State();
 
@@ -505,7 +577,7 @@ void EditorApplication::render()
                 );
             }
         }
-    
+
     }
 
     if (m_showMapEditor)
@@ -545,7 +617,7 @@ void EditorApplication::render()
                         size
                     );
             },
-           
+
             [this](
                 const std::string& edgeId,
                 const std::string& assignedColorId,
@@ -579,11 +651,11 @@ void EditorApplication::render()
                 drawMapViewToolbar();
             },
             m_editorEdgeBox->isColorMenuOpen(),
-			m_showMapCoordinates,
-			&m_showMapEditor
+            m_showMapCoordinates,
+            &m_showMapEditor
         );
     }
-    
+
     switch (m_editorToolbox->activeTool())
     {
     case EditorTool::Pencil:
@@ -611,7 +683,7 @@ void EditorApplication::render()
             {
                 drawPixelViewToolbar();
             },
-            & m_showPixelEditor
+            &m_showPixelEditor
         );
     }
 
@@ -711,8 +783,8 @@ void EditorApplication::render()
     );
 
     SDL_RenderPresent(m_renderer);
-    
-    
+
+
 }
 
 void EditorApplication::drawMainMenu()
@@ -824,6 +896,24 @@ void EditorApplication::drawMainMenu()
                     true;
             }
         }
+
+        ImGui::Separator();
+
+        ImGui::TextUnformatted(
+            "Font Scale"
+        );
+
+        ImGui::SetNextItemWidth(
+            120.0f
+        );
+
+        ImGui::SliderFloat(
+            "##FontScale",
+            &m_fontScale,
+            0.75f,
+            2.0f,
+            "%.2f"
+        );
 
         ImGui::Separator();
 
@@ -998,8 +1088,6 @@ void EditorApplication::drawMainMenu()
 
         ImGui::Separator();
 
-        ImGui::Separator();
-
         ImGui::EndMenu();
     }
 
@@ -1022,15 +1110,6 @@ bool EditorApplication::initializeSDL()
 
     return true;
 }
-void EditorApplication::run()
-{
-    while (m_running)
-    {
-		processEvents();
-		render();
-    }
-}
-
 
 void EditorApplication::refreshMapFiles()
 {
@@ -1256,16 +1335,25 @@ void EditorApplication::loadEditorSettings()
     }
 
     std::string setting;
-    int value = 0;
 
-    while (file >> setting >> value)
+    while (file >> setting)
     {
         if (setting ==
             "showLowerLayer")
         {
+            int value = 0;
+
+            file >> value;
+
             m_worldViewWindow.setShowLowerLayer(
                 value != 0
             );
+        }
+        else if (setting ==
+            "fontScale")
+        {
+            file >>
+                m_fontScale;
         }
     }
 }
@@ -1294,6 +1382,11 @@ void EditorApplication::saveEditorSettings() const
             ? 1
             : 0
             )
+        << '\n';
+
+    file
+        << "fontScale "
+        << m_fontScale
         << '\n';
 }
 
@@ -1854,7 +1947,7 @@ void EditorApplication::drawPixelViewToolbar()
                 m_editorMiscBox->setActiveMiscId(
                     imageId
                 );
-         
+
             }
             else
             {
@@ -2097,7 +2190,7 @@ void EditorApplication::drawPixelViewToolbar()
             recentRequest.filename.c_str()
         );
 
-        
+
     }
 
     static char imageName[128] = {};
@@ -2922,7 +3015,7 @@ void EditorApplication::drawMapViewToolbar()
                             true;
                     }
 
-                   
+
                     if (ImGui::MenuItem(
                         "Delete file..."
                     ))
@@ -3907,7 +4000,8 @@ void EditorApplication::saveWindowState() const
     const std::string filename =
         windowStateFilename();
 
-    if (filename.empty())
+    if (filename.empty() ||
+        !m_window)
     {
         return;
     }
@@ -3922,12 +4016,46 @@ void EditorApplication::saveWindowState() const
         return;
     }
 
+    int windowX = 0;
+    int windowY = 0;
+    int windowWidth = 1280;
+    int windowHeight = 720;
+
+    SDL_GetWindowPosition(
+        m_window,
+        &windowX,
+        &windowY
+    );
+
+    SDL_GetWindowSize(
+        m_window,
+        &windowWidth,
+        &windowHeight
+    );
+
+    const SDL_WindowFlags windowFlags =
+        SDL_GetWindowFlags(
+            m_window
+        );
+
+    const bool maximized =
+        (windowFlags &
+            SDL_WINDOW_MAXIMIZED) != 0;
+
     file <<
         (m_showMapEditor ? 1 : 0) <<
         '\n';
 
     file <<
         (m_showPixelEditor ? 1 : 0) <<
+        '\n';
+
+    file <<
+        windowX << ' ' <<
+        windowY << ' ' <<
+        windowWidth << ' ' <<
+        windowHeight << ' ' <<
+        (maximized ? 1 : 0) <<
         '\n';
 }
 
@@ -3941,7 +4069,8 @@ void EditorApplication::loadWindowState()
     const std::string filename =
         windowStateFilename();
 
-    if (filename.empty())
+    if (filename.empty() ||
+        !m_window)
     {
         return;
     }
@@ -3956,15 +4085,50 @@ void EditorApplication::loadWindowState()
     int showMapEditor = 1;
     int showPixelEditor = 1;
 
-    if (file >>
+    if (!(file >>
         showMapEditor >>
-        showPixelEditor)
+        showPixelEditor))
     {
-        m_showMapEditor =
-            showMapEditor != 0;
+        return;
+    }
 
-        m_showPixelEditor =
-            showPixelEditor != 0;
+    m_showMapEditor =
+        showMapEditor != 0;
+
+    m_showPixelEditor =
+        showPixelEditor != 0;
+
+    int windowX = 0;
+    int windowY = 0;
+    int windowWidth = 1280;
+    int windowHeight = 720;
+    int maximized = 0;
+
+    if (file >>
+        windowX >>
+        windowY >>
+        windowWidth >>
+        windowHeight >>
+        maximized)
+    {
+        SDL_SetWindowPosition(
+            m_window,
+            windowX,
+            windowY
+        );
+
+        SDL_SetWindowSize(
+            m_window,
+            windowWidth,
+            windowHeight
+        );
+
+        if (maximized != 0)
+        {
+            SDL_MaximizeWindow(
+                m_window
+            );
+        }
     }
 }
 

@@ -32,7 +32,18 @@ namespace DosBoxMemoryTools
         bool* isOpen,
         bool& liveView
     )
+
     {
+        if (m_applyDifferenceDeleteRequested)
+        {
+            m_scanner.keepDifference(
+                m_differenceValue
+            );
+
+            m_applyDifferenceDeleteRequested =
+                false;
+        }
+
         if (isOpen &&
             !*isOpen)
         {
@@ -246,7 +257,7 @@ namespace DosBoxMemoryTools
                 );
 
                 ImGui::SetNextItemWidth(
-                    80.0f
+                    120.0f
                 );
 
                 if (ImGui::InputInt(
@@ -815,13 +826,19 @@ namespace DosBoxMemoryTools
 
                 ImGui::TableSetColumnIndex(3);
 
-                ImGui::TableSetColumnIndex(3);
-
                 if (ImGui::Checkbox(
                     "##FilterDifference",
                     &m_filterDifference
                 ))
                 {
+                    if (m_filterDifference &&
+                        m_deleteOtherDifferenceCandidates)
+                    {
+                        m_scanner.keepDifference(
+                            m_differenceValue
+                        );
+                    }
+
                     saveScannerSettings();
                 }
 
@@ -837,6 +854,27 @@ namespace DosBoxMemoryTools
                 ))
                 {
                     saveScannerSettings();
+                }
+
+                if (ImGui::Checkbox(
+                    "Delete others",
+                    &m_deleteOtherDifferenceCandidates
+                ))
+                {
+                    saveScannerSettings();
+                }
+
+                if (m_deleteOtherDifferenceCandidates)
+                {
+                    ImGui::SameLine();
+
+                    if (ImGui::Button(
+                        "Apply"
+                    ))
+                    {
+                        m_applyDifferenceDeleteRequested =
+                            true;
+                    }
                 }
 
                 ImGuiListClipper clipper;

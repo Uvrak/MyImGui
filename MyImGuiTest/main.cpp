@@ -147,7 +147,7 @@ int main(int, char**)
 	DosBoxX::ExternalWindow externalWindow;
 
     externalWindow.startProcess(
-        R"(C:\Projects\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe)"
+        R"(C:\Projects\MyImGui\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe)"
     );
 
     bool dosBoxFound =

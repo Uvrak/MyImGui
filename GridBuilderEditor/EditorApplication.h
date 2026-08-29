@@ -20,6 +20,9 @@
 
 #include "DosBoxKeyBindings.h"
 #include "MightAndMagic1SpellWindow.h"
+#include "MemoryTools.h"
+#include "MightAndMagic3ItemSource.h"
+#include "ItemExplorerWindow.h"
 
 enum class MapPaintTarget
 {
@@ -290,6 +293,19 @@ private:
 
     std::unique_ptr<DosBoxWindow> dosBoxWindow = nullptr;
 
+    std::unique_ptr<
+        DosBoxMemoryTools::MemoryTools
+    > m_memoryTools;
+
+    std::unique_ptr<
+        MightAndMagic3::ItemSource
+    > m_mm3ItemSource;
+
+    ItemExplorer::ItemExplorerWindow
+        m_itemExplorerWindow;
+
+    bool m_showItemExplorer =
+        true;
     std::vector<std::string> m_recentGames;
 
     std::string recentGamesFilename() const;
@@ -310,6 +326,6 @@ private:
     std::string
         dosBoxKeyBindingsFilename() const;
 
-    private:
+    float m_fontScale = 1.0f;
               
 };

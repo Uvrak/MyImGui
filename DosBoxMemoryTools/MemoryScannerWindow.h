@@ -127,6 +127,9 @@ namespace DosBoxMemoryTools
 
         MemoryValueType m_valueType =
             MemoryValueType::Byte;
+
+        bool m_deleteOtherDifferenceCandidates = false;
+        bool m_applyDifferenceDeleteRequested = false;
     };
 
 }

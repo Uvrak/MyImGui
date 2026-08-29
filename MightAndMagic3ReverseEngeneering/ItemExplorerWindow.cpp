@@ -161,6 +161,14 @@ namespace ItemExplorer
             characterClassId,
             classNames.size()
         );
+        ImGui::Text(
+            "DEBUG item=%d char=%d level=%d class=%d names=%zu",
+            m_selectedItemId,
+            m_selectedCharacterIndex,
+            characterLevel,
+            characterClassId,
+            classNames.size()
+        );
 
         if (characterDataValid)
 

@@ -1,15 +1,20 @@
+#ifdef _WIN32
+#include <Windows.h>
+#include <TlHelp32.h>
+#endif
 #include "DosBoxWindow.h"
 #include "imgui.h"
 #include <string>
 #include <cstdio>
+#include "Controller.h"
 
 namespace
 {
     constexpr const char* DosBoxExecutablePath =
-        "C:\\Projects\\dosbox-x\\bin\\x64\\Debug SDL2\\dosbox-x.exe";
+        "C:\\Projects\\MyImGui\\dosbox-x\\bin\\x64\\Debug SDL2\\dosbox-x.exe";
 
     constexpr const char* DosBoxWorkingDirectory =
-        "C:\\Projects\\dosbox-x\\bin\\x64\\Debug SDL2";
+        "C:\\Projects\\MyImGui\\dosbox-x\\bin\\x64\\Debug SDL2";
 
     constexpr const char* DosBoxPipeName =
         R"(\\.\pipe\GridBuilderDOSBox)";
@@ -73,26 +78,21 @@ void DosBoxWindow::draw()
 
         if (m_started)
         {
-            m_focusRequested = true;
-            m_inputActive = true;
+            m_focusRequested = false;
+            m_inputActive = false;
         }
     }
 
-    if (m_started)
+    if (m_started &&
+        m_dosBoxHwnd == nullptr)
     {
         findDosBoxWindow();
 
         if (m_dosBoxHwnd != nullptr)
         {
-            SetWindowPos(
+            ShowWindow(
                 m_dosBoxHwnd,
-                nullptr,
-                HiddenDosBoxX,
-                HiddenDosBoxY,
-                HiddenDosBoxWidth,
-                HiddenDosBoxHeight,
-                SWP_NOZORDER |
-                SWP_NOACTIVATE
+                SW_HIDE
             );
         }
     }
@@ -115,8 +115,8 @@ void DosBoxWindow::draw()
                     "GridBuilder IPC: PONG received\n"
                 );
 
-                m_focusRequested = true;
-                m_inputActive = true;
+                m_focusRequested = false;
+                m_inputActive = false;
             }
             else
             {
@@ -221,6 +221,7 @@ void DosBoxWindow::draw()
         ImGui::End();
         return;
     }
+
     if (m_focusRequested)
     {
         m_focusRequested = false;
@@ -531,6 +532,7 @@ void DosBoxWindow::draw()
 
     if (m_inputActive)
     {
+
         ImGui::GetIO().ConfigFlags |=
             ImGuiConfigFlags_NoMouseCursorChange;
 
@@ -597,9 +599,80 @@ void DosBoxWindow::draw()
     ImGui::End();
 } 
 
+#ifdef _WIN32
+namespace
+{
+    void closeExistingDosBoxInstances()
+    {
+        HANDLE snapshot =
+            CreateToolhelp32Snapshot(
+                TH32CS_SNAPPROCESS,
+                0
+            );
+
+        if (snapshot == INVALID_HANDLE_VALUE)
+        {
+            return;
+        }
+
+        PROCESSENTRY32 processEntry{};
+        processEntry.dwSize =
+            sizeof(processEntry);
+
+        if (Process32First(
+            snapshot,
+            &processEntry
+        ))
+        {
+            do
+            {
+                if (_wcsicmp(
+                    processEntry.szExeFile,
+                    L"dosbox-x.exe"
+                ) != 0)
+                {
+                    continue;
+                }
+
+                HANDLE process =
+                    OpenProcess(
+                        PROCESS_TERMINATE,
+                        FALSE,
+                        processEntry.th32ProcessID
+                    );
+
+                if (process == nullptr)
+                {
+                    continue;
+                }
+
+                TerminateProcess(
+                    process,
+                    0
+                );
+
+                CloseHandle(
+                    process
+                );
+
+            } while (Process32Next(
+                snapshot,
+                &processEntry
+            ));
+        }
+
+        CloseHandle(
+            snapshot
+        );
+    }
+}
+#endif
+
 bool DosBoxWindow::start()
 {
 #ifdef _WIN32
+    closeExistingDosBoxInstances();
+
     HANDLE existingPipe =
         CreateFileA(
             DosBoxPipeName,
@@ -699,6 +772,12 @@ bool DosBoxWindow::start()
 bool DosBoxWindow::inputActive() const
 {
     return m_inputActive;
+}
+
+DosBoxX::NamedPipeClient&
+DosBoxWindow::pipeClient()
+{
+    return m_pipeClient;
 }
 
 const MightAndMagic1State&

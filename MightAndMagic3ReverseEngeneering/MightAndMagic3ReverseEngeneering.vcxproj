@@ -19,16 +19,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="GameState.h" />
     <ClInclude Include="Item.h" />
     <ClInclude Include="ItemExplorerWindow.h" />
     <ClInclude Include="ItemSource.h" />
-    <ClInclude Include="MainMenu.h" />
     <ClInclude Include="MightAndMagic3Inventory.h" />
     <ClInclude Include="MightAndMagic3ItemSource.h" />
+    <ClInclude Include="Position.h" />
+    <ClInclude Include="StateReader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ItemExplorerWindow.cpp" />
     <ClCompile Include="MightAndMagic3ItemSource.cpp" />
+    <ClCompile Include="Position.cpp" />
+    <ClCompile Include="StateReader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DosBoxMemoryTools\DosBoxMemoryTools.vcxproj">

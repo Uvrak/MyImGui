@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <utility>
 #include <sstream>
+#include <cstdlib>
 #include <windows.h>
 
 namespace
@@ -205,6 +206,42 @@ namespace DosBoxMemoryTools
             " matches.";
 
         return true;
+    }
+
+    void MemoryScanner::keepDifference(
+        int difference
+    )
+    {
+        m_candidates.erase(
+            std::remove_if(
+                m_candidates.begin(),
+                m_candidates.end(),
+                [difference](
+                    const MemoryCandidate& candidate
+                    )
+                {
+                    const int candidateDifference =
+                        std::abs(
+                            static_cast<int>(
+                                candidate.currentValue
+                                ) -
+                            static_cast<int>(
+                                candidate.previousValue
+                                )
+                        );
+
+                    return candidateDifference !=
+                        difference;
+                }
+            ),
+            m_candidates.end()
+        );
+
+        m_status =
+            "Candidates kept by difference: " +
+            std::to_string(
+                m_candidates.size()
+            );
     }
 
     bool MemoryScanner::
