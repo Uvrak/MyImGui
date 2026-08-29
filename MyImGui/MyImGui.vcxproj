@@ -159,12 +159,8 @@
     <ClInclude Include="FloatingWindow.h" />
     <ClInclude Include="FlowLayout.h" />
     <ClInclude Include="framework.h" />
-    <ClInclude Include="Item.h" />
-    <ClInclude Include="ItemExplorerWindow.h" />
     <ClInclude Include="ItemSource.h" />
     <ClInclude Include="MainMenu.h" />
-    <ClInclude Include="MightAndMagic3Inventory.h" />
-    <ClInclude Include="MightAndMagic3ItemSource.h" />
     <ClInclude Include="MyImGui.h" />
     <ClInclude Include="MyImGuiSettings.h" />
     <ClInclude Include="MyImGuiSettingsWindow.h" />
@@ -176,9 +172,7 @@
     <ClCompile Include="DragDropRecoder.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
-    <ClCompile Include="ItemExplorerWindow.cpp" />
     <ClCompile Include="MainMenu.cpp" />
-    <ClCompile Include="MightAndMagic3ItemSource.cpp" />
     <ClCompile Include="MyImGui.cpp" />
     <ClCompile Include="MyImGuiSettings.cpp" />
     <ClCompile Include="MyImGuiSettingsWindow.cpp" />

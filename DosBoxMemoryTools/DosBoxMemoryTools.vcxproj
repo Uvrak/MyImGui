@@ -154,7 +154,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\zydis\dependencies\zycore\include;$(SolutionDir)MyImGui;$(SolutionDir)ThirdParty\zydis\include;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)DosBoxX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MightAndMagic3ReverseEngeneering;$(SolutionDir)ThirdParty\zydis\dependencies\zycore\include;$(SolutionDir)MyImGui;$(SolutionDir)ThirdParty\zydis\include;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)DosBoxX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>

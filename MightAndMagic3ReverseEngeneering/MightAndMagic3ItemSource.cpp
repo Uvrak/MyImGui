@@ -1,4 +1,3 @@
-#include "pch.h"
 #include "MightAndMagic3ItemSource.h"
 
 namespace MightAndMagic3

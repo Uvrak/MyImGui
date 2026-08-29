@@ -115,7 +115,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;ZYDIS_STATIC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)DosBoxX;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)MyImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)MightAndMagic3ReverseEngeneering;$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)DosBoxX;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)MyImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,6 +159,9 @@
     </ProjectReference>
     <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">
       <Project>{c5542076-9232-495f-91c7-92cf22e2f0df}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\MightAndMagic3ReverseEngeneering\MightAndMagic3ReverseEngeneering.vcxproj">
+      <Project>{a2cbbb64-e396-4b8f-b449-6f4bfd5ac124}</Project>
     </ProjectReference>
     <ProjectReference Include="..\MyImGui\MyImGui.vcxproj">
       <Project>{df47b7a7-9d08-45a7-afe0-485bef09fe61}</Project>

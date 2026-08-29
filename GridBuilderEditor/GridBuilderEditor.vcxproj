@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{d949150b-22af-46e9-a9b1-7bada5a108e7}</ProjectGuid>
+    <RootNamespace>GridBuilderEditor</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ExternalIncludePath>$(SolutionDir)ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\FreeType\include;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)GridBuilderCore;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ThirdParty\SDL3\include;$(ExternalIncludePath)</ExternalIncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ExternalIncludePath>$(SolutionDir)ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\FreeType\include;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)GridBuilderCore;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ThirdParty\SDL3\include;$(ExternalIncludePath)</ExternalIncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ExternalIncludePath>
+    </ExternalIncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ExternalIncludePath>
+    </ExternalIncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Projects\OpenWorldGridBuilder\ThirdParty\FreeType\lib\x64;$(SolutionDir)ThirdParty\SDL3_image\lib\x64;$(SolutionDir)ThirdParty\SDL3\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)ThirdParty\SDL3\lib\x64\SDL3.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Projects\OpenWorldGridBuilder\ThirdParty\FreeType\lib\x64;$(SolutionDir)ThirdParty\SDL3_image\lib\x64;$(SolutionDir)ThirdParty\SDL3\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)ThirdParty\SDL3\lib\x64\SDL3.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)MyImGui;$(SolutionDir)DosBoxX;$(ProjectDir)PixelEditor;$(SolutionDir)ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\FreeType\include;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)GridBuilderCore;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ThirdParty\SDL3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Projects\MyImGui\x64\Debug;$(SolutionDir)ThirdParty\FreeType\lib\x64;$(SolutionDir)ThirdParty\SDL3_image\lib\x64;$(SolutionDir)ThirdParty\SDL3\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)ThirdParty\SDL3\lib\x64\SDL3.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\MyImGui;$(ProjectDir)PixelEditor;$(SolutionDir)ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\FreeType\include;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)GridBuilderCore;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ThirdParty\SDL3\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Projects\OpenWorldGridBuilder\ThirdParty\FreeType\lib\x64;$(SolutionDir)ThirdParty\SDL3_image\lib\x64;$(SolutionDir)ThirdParty\SDL3\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;freetype.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <Manifest>
+      <EnableSegmentHeap>true</EnableSegmentHeap>
+    </Manifest>
+    <PostBuildEvent>
+      <Command>copy /Y "$(SolutionDir)ThirdParty\SDL3\lib\x64\SDL3.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutDir)"
+copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ColorMenu.cpp" />
+    <ClCompile Include="ColorPaletteWindow.cpp" />
+    <ClCompile Include="DosBoxFrameTextureSDL.cpp" />
+    <ClCompile Include="DosBoxKeyBindings.cpp" />
+    <ClCompile Include="DosBoxProgramReader.cpp" />
+    <ClCompile Include="DosBoxWindow.cpp" />
+    <ClCompile Include="EditorApplication.cpp" />
+    <ClCompile Include="EditorEdgeBox.cpp" />
+    <ClCompile Include="EditorMiscBox.cpp" />
+    <ClCompile Include="EditorToolBox.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MightAndMagic1Reader.cpp" />
+    <ClCompile Include="MightAndMagic1SpellWindow.cpp" />
+    <ClCompile Include="PixelColorWindow.cpp" />
+    <ClCompile Include="PixelEditor\IconButtonBar.cpp" />
+    <ClCompile Include="PixelEditor\ImageFileLoader.cpp" />
+    <ClCompile Include="PixelEditor\MainToolbar.cpp" />
+    <ClCompile Include="PixelEditor\PixelCanvasWindow.cpp" />
+    <ClCompile Include="PixelEditor\PixelColor.cpp" />
+    <ClCompile Include="PixelEditor\PixelImage.cpp" />
+    <ClCompile Include="PropertiesWindow.cpp" />
+    <ClCompile Include="SvgButtonBar.cpp" />
+    <ClCompile Include="SvgFileWriter.cpp" />
+    <ClCompile Include="SvgTextureCache.cpp" />
+    <ClCompile Include="TextureLoader.cpp" />
+    <ClCompile Include="WorldViewWindow.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ColorMenu.h" />
+    <ClInclude Include="ColorPaletteWindow.h" />
+    <ClInclude Include="DosBoxFrameTextureSDL.h" />
+    <ClInclude Include="DosBoxKeyBindings.h" />
+    <ClInclude Include="DosBoxProgramReader.h" />
+    <ClInclude Include="DosBoxWindow.h" />
+    <ClInclude Include="EditorApplication.h" />
+    <ClInclude Include="EditorEdgeBox.h" />
+    <ClInclude Include="EditorMiscBox.h" />
+    <ClInclude Include="EditorTool.h" />
+    <ClInclude Include="EditorToolBox.h" />
+    <ClInclude Include="EditorEdgeType.h" />
+    <ClInclude Include="MightAndMagic1Reader.h" />
+    <ClInclude Include="MightAndMagic1SpellWindow.h" />
+    <ClInclude Include="PixelColorWindow.h" />
+    <ClInclude Include="PixelEditor\EditorCommand.h" />
+    <ClInclude Include="PixelEditor\IconButtonBar.h" />
+    <ClInclude Include="PixelEditor\ImageFileLoader.h" />
+    <ClInclude Include="PixelEditor\MainToolbar.h" />
+    <ClInclude Include="PixelEditor\PixelCanvasWindow.h" />
+    <ClInclude Include="PixelEditor\PixelColor.h" />
+    <ClInclude Include="PixelEditor\PixelImage.h" />
+    <ClInclude Include="PixelEditor\PixelTool.h" />
+    <ClInclude Include="PropertiesWindow.h" />
+    <ClInclude Include="SvgButtonBar.h" />
+    <ClInclude Include="SvgFileWriter.h" />
+    <ClInclude Include="SvgTextureCache.h" />
+    <ClInclude Include="TextureLoader.h" />
+    <ClInclude Include="WorldViewWindow.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\MyImGui\ImGui\ImGui.vcxproj">
+      <Project>{7400f32b-42d9-432d-81d4-e5b8e0fd510d}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\MyImGui\MyImGui\MyImGui.vcxproj">
+      <Project>{df47b7a7-9d08-45a7-afe0-485bef09fe61}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">
+      <Project>{c5542076-9232-495f-91c7-92cf22e2f0df}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GridBuilderCore\GridBuilderCore.vcxproj">
+      <Project>{f1e86453-4a0c-4062-a662-38e91def7ccd}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

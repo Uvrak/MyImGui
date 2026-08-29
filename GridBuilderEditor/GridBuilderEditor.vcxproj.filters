@@ -1,0 +1,221 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="imgui">
+      <UniqueIdentifier>{6d46bf73-2b9d-40ef-ace0-2cb26e9432c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="windows">
+      <UniqueIdentifier>{dafbcb1d-cc8e-4795-b4c6-62d22f621761}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Graphics">
+      <UniqueIdentifier>{dba104bf-d40b-478d-b703-81028fbf67e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources">
+      <UniqueIdentifier>{bf7cc3dd-caab-49be-861a-94302d3a4f42}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resources\icons">
+      <UniqueIdentifier>{78dc0dce-77fc-4b68-a1da-57270c217c64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Buttons">
+      <UniqueIdentifier>{9c3f82de-6e48-4f4f-b610-d40bacdf7227}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="PixelEditor">
+      <UniqueIdentifier>{cc9cab44-24ae-475e-9979-1a28813c6459}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Color">
+      <UniqueIdentifier>{43bc7e6c-aba2-431a-a5cc-12c6a523f9b4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Controls">
+      <UniqueIdentifier>{ac203b1f-22d1-4907-b381-568830f14b3d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DosBox">
+      <UniqueIdentifier>{595c6d21-80b9-44b9-8eab-54e0bff05072}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Games">
+      <UniqueIdentifier>{4654ca7a-3634-45a9-86b5-eccbade01c27}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Games\MightAndMagic1">
+      <UniqueIdentifier>{fc6fabaa-a2f4-4568-a6c7-08b0f2376169}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Games\MightAndMagic3">
+      <UniqueIdentifier>{12edb56c-51ff-4226-bab3-a85a0d41290e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorApplication.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PropertiesWindow.cpp">
+      <Filter>windows</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewWindow.cpp">
+      <Filter>windows</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorToolBox.cpp">
+      <Filter>windows</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureLoader.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorEdgeBox.cpp">
+      <Filter>windows</Filter>
+    </ClCompile>
+    <ClCompile Include="SvgTextureCache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SvgButtonBar.cpp">
+      <Filter>Buttons</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelEditor\PixelCanvasWindow.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelEditor\PixelImage.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelEditor\PixelColor.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelEditor\IconButtonBar.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelEditor\MainToolbar.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelEditor\ImageFileLoader.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="SvgFileWriter.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelColorWindow.cpp">
+      <Filter>PixelEditor</Filter>
+    </ClCompile>
+    <ClCompile Include="ColorPaletteWindow.cpp">
+      <Filter>Color</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorMiscBox.cpp">
+      <Filter>windows</Filter>
+    </ClCompile>
+    <ClCompile Include="ColorMenu.cpp">
+      <Filter>Buttons</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxWindow.cpp">
+      <Filter>DosBox</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxFrameTextureSDL.cpp">
+      <Filter>DosBox</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxKeyBindings.cpp">
+      <Filter>DosBox</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxProgramReader.cpp">
+      <Filter>DosBox</Filter>
+    </ClCompile>
+    <ClCompile Include="MightAndMagic1Reader.cpp">
+      <Filter>Games\MightAndMagic1</Filter>
+    </ClCompile>
+    <ClCompile Include="MightAndMagic1SpellWindow.cpp">
+      <Filter>Games\MightAndMagic1</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="EditorApplication.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PropertiesWindow.h">
+      <Filter>windows</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureLoader.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorTool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorToolBox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorEdgeType.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SvgTextureCache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SvgButtonBar.h">
+      <Filter>Buttons</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\PixelCanvasWindow.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\PixelImage.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\PixelTool.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\PixelColor.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\EditorCommand.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\IconButtonBar.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\MainToolbar.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelEditor\ImageFileLoader.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorEdgeBox.h">
+      <Filter>windows</Filter>
+    </ClInclude>
+    <ClInclude Include="SvgFileWriter.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelColorWindow.h">
+      <Filter>PixelEditor</Filter>
+    </ClInclude>
+    <ClInclude Include="ColorPaletteWindow.h">
+      <Filter>Color</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorMiscBox.h">
+      <Filter>windows</Filter>
+    </ClInclude>
+    <ClInclude Include="ColorMenu.h">
+      <Filter>Buttons</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxWindow.h">
+      <Filter>DosBox</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxFrameTextureSDL.h">
+      <Filter>DosBox</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxKeyBindings.h">
+      <Filter>DosBox</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxProgramReader.h">
+      <Filter>DosBox</Filter>
+    </ClInclude>
+    <ClInclude Include="MightAndMagic1Reader.h">
+      <Filter>Games\MightAndMagic1</Filter>
+    </ClInclude>
+    <ClInclude Include="MightAndMagic1SpellWindow.h">
+      <Filter>Games\MightAndMagic1</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

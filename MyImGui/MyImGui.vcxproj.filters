@@ -66,23 +66,11 @@
     <ClInclude Include="MyImGuiSettingsWindow.h">
       <Filter>UiSettings</Filter>
     </ClInclude>
-    <ClInclude Include="Item.h">
-      <Filter>ItemExplorer</Filter>
-    </ClInclude>
-    <ClInclude Include="ItemSource.h">
-      <Filter>ItemExplorer</Filter>
-    </ClInclude>
-    <ClInclude Include="ItemExplorerWindow.h">
-      <Filter>ItemExplorer</Filter>
-    </ClInclude>
-    <ClInclude Include="MightAndMagic3ItemSource.h">
-      <Filter>Games</Filter>
-    </ClInclude>
-    <ClInclude Include="MightAndMagic3Inventory.h">
-      <Filter>Games</Filter>
-    </ClInclude>
     <ClInclude Include="RecordButton.h">
       <Filter>RecordButton</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemSource.h">
+      <Filter>Wigets</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -112,12 +100,6 @@
     </ClCompile>
     <ClCompile Include="MyImGuiSettingsWindow.cpp">
       <Filter>UiSettings</Filter>
-    </ClCompile>
-    <ClCompile Include="ItemExplorerWindow.cpp">
-      <Filter>ItemExplorer</Filter>
-    </ClCompile>
-    <ClCompile Include="MightAndMagic3ItemSource.cpp">
-      <Filter>Games</Filter>
     </ClCompile>
     <ClCompile Include="RecordButton.cpp">
       <Filter>RecordButton</Filter>

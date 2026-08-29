@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{27e08066-10e4-4c35-aa1e-753d2f258cea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Layer">
+      <UniqueIdentifier>{f66d2475-5134-4ffb-a82e-e1e08e66ba55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Chunk">
+      <UniqueIdentifier>{20e9fe61-0185-467f-9c08-a23a94dcd33b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Cell">
+      <UniqueIdentifier>{f939ab64-47bb-49f3-8dfb-5b601796e2e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IO">
+      <UniqueIdentifier>{4d5f064d-7d8b-4116-94a0-f7e876c96863}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utillity">
+      <UniqueIdentifier>{6d75e11b-0be9-458b-acb1-99514f2c2f98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Types">
+      <UniqueIdentifier>{bc8ee366-6dd3-41e0-8f58-121cd2761e34}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{a21fb17a-ba96-40a8-aa29-49b2ecdc4ef8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NewFilter1">
+      <UniqueIdentifier>{914cc9ea-76aa-4305-bd07-2a997c9d298e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Color">
+      <UniqueIdentifier>{39187bf8-4b17-4a1b-b803-fba94e78ff56}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="World.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="Layer.h">
+      <Filter>Layer</Filter>
+    </ClInclude>
+    <ClInclude Include="Chunk.h">
+      <Filter>Chunk</Filter>
+    </ClInclude>
+    <ClInclude Include="Cell.h">
+      <Filter>Cell</Filter>
+    </ClInclude>
+    <ClInclude Include="ChunkPosition.h">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="pch.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ChunkPositionHash.h">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="ChunkManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="WallDirection.h">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="MapSerializer.h">
+      <Filter>IO</Filter>
+    </ClInclude>
+    <ClInclude Include="EdgeDirection.h">
+      <Filter>Types</Filter>
+    </ClInclude>
+    <ClInclude Include="EdgeColor.h">
+      <Filter>Color</Filter>
+    </ClInclude>
+    <ClInclude Include="MapColor.h">
+      <Filter>Color</Filter>
+    </ClInclude>
+    <ClInclude Include="MapColorPalette.h">
+      <Filter>Color</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Layer.cpp">
+      <Filter>Layer</Filter>
+    </ClCompile>
+    <ClCompile Include="ChunkPosition.cpp">
+      <Filter>Types</Filter>
+    </ClCompile>
+    <ClCompile Include="Cell.cpp">
+      <Filter>Cell</Filter>
+    </ClCompile>
+    <ClCompile Include="pch.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ChunkPositionHash.cpp">
+      <Filter>Types</Filter>
+    </ClCompile>
+    <ClCompile Include="Chunk.cpp">
+      <Filter>Chunk</Filter>
+    </ClCompile>
+    <ClCompile Include="ChunkManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="WallDirection.cpp">
+      <Filter>Types</Filter>
+    </ClCompile>
+    <ClCompile Include="MapSerializer.cpp">
+      <Filter>IO</Filter>
+    </ClCompile>
+    <ClCompile Include="MapColorPalette.cpp">
+      <Filter>Color</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
