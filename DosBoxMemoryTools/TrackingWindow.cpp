@@ -1744,20 +1744,6 @@ namespace DosBoxMemoryTools
 
     void TrackingWindow::drawMemoryWriteWatch()
     {
-        ImGui::SetNextItemWidth(
-            140.0f
-        );
-
-        ImGui::InputText(
-            "Memory Write Target",
-            m_memoryWriteTargetText,
-            sizeof(m_memoryWriteTargetText)
-        );
-
-        ImGui::TextUnformatted(
-            "Watch"
-        );
-
         if (m_memoryWriteRecordButton.draw())
         {
             if (m_memoryWriteRecordButton.recording())
@@ -1766,12 +1752,15 @@ namespace DosBoxMemoryTools
 
                 const unsigned long long targetAddress =
                     std::strtoull(
-                        m_memoryWriteTargetText,
+                        m_targetText,
                         &end,
                         0
                     );
 
-                if (end != m_memoryWriteTargetText &&
+                if (end != m_targetText &&
+                    *end == '\0')
+
+                if (end != m_targetText &&
                     *end == '\0')
                 {
                     if (m_scanner.setMemoryWriteWatchTarget(
@@ -1846,10 +1835,39 @@ namespace DosBoxMemoryTools
         {
             ImGui::Separator();
 
-            ImGui::Text(
+            char addressText[64];
+
+            std::snprintf(
+                addressText,
+                sizeof(addressText),
                 "Address: 0x%zX",
                 m_memoryWriteCapture.address
             );
+
+            ImGui::Selectable(
+                addressText,
+                false,
+                ImGuiSelectableFlags_AllowDoubleClick,
+                ImVec2(
+                    ImGui::CalcTextSize(
+                        addressText
+                    ).x,
+                    0.0f
+                )
+            );
+
+            if (ImGui::IsItemHovered() &&
+                ImGui::IsMouseDoubleClicked(
+                    ImGuiMouseButton_Left
+                ))
+            {
+                std::snprintf(
+                    m_targetText,
+                    sizeof(m_targetText),
+                    "0x%zX",
+                    m_memoryWriteCapture.address
+                );
+            }
 
             ImGui::Text(
                 "CS:IP %04X:%04X",
@@ -1903,6 +1921,13 @@ namespace DosBoxMemoryTools
                     ),
                 static_cast<unsigned int>(
                     m_memoryWriteCapture.registers.ss
+                    )
+            );
+
+            ImGui::Text(
+                "Written Value: 0x%02X",
+                static_cast<unsigned int>(
+                    m_memoryWriteCapture.writeValue
                     )
             );
 

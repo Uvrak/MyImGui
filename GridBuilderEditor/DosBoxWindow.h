@@ -14,7 +14,6 @@
 #include "Mouse.h"
 #include "Controller.h"
 #include "NamedPipeClient.h"
-#include "MightAndMagic1Reader.h"
 #include "DosBoxKeyBindings.h"
 #include "DosBoxProgramReader.h"
 #include "imgui.h"
@@ -43,13 +42,14 @@ public:
     DosBoxX::NamedPipeClient&
         pipeClient();
 
-    const MightAndMagic1State&
-        mightAndMagic1State() const;
-
     void openGame(
         const std::string& mountDirectory,
         const std::string& dosDirectory,
         const std::string& gameFilename
+    );
+
+    bool sendDosKey(
+        const char* key
     );
 
     void setGermanKeyboardLayout();
@@ -61,6 +61,15 @@ public:
 
     void setKeyBindings(
         const DosBoxKeyBindings& keyBindings
+    );
+
+    void setDirectKeyboardBlocked(
+        bool blocked
+    );
+
+    void setGameButtonSelection(
+        bool active,
+        int selectedButton
     );
 private:
     SDL_Window* m_parentWindow =
@@ -89,9 +98,6 @@ private:
 
     DosBoxX::NamedPipeClient m_pipeClient;
 
-    MightAndMagic1Reader
-        m_mightAndMagic1Reader;
-
     DosBoxX::ExternalWindow m_externalWindow;
     DosBoxX::Keyboard m_keyboard;
     DosBoxX::Mouse m_mouse;
@@ -107,8 +113,6 @@ private:
 
     bool m_memorySnapshotRequested = false;
 
-    Uint64 m_nextMightAndMagic1Update = 0;
-
     ImGuiKey m_customSwitchViewKey =
         ImGuiKey_None;
 
@@ -119,4 +123,13 @@ private:
 
     DosBoxProgramReader
         m_programReader;
+
+    bool m_directKeyboardBlocked =
+        false;
+
+    bool m_gameButtonSelectionActive =
+        false;
+
+    int m_selectedGameButton =
+        -1;
 };

@@ -653,5 +653,402 @@ nur Material ändern:
 Danach Buff separat testen.
 
 ==================================================
-ENDE DER ZUSAMMENFASSUNG
+ENDE DER ZUSAMMENFASSUNG 
 ==================================================
+
+MM3 – X/Y-Koordinaten gefunden
+Stand: 30.08.2026
+
+Bestätigte Adressen:
+
+0x2EE31 = X-Koordinate (Byte)
+0x2EE32 = Y-Koordinate (Byte)
+
+Nachweis:
+
+X-Bewegung:
+0x2EE31: 7 -> 6
+0x2EE32: 3 -> 3
+
+Weitere 2 Schritte auf X:
+0x2EE31: 6 -> 4
+0x2EE32: 3 -> 3
+
+Danach Bewegung auf Y:
+0x2EE31: 4 -> 4
+0x2EE32: 3 -> 2
+
+Damit reagieren die beiden Bytes unabhängig:
+- Bewegung auf X verändert nur 0x2EE31.
+- Bewegung auf Y verändert nur 0x2EE32.
+
+Wichtig:
+Die Adressen müssen als BYTE betrachtet werden.
+Der vorherige Short-Scan hatte beide benachbarten Bytes zu einem
+16-Bit-Wert zusammengefasst und dadurch die Interpretation erschwert.
+
+Segmentbezug:
+Beim Capture war DS = 0x2053.
+
+DS:0xE901:
+0x20530 + 0xE901 = 0x2EE31  -> X
+
+DS:0xE902:
+0x20530 + 0xE902 = 0x2EE32  -> Y
+
+Memory-Write-Tracking X:
+Target:        0x2EE31
+Writer:        0x315E1
+CS:IP:         3055:1091
+Written Value: 0x03
+
+Disassembly:
+0x315E1  inc [0xE901]
+0x315E7  dec [0xE901]
+
+Damit wird X direkt über DS:E901 erhöht/verringert.
+
+Memory-Write-Tracking Y:
+Target:        0x2EE32
+Writer:        0x315D5
+CS:IP:         3055:1085
+Written Value: 0x04
+
+0x304D4:
+Kein primärer Y-Koordinatenwert.
+Die Adresse kann Y zeitweise folgen (z.B. 3 -> 2), verändert sich aber
+auch unabhängig/temporär. Daher nicht als eigentliche Koordinate verwenden.
+
+Zusätzlicher technischer Fix:
+Der DOSBox-X Output Directory war falsch konfiguriert.
+DOSBox-X wurde zuvor nach:
+C:\Projects\bin\x64\Debug SDL2\
+gebaut, während MyImGui die EXE aus:
+C:\Projects\MyImGui\dosbox-x\bin\x64\Debug SDL2\
+startete.
+
+Korrigiertes Output Directory:
+$(ProjectDir)..\bin\$(Platform)\$(Configuration)\
+
+Dadurch werden Änderungen an dosbox_memory_scanner_ipc.cpp jetzt
+tatsächlich in die von MyImGui gestartete DOSBox-X-EXE eingebaut.
+
+Memory-Write-Tracker funktioniert jetzt vollständig:
+- Target-Adresse
+- Writer/Instruction-Adresse
+- CS:IP
+- Register
+- Stack
+- Written Value
+
+MM3 – Position und Blickrichtung gefunden
+Stand: 30.08.2026
+
+Bestätigte RAM-Adressen:
+
+0x2EE30 = Facing / Blickrichtung (Byte)
+0x2EE31 = X-Koordinate (Byte)
+0x2EE32 = Y-Koordinate (Byte)
+
+Wichtig:
+Diese Werte müssen als BYTE betrachtet werden.
+Ein früherer Short-Scan auf 0x2EE31 hatte X und Y zu einem 16-Bit-Wert
+zusammengefasst und dadurch die Interpretation erschwert.
+
+Beispiel:
+Short 770 = 0x0302
+
+Little Endian:
+0x2EE31 = 0x02
+0x2EE32 = 0x03
+
+
+--------------------------------------------------
+X-Koordinate
+--------------------------------------------------
+
+0x2EE31 = X
+
+Nachweis:
+
+X-Bewegung:
+0x2EE31: 7 -> 6
+0x2EE32: 3 -> 3
+
+Weitere 2 Schritte auf derselben Achse:
+0x2EE31: 6 -> 4
+0x2EE32: 3 -> 3
+
+Damit verändert sich bei dieser Bewegung nur X.
+
+
+Memory-Write-Capture für X:
+
+Target:
+0x2EE31
+
+Writer:
+0x315E1
+
+CS:IP:
+3055:1091
+
+Beispiel:
+Written Value = 0x03
+
+
+Disassembly:
+
+0x315E1
+inc byte ptr [0xE901]
+
+0x315E7
+dec byte ptr [0xE901]
+
+Beim Capture:
+DS = 0x2053
+
+Lineare Adresse:
+
+0x2053 * 0x10 = 0x20530
+
+0x20530 + 0xE901 = 0x2EE31
+
+Damit ist bestätigt:
+DS:E901 = X
+
+
+--------------------------------------------------
+Y-Koordinate
+--------------------------------------------------
+
+0x2EE32 = Y
+
+Nachweis:
+
+Nach Ausrichtung auf die andere Achse:
+
+0x2EE31: 4 -> 4
+0x2EE32: 3 -> 2
+
+Damit verändert sich bei dieser Bewegung nur Y.
+
+
+Memory-Write-Capture für Y:
+
+Target:
+0x2EE32
+
+Writer:
+0x315D5
+
+CS:IP:
+3055:1085
+
+Beispiel:
+Written Value = 0x04
+
+
+Segmentbezug:
+
+0x20530 + 0xE902 = 0x2EE32
+
+Damit ist bestätigt:
+DS:E902 = Y
+
+
+--------------------------------------------------
+Facing / Blickrichtung
+--------------------------------------------------
+
+0x2EE30 = Facing
+
+Segmentbezug:
+
+0x20530 + 0xE900 = 0x2EE30
+
+Disassembly vor den Koordinaten-Writern:
+
+mov al,[0xE900]
+mov ah,0x00
+mov bx,ax
+cmp bx,0x03
+jnbe ...
+shl bx,0x01
+jmp cs:[bx+0x1F80]
+
+Damit wird der Wert aus DS:E900 als Index 0..3
+für eine Sprungtabelle benutzt.
+
+Die vier Fälle führen zu:
+
+inc [0xE902]   -> Y + 1
+dec [0xE902]   -> Y - 1
+inc [0xE901]   -> X + 1
+dec [0xE901]   -> X - 1
+
+Damit bestimmt Facing direkt,
+welche Koordinate beim Vorwärtsgehen verändert wird.
+
+
+Bestätigte Facing-Werte:
+
+0 = West
+1 = East
+2 = North
+3 = South
+
+
+Bestätigter Rechtsdreh-Zyklus:
+
+South = 3
+West  = 0
+North = 2
+East  = 1
+South = 3
+
+
+--------------------------------------------------
+Zusammenfassung
+--------------------------------------------------
+
+MM3 Player State:
+
+Facing:
+0x2EE30
+
+X:
+0x2EE31
+
+Y:
+0x2EE32
+
+
+Facing Mapping:
+
+0 -> West
+1 -> East
+2 -> North
+3 -> South
+
+
+Diese drei Bytes können jetzt direkt
+in den GridBuilder übernommen werden.
+
+
+--------------------------------------------------
+Memory-Write-Tracker
+--------------------------------------------------
+
+Der Memory-Write-Tracker funktioniert jetzt vollständig.
+
+Er zeigt:
+
+- Target-Adresse
+- Writer / Instruction-Adresse
+- CS:IP
+- Register
+- Stack
+- Written Value
+
+Der Written Value wird als 17. Feld
+über die Named Pipe übertragen.
+
+
+--------------------------------------------------
+Wichtiger Build-Fix DOSBox-X
+--------------------------------------------------
+
+Der DOSBox-X Output Directory war falsch konfiguriert.
+
+Vorher wurde gebaut nach:
+
+C:\Projects\bin\x64\Debug SDL2\dosbox-x.exe
+
+MyImGui startete aber:
+
+C:\Projects\MyImGui\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe
+
+Dadurch liefen Änderungen an
+dosbox_memory_scanner_ipc.cpp zunächst
+nicht in der tatsächlich gestarteten DOSBox-X-Version.
+
+Korrigiertes Output Directory:
+
+$(ProjectDir)..\bin\$(Platform)\$(Configuration)\
+
+Danach zeigt der Build korrekt:
+
+C:\Projects\MyImGui\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe
+
+Seitdem werden Änderungen an DOSBox-X
+von MyImGui tatsächlich verwendet.
+
+--------------------------------------------------
+Architektur-Hinweis für GridBuilder
+--------------------------------------------------
+
+Die MM3-Adressen dürfen nicht fest in die allgemeine
+GridBuilder-Logik eingebaut werden.
+
+Der Player-State soll dynamisch pro Spiel konfigurierbar sein.
+
+Beispiel MM3:
+
+Game: MM3.EXE
+
+FacingAddress = 0x2EE30
+XAddress      = 0x2EE31
+YAddress      = 0x2EE32
+
+FacingMapping:
+0 = West
+1 = East
+2 = North
+3 = South
+
+Andere Spiele können andere:
+- Speicheradressen
+- Datentypen
+- Koordinatenachsen
+- Vorzeichen
+- Y-Richtung
+- Facing-Werte
+
+verwenden.
+
+Der GridBuilder soll deshalb nur einen allgemeinen Zustand bekommen:
+
+PlayerState
+{
+    x
+    y
+    direction
+    valid
+}
+
+Eine spielspezifische Memory-Konfiguration bzw. ein
+Game-State-Reader übersetzt die Rohwerte aus DOSBox
+in diesen allgemeinen PlayerState.
+
+Beispiel:
+
+MM3 Memory
+0x2EE31 = 4
+0x2EE32 = 2
+0x2EE30 = 3
+
+wird übersetzt zu:
+
+PlayerState
+X = 4
+Y = 2
+Direction = South
+
+Der World/GridBuilder-Code selbst muss dafür nicht wissen,
+dass diese Werte aus MM3 oder von bestimmten RAM-Adressen stammen.
+
+Ziel:
+Neue Spiele sollen später nur durch eine neue Konfiguration
+bzw. einen neuen Game-State-Reader ergänzt werden können,
+ohne die allgemeine GridBuilder-Logik umzubauen.

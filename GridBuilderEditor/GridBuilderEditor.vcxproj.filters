@@ -128,6 +128,9 @@
     <ClCompile Include="MightAndMagic1SpellWindow.cpp">
       <Filter>Games\MightAndMagic1</Filter>
     </ClCompile>
+    <ClCompile Include="GameModuleManager.cpp">
+      <Filter>Games</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EditorApplication.h">
@@ -216,6 +219,21 @@
     </ClInclude>
     <ClInclude Include="MightAndMagic1SpellWindow.h">
       <Filter>Games\MightAndMagic1</Filter>
+    </ClInclude>
+    <ClInclude Include="GamePosition.h">
+      <Filter>Games</Filter>
+    </ClInclude>
+    <ClInclude Include="PlayerPositionSource.h">
+      <Filter>Games</Filter>
+    </ClInclude>
+    <ClInclude Include="MapPlayerMarker.h">
+      <Filter>Games</Filter>
+    </ClInclude>
+    <ClInclude Include="GameModule.h">
+      <Filter>Games</Filter>
+    </ClInclude>
+    <ClInclude Include="GameModuleManager.h">
+      <Filter>Games</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -35,9 +35,12 @@ namespace DosBoxMemoryTools
 
         bool refreshMemory();
 
+        void refreshPinnedValues();
+
     private:    
         bool m_liveView = false;
         double m_lastLiveRefresh = 0.0;
+        bool m_initialRefreshDone = false;
 
         MemoryReader
             m_memoryReader;
@@ -53,10 +56,6 @@ namespace DosBoxMemoryTools
 
         TrackingWindow
             m_trackingWindow;
-
- 
-        //InstructionTransitionTrackerWindow
-        //    m_transitionTrackerWindow;
 
         DisassemblyWindow
             m_disassemblyWindow;

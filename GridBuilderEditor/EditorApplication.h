@@ -19,10 +19,10 @@
 #include <vector>
 
 #include "DosBoxKeyBindings.h"
-#include "MightAndMagic1SpellWindow.h"
+
 #include "MemoryTools.h"
-#include "MightAndMagic3ItemSource.h"
 #include "ItemExplorerWindow.h"
+#include "GameModuleManager.h"
 
 enum class MapPaintTarget
 {
@@ -41,6 +41,12 @@ class EditorApplication
 public:
     EditorApplication();
     ~EditorApplication();
+
+    GameModuleManager&
+        gameModuleManager();
+
+    DosBoxMemoryTools::MemoryReader&
+        memoryReader();
 
     void run();
 
@@ -297,10 +303,6 @@ private:
         DosBoxMemoryTools::MemoryTools
     > m_memoryTools;
 
-    std::unique_ptr<
-        MightAndMagic3::ItemSource
-    > m_mm3ItemSource;
-
     ItemExplorer::ItemExplorerWindow
         m_itemExplorerWindow;
 
@@ -327,5 +329,8 @@ private:
         dosBoxKeyBindingsFilename() const;
 
     float m_fontScale = 1.0f;
+
+    GameModuleManager
+        m_gameModuleManager;
               
 };

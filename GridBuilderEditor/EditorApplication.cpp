@@ -18,6 +18,8 @@
 #include <fstream>
 #include <cstdio>
 
+#include <SDL3/SDL.h>
+
 
 
 namespace
@@ -154,17 +156,6 @@ EditorApplication::EditorApplication()
         "MM3.EXE"
     );
 
-    m_mm3ItemSource =
-        std::make_unique<
-        MightAndMagic3::ItemSource
-        >(
-            m_memoryTools->memoryReader()
-        );
-
-    m_itemExplorerWindow.setSource(
-        m_mm3ItemSource.get()
-    );
-
     loadRecentMaps();
     refreshMapFiles();
     loadLastMap();
@@ -226,9 +217,33 @@ void EditorApplication::processEvents()
 
     while (SDL_PollEvent(&event))
     {
-        ImGui_ImplSDL3_ProcessEvent(&event);
+        ImGui_ImplSDL3_ProcessEvent(
+            &event
+        );
 
-        if (event.type == SDL_EVENT_QUIT)
+        GameModule* gameModule =
+            m_gameModuleManager.active();
+
+        if (gameModule)
+        {
+            if (event.type ==
+                SDL_EVENT_KEY_DOWN)
+            {
+                gameModule->keyDown(
+                    event.key.key
+                );
+            }
+            else if (event.type ==
+                SDL_EVENT_KEY_UP)
+            {
+                gameModule->keyUp(
+                    event.key.key
+                );
+            }
+        }
+
+        if (event.type ==
+            SDL_EVENT_QUIT)
         {
             requestExit();
         }
@@ -411,37 +426,70 @@ void EditorApplication::render()
         m_dosBoxKeyBindings
     );
 
+    GameModule* activeGameModule =
+        m_gameModuleManager.active();
+
+    dosBoxWindow->setDirectKeyboardBlocked(
+        activeGameModule&&
+        activeGameModule->
+        blockDirectDosBoxKeyboard()
+    );
+
+    int selectedGameButton =
+        -1;
+
+    const bool gameButtonSelectionActive =
+        activeGameModule &&
+        activeGameModule->gameButtonSelection(
+            selectedGameButton
+        );
+
+    dosBoxWindow->setGameButtonSelection(
+        gameButtonSelectionActive,
+        selectedGameButton
+    );
+
     dosBoxWindow->draw();
+
+    if (m_memoryTools)
+    {
+        m_memoryTools->refreshMemory();
+        m_memoryTools->draw();
+    }
 
     if (m_memoryTools)
     {
         m_memoryTools->refreshMemory();
     }
 
-    const int selectedItemId =
-        m_mm3ItemSource->selectedItemId();
+    GameModule* gameModule =
+        m_gameModuleManager.active();
 
-    const int selectedCharacterIndex =
-        m_mm3ItemSource->selectedCharacterIndex();
-
-    ImGui::Text(
-        "MM3 DEBUG item=%d char=%d",
-        selectedItemId,
-        selectedCharacterIndex
-    );
-
-    m_itemExplorerWindow.updateSelection(
-        selectedItemId,
-        selectedCharacterIndex
-    );
-    if (m_mm3ItemSource)
+    if (gameModule)
     {
-        m_mm3ItemSource->refresh();
+        gameModule->update();
 
-        m_itemExplorerWindow.updateSelection(
-            m_mm3ItemSource->selectedItemId(),
-            m_mm3ItemSource->selectedCharacterIndex()
-        );
+        std::string dosKey;
+
+        while (gameModule->takeDosKey(
+            dosKey
+        ))
+        {
+            dosBoxWindow->sendDosKey(
+                dosKey.c_str()
+            );
+        }
+
+        MapPlayerMarker playerMarker;
+
+        if (gameModule->playerMarker(
+            playerMarker
+        ))
+        {
+            m_worldViewWindow.setPlayerMarker(
+                playerMarker
+            );
+        }
     }
 
     if (m_showItemExplorer)
@@ -450,51 +498,6 @@ void EditorApplication::render()
             &m_showItemExplorer
         );
     }
-
-    const MightAndMagic1State& mm1State =
-        dosBoxWindow->mightAndMagic1State();
-
-    MapPlayerMarker playerMarker;
-
-    playerMarker.x =
-        mm1State.x;
-
-    playerMarker.y =
-        mm1State.y;
-
-    playerMarker.visible =
-        mm1State.valid;
-
-    switch (mm1State.direction)
-    {
-    case MightAndMagic1Direction::North:
-        playerMarker.direction =
-            MapFacingDirection::North;
-        break;
-
-    case MightAndMagic1Direction::East:
-        playerMarker.direction =
-            MapFacingDirection::East;
-        break;
-
-    case MightAndMagic1Direction::South:
-        playerMarker.direction =
-            MapFacingDirection::South;
-        break;
-
-    case MightAndMagic1Direction::West:
-        playerMarker.direction =
-            MapFacingDirection::West;
-        break;
-
-    case MightAndMagic1Direction::Unknown:
-        playerMarker.visible = false;
-        break;
-    }
-
-    m_worldViewWindow.setPlayerMarker(
-        playerMarker
-    );
 
     if (m_editorMiscBox->draw(
         m_worldViewWindow.colorPalette(),
@@ -922,6 +925,38 @@ void EditorApplication::drawMainMenu()
 
     if (ImGui::BeginMenu("Game"))
     {
+        const auto& gameModules =
+            m_gameModuleManager.modules();
+
+        if (!gameModules.empty())
+        {
+            ImGui::TextUnformatted(
+                "Active Module"
+            );
+
+            for (size_t index = 0;
+                index < gameModules.size();
+                ++index)
+            {
+                const bool selected =
+                    m_gameModuleManager.active() ==
+                    gameModules[index].module;
+
+                if (ImGui::MenuItem(
+                    gameModules[index].name.c_str(),
+                    nullptr,
+                    selected
+                ))
+                {
+                    m_gameModuleManager.setActive(
+                        index
+                    );
+                }
+            }
+
+            ImGui::Separator();
+        }
+
         if (ImGui::MenuItem(
             "Open Game..."
         ))
@@ -4064,6 +4099,18 @@ EditorApplication::~EditorApplication()
     shutdown();
 }
 
+GameModuleManager&
+EditorApplication::gameModuleManager()
+{
+    return m_gameModuleManager;
+}
+
+DosBoxMemoryTools::MemoryReader&
+EditorApplication::memoryReader()
+{
+    return m_memoryTools->memoryReader();
+}
+
 void EditorApplication::loadWindowState()
 {
     const std::string filename =
@@ -4411,3 +4458,4 @@ EditorApplication::dosBoxKeyBindingsFilename() const
     return
         "settings/dosbox-key-bindings.cfg";
 }
+

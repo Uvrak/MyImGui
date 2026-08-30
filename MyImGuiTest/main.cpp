@@ -247,6 +247,7 @@ int main(int, char**)
         Mount,
         ChangeDrive,
         StartGame,
+        RefreshMemory,
         Done
     };
 
@@ -344,11 +345,43 @@ int main(int, char**)
                     );
 
                     autoStartState =
-                        AutoStartState::Done;
+                        AutoStartState::RefreshMemory;
 
-                    autoStartPending = false;
+                    autoStartNextStep =
+                        now + 500;
 
                     break;
+
+                case AutoStartState::RefreshMemory:
+                {
+                    memoryTools.refreshMemory();
+
+                    uint8_t level = 0;
+
+                    if (memoryTools.memoryReader().memory().size() > 0x2BF35)
+                    {
+                        level =
+                            memoryTools.memoryReader().
+                            memory()[0x2BF35];
+                    }
+
+                    if (level != 0)
+                    {
+                        memoryTools.refreshPinnedValues();
+
+                        autoStartState =
+                            AutoStartState::Done;
+
+                        autoStartPending = false;
+                    }
+                    else
+                    {
+                        autoStartNextStep =
+                            now + 500;
+                    }
+
+                    break;
+                }
 
                 default:
                     break;
@@ -444,16 +477,6 @@ int main(int, char**)
         ImGui::DockSpaceOverViewport();
 
         memoryTools.draw();
-
-        const bool memoryRefreshOk =
-            memoryTools.refreshMemory();
-
-        ImGui::Text(
-            "Memory refresh: %s",
-            memoryRefreshOk
-            ? "OK"
-            : "FAILED"
-        );
 
         mm3ItemSource.refresh();
 

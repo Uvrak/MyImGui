@@ -27,26 +27,26 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -193,6 +193,7 @@ copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Co
     <ClCompile Include="EditorEdgeBox.cpp" />
     <ClCompile Include="EditorMiscBox.cpp" />
     <ClCompile Include="EditorToolBox.cpp" />
+    <ClCompile Include="GameModuleManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MightAndMagic1Reader.cpp" />
     <ClCompile Include="MightAndMagic1SpellWindow.cpp" />
@@ -223,6 +224,10 @@ copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Co
     <ClInclude Include="EditorTool.h" />
     <ClInclude Include="EditorToolBox.h" />
     <ClInclude Include="EditorEdgeType.h" />
+    <ClInclude Include="GameModule.h" />
+    <ClInclude Include="GameModuleManager.h" />
+    <ClInclude Include="GamePosition.h" />
+    <ClInclude Include="MapPlayerMarker.h" />
     <ClInclude Include="MightAndMagic1Reader.h" />
     <ClInclude Include="MightAndMagic1SpellWindow.h" />
     <ClInclude Include="PixelColorWindow.h" />
@@ -234,6 +239,7 @@ copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Co
     <ClInclude Include="PixelEditor\PixelColor.h" />
     <ClInclude Include="PixelEditor\PixelImage.h" />
     <ClInclude Include="PixelEditor\PixelTool.h" />
+    <ClInclude Include="PlayerPositionSource.h" />
     <ClInclude Include="PropertiesWindow.h" />
     <ClInclude Include="SvgButtonBar.h" />
     <ClInclude Include="SvgFileWriter.h" />

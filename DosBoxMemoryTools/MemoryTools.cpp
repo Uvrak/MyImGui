@@ -34,6 +34,15 @@ namespace DosBoxMemoryTools
 
     void MemoryTools::draw()
     {
+        if (!m_initialRefreshDone)
+        {
+            if (m_scannerWindow.refreshMemory())
+            {
+                m_scannerWindow.refreshPinnedValues();
+                m_initialRefreshDone = true;
+            }
+        }
+
         if (m_liveView)
         {
             const double currentTime =
@@ -87,6 +96,12 @@ namespace DosBoxMemoryTools
         MemoryTools::memoryReader()
     {
         return m_memoryReader;
+    }
+
+    void MemoryTools::
+        refreshPinnedValues()
+    {
+        m_scannerWindow.refreshPinnedValues();
     }
 
     void MemoryTools::saveSession()

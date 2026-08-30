@@ -71,6 +71,7 @@ void DosBoxWindow::draw()
 {
     if (!m_startAttempted)
     {
+
         m_startAttempted = true;
 
         m_started =
@@ -233,39 +234,9 @@ void DosBoxWindow::draw()
         const Uint64 currentTicks =
             SDL_GetTicks();
 
-        if (currentTicks >=
-            m_nextMightAndMagic1Update)
-        {
-            m_mightAndMagic1Reader.update(
-                m_pipeClient
-            );
+       
 
-            m_programReader.update(
-                m_pipeClient
-            );
-
-            m_nextMightAndMagic1Update =
-                currentTicks + 100;
-        }
-        const MightAndMagic1State& mm1State =
-            m_mightAndMagic1Reader.state();
-
-        if (mm1State.valid)
-        {
-            ImGui::Text(
-                "MM1: Area candidateA %d  Area candidateB %d  X %d  Y %d",
-                mm1State.areaValueA,
-                mm1State.areaValueB,
-                mm1State.x,
-                mm1State.y
-            );
-        }
-        else
-        {
-            ImGui::TextUnformatted(
-                "MM1: state unavailable"
-            );
-        }
+        
     }
 
     const bool switchViewPressed =
@@ -430,6 +401,9 @@ void DosBoxWindow::draw()
                         frameHeader->contentHeight * scale
                     );
 
+                    const ImVec2 imagePos =
+                        ImGui::GetCursorScreenPos();
+
                     ImGui::Image(
                         reinterpret_cast<ImTextureID>(
                             texture
@@ -454,6 +428,61 @@ void DosBoxWindow::draw()
                                 )
                         )
                     );
+
+                    if (m_gameButtonSelectionActive &&
+                        m_selectedGameButton >= 0)
+                    {
+                        ImDrawList* drawList =
+                            ImGui::GetWindowDrawList();
+
+                        // Vorläufige MM3-Koordinaten.
+                        // Die passen wir danach exakt an.
+                        const float buttonX =
+                            78.0f;
+
+                        const float buttonWidth =
+                            164.0f;
+
+                        const float buttonHeight =
+                            24.0f;
+
+                        float buttonY =
+                            112.0f;
+
+                        if (m_selectedGameButton == 1)
+                        {
+                            buttonY =
+                                143.0f;
+                        }
+
+                        const ImVec2 selectionMin(
+                            imagePos.x +
+                            buttonX * scale,
+                            imagePos.y +
+                            buttonY * scale
+                        );
+
+                        const ImVec2 selectionMax(
+                            selectionMin.x +
+                            buttonWidth * scale,
+                            selectionMin.y +
+                            buttonHeight * scale
+                        );
+
+                        drawList->AddRect(
+                            selectionMin,
+                            selectionMax,
+                            IM_COL32(
+                                255,
+                                255,
+                                0,
+                                255
+                            ),
+                            0.0f,
+                            0,
+                            2.0f
+                        );
+                    }
 
                     const ImVec2 imageMin =
                         ImGui::GetItemRectMin();
@@ -516,15 +545,6 @@ void DosBoxWindow::draw()
                             imageMin.y
                         );
                     }
-
-                    if (!m_inputActive &&
-                        dosBoxImageHovered &&
-                        ImGui::IsMouseClicked(
-                            ImGuiMouseButton_Left
-                        ))
-                    {
-                        m_inputActive = true;
-                    }
                 }
             }
         }
@@ -539,7 +559,8 @@ void DosBoxWindow::draw()
         SDL_HideCursor();
     }
 
-    if (m_inputActive)
+    if (m_inputActive &&
+        !m_directKeyboardBlocked)
     {
         m_keyboard.update(
             m_pipeClient,
@@ -780,13 +801,6 @@ DosBoxWindow::pipeClient()
     return m_pipeClient;
 }
 
-const MightAndMagic1State&
-DosBoxWindow::mightAndMagic1State() const
-{
-    return
-        m_mightAndMagic1Reader.state();
-}
-
 void DosBoxWindow::openGame(
     const std::string& mountDirectory,
     const std::string& dosDirectory,
@@ -800,6 +814,16 @@ void DosBoxWindow::openGame(
         mountDirectory,
         dosDirectory,
         gameFilename
+    );
+}
+
+bool DosBoxWindow::sendDosKey(
+    const char* key
+)
+{
+    return m_controller.sendDosKey(
+        m_pipeClient,
+        key
     );
 }
 
@@ -833,6 +857,34 @@ void DosBoxWindow::setKeyBindings(
         &keyBindings;
 }
 
+void DosBoxWindow::setDirectKeyboardBlocked(
+    bool blocked
+)
+{
+    if (m_directKeyboardBlocked != blocked)
+    {
+        OutputDebugStringA(
+            blocked
+            ? "DOSBox direct keyboard: BLOCKED\n"
+            : "DOSBox direct keyboard: ENABLED\n"
+        );
+    }
+
+    m_directKeyboardBlocked =
+        blocked;
+}
+
+void DosBoxWindow::setGameButtonSelection(
+    bool active,
+    int selectedButton
+)
+{
+    m_gameButtonSelectionActive =
+        active;
+
+    m_selectedGameButton =
+        selectedButton;
+}
 void DosBoxWindow::findDosBoxWindow()
 {
     if (m_dosBoxHwnd != nullptr &&

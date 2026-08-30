@@ -18,58 +18,35 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="GameState.h" />
-    <ClInclude Include="Item.h" />
-    <ClInclude Include="ItemExplorerWindow.h" />
-    <ClInclude Include="ItemSource.h" />
-    <ClInclude Include="MightAndMagic3Inventory.h" />
-    <ClInclude Include="MightAndMagic3ItemSource.h" />
-    <ClInclude Include="MM3KeyBindings.h" />
-    <ClInclude Include="Position.h" />
-    <ClInclude Include="StateReader.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="ItemExplorerWindow.cpp" />
-    <ClCompile Include="MightAndMagic3ItemSource.cpp" />
-    <ClCompile Include="MM3KeyBindings.cpp" />
-    <ClCompile Include="Position.cpp" />
-    <ClCompile Include="StateReader.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DosBoxMemoryTools\DosBoxMemoryTools.vcxproj">
-      <Project>{eeab584f-b05a-4e0d-a2b7-e94e0e107fa8}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{a2cbbb64-e396-4b8f-b449-6f4bfd5ac124}</ProjectGuid>
-    <RootNamespace>MightAndMagic3ReverseEngeneering</RootNamespace>
+    <ProjectGuid>{0521b043-8d72-4a87-b670-48ea4c3f42d2}</ProjectGuid>
+    <RootNamespace>GridBuilderGame</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -97,15 +74,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\MightAndMagic3ReverseEngeneering;C:\Projects\MyImGui\DosBoxMemoryTools;C:\Projects\MyImGui\GridBuilderEditor\PixelEditor;C:\Projects\MyImGui\DosBoxX;C:\Projects\MyImGui\MyImGui;C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;C:\Projects\MyImGui\ThirdParty\SDL3_image\include;C:\Projects\MyImGui\ThirdParty\imgui;C:\Projects\MyImGui\ThirdParty\SDL3\include;C:\Projects\MyImGui\GridBuilderCore;$(SolutionDir)GridBuilderEditor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>
-      </SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -118,15 +93,13 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\MightAndMagic3ReverseEngeneering;C:\Projects\MyImGui\DosBoxMemoryTools;C:\Projects\MyImGui\GridBuilderEditor\PixelEditor;C:\Projects\MyImGui\DosBoxX;C:\Projects\MyImGui\MyImGui;C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;C:\Projects\MyImGui\ThirdParty\SDL3_image\include;C:\Projects\MyImGui\ThirdParty\imgui;C:\Projects\MyImGui\ThirdParty\SDL3\include;C:\Projects\MyImGui\GridBuilderCore;$(SolutionDir)GridBuilderEditor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>
-      </SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
@@ -137,17 +110,16 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\MightAndMagic3ReverseEngeneering;C:\Projects\MyImGui\DosBoxMemoryTools;C:\Projects\MyImGui\GridBuilderEditor\PixelEditor;C:\Projects\MyImGui\DosBoxX;C:\Projects\MyImGui\MyImGui;C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;C:\Projects\MyImGui\ThirdParty\SDL3_image\include;C:\Projects\MyImGui\ThirdParty\imgui;C:\Projects\MyImGui\ThirdParty\SDL3\include;C:\Projects\MyImGui\GridBuilderCore;$(SolutionDir)GridBuilderEditor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>
-      </SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Projects\MyImGui\ThirdParty\zydis\msvc\bin\DebugX64;C:\Projects\MyImGui\ThirdParty\SDL3\lib\x64;C:\Projects\MyImGui\ThirdParty\SDL3_image\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;Zydis.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -159,21 +131,34 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\MightAndMagic3ReverseEngeneering;C:\Projects\MyImGui\DosBoxMemoryTools;C:\Projects\MyImGui\GridBuilderEditor\PixelEditor;C:\Projects\MyImGui\DosBoxX;C:\Projects\MyImGui\MyImGui;C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;C:\Projects\MyImGui\ThirdParty\SDL3_image\include;C:\Projects\MyImGui\ThirdParty\imgui;C:\Projects\MyImGui\ThirdParty\SDL3\include;C:\Projects\MyImGui\GridBuilderCore;$(SolutionDir)GridBuilderEditor;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>
-      </SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="MM3GameModule.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GridBuilderEditor\GridBuilderEditor.vcxproj">
+      <Project>{d949150b-22af-46e9-a9b1-7bada5a108e7}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="später.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MM3GameModule.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

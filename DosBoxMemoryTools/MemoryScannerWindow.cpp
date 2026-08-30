@@ -309,6 +309,7 @@ namespace DosBoxMemoryTools
             if (ImGui::Button("Refresh"))
             {
                 m_scanner.refreshValues();
+                refreshPinnedDisplayValues();
             }
 
             m_toolbarLayout.endItem();
@@ -561,6 +562,40 @@ namespace DosBoxMemoryTools
             pinnedIndices.begin(),
             pinnedIndices.end()
         );
+
+        if (m_hasFoundAddress)
+        {
+            const auto foundIt =
+                std::find_if(
+                    filteredIndices.begin(),
+                    filteredIndices.end(),
+                    [this](int index)
+                    {
+                        return
+                            m_scanner.candidates()[
+                                index
+                            ].address ==
+                            m_foundAddress;
+                    }
+                );
+
+            if (foundIt !=
+                filteredIndices.end())
+            {
+                const int foundIndex =
+                    *foundIt;
+
+                filteredIndices.erase(
+                    foundIt
+                );
+
+                filteredIndices.insert(
+                    filteredIndices.begin(),
+                    foundIndex
+                );
+            }
+        }
+
         ImGui::Text(
             "Visible: %zu / %zu",
             filteredIndices.size(),
@@ -925,10 +960,17 @@ namespace DosBoxMemoryTools
                                     previousValue
                                 );
 
-                            m_scanner.readCurrentValue(
-                                address,
-                                currentValue
-                            );
+                            const auto pinnedValue =
+                                m_pinnedDisplayValues.find(
+                                    address
+                                );
+
+                            if (pinnedValue !=
+                                m_pinnedDisplayValues.end())
+                            {
+                                currentValue =
+                                    pinnedValue->second;
+                            }
 
                             ImGui::TableNextRow();
 
@@ -1179,10 +1221,13 @@ namespace DosBoxMemoryTools
                             uint8_t liveCurrentValue =
                                 currentValue;
 
-                            m_scanner.readCurrentValue(
-                                address,
-                                liveCurrentValue
-                            );
+                            if (liveView)
+                            {
+                                m_scanner.readCurrentValue(
+                                    address,
+                                    liveCurrentValue
+                                );
+                            }
 
                             ImGui::Text(
                                 "%u",
@@ -1701,6 +1746,12 @@ namespace DosBoxMemoryTools
         return m_scanner.refreshMemory();
     }
 
+    void MemoryScannerWindow::
+        refreshPinnedValues()
+    {
+        refreshPinnedDisplayValues();
+    }
+
     bool MemoryScannerWindow::takeSelectedAddress(
         size_t& address
     )
@@ -2041,5 +2092,25 @@ namespace DosBoxMemoryTools
             << "DescriptionsFirst="
             << (m_descriptionsFirst ? 1 : 0)
             << '\n';
+    }
+
+    void MemoryScannerWindow::
+        refreshPinnedDisplayValues()
+    {
+        for (size_t address :
+        m_pinnedAddresses)
+        {
+            uint8_t value = 0;
+
+            if (m_scanner.readCurrentValue(
+                address,
+                value
+            ))
+            {
+                m_pinnedDisplayValues[
+                    address
+                ] = value;
+            }
+        }
     }
 }

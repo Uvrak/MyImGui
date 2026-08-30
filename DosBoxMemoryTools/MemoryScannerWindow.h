@@ -38,6 +38,8 @@ namespace DosBoxMemoryTools
 
         bool refreshMemory();
 
+        void refreshPinnedValues();
+
         bool takeSelectedAddress(
             size_t& address
         );
@@ -130,6 +132,11 @@ namespace DosBoxMemoryTools
 
         bool m_deleteOtherDifferenceCandidates = false;
         bool m_applyDifferenceDeleteRequested = false;
+
+        std::unordered_map<size_t, uint8_t>
+            m_pinnedDisplayValues;
+
+        void refreshPinnedDisplayValues();
     };
 
 }

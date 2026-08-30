@@ -1,0 +1,24 @@
+GridBuilderMap 8
+chunkSize 16
+activeLayer 0
+mapColors 1
+mapColor "color-1" 255 255 255 255
+edgeColorAssignments 12
+edgeColorAssignment "Button Left" "color-1"
+edgeColorAssignment "ButtonRight" "color-1"
+edgeColorAssignment "Door trapped" "color-1"
+edgeColorAssignment "Gate" "color-1"
+edgeColorAssignment "Keyhole" "color-1"
+edgeColorAssignment "Lever left" "color-1"
+edgeColorAssignment "Lever right" "color-1"
+edgeColorAssignment "Locked Door" "color-1"
+edgeColorAssignment "Niche left" "color-1"
+edgeColorAssignment "Niche right" "color-1"
+edgeColorAssignment "Open Door" "color-1"
+edgeColorAssignment "Wall" "color-1"
+miscColorAssignments 3
+miscColorAssignment "Stairs_down" "color-1"
+miscColorAssignment "Stairs_up" "color-1"
+miscColorAssignment "note" "color-1"
+cell 0 4 12 "" "" "Open Door" "" "" "" "color-1" "" "" "" ""
+cell 0 4 13 "Open Door" "" "" "" "color-1" "" "" "" "" "" ""

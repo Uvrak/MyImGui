@@ -65,10 +65,13 @@ namespace DosBoxMemoryTools
 
         RegisterSnapshot registers;
 
-        std::array<uint8_t, 16> bytes{};
+        std::array<uint8_t, 16>
+            bytes{};
 
         std::array<uint8_t, 32>
             stackBytes{};
+
+        uint8_t writeValue = 0;
     };
 
     class MemoryScanner

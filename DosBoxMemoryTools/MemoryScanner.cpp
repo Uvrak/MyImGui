@@ -3468,6 +3468,8 @@ namespace DosBoxMemoryTools
         RuntimeInstruction& instruction
     )
     {
+
+
         std::string response;
 
         if (!m_pipeClient.request(
@@ -3492,6 +3494,9 @@ namespace DosBoxMemoryTools
 
             return false;
         }
+        OutputDebugStringA(
+            ("MEMORYWRITE RAW: " + response + "\n").c_str()
+        );
 
         std::vector<std::string>
             fields;
@@ -3513,7 +3518,7 @@ namespace DosBoxMemoryTools
             );
         }
 
-        if (fields.size() != 16)
+        if (fields.size() != 17)
         {
             m_status =
                 "Invalid memory write capture field count: " +
@@ -3711,6 +3716,13 @@ namespace DosBoxMemoryTools
 
                 return false;
             }
+
+            result.writeValue =
+                static_cast<uint8_t>(
+                    std::stoul(
+                        fields[16]
+                    )
+                    );
 
             instruction =
                 result;

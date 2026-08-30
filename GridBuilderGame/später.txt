@@ -1,0 +1,62 @@
+Stand 30.08.2026 – GridBuilder / Game-Module Umbau
+
+Ziel:
+GridBuilder soll spielunabhängig bleiben und zwischen mehreren Spielen
+umschalten können. Gemeinsame Funktionen bleiben im GridBuilder,
+spielspezifische Logik in eigenen Modulen.
+
+Erledigt:
+- MM1 vollständig aus GridBuilder entfernt.
+- Direkte MM3-Verbindungen aus GridBuilder entfernt.
+- MM3ReverseEngeneering enthält wieder:
+  - Position.h
+  - GameState
+  - StateReader
+  - MM3 X/Y/Direction-Logik
+- MapPlayerMarker aus WorldViewWindow.h nach MapPlayerMarker.h ausgelagert.
+- GameModule.h angelegt:
+  - update()
+  - playerMarker()
+- GameModuleManager angelegt:
+  - mehrere Module registrieren
+  - aktives Modul auswählen
+- EditorApplication benutzt GameModuleManager.
+- Game-Menü zeigt registrierte Module und kann umschalten.
+- GridBuilderEditor von EXE auf Static Library (.lib) umgestellt.
+- Neues EXE-Projekt GridBuilderGameApp angelegt.
+- GridBuilderGameApp referenziert GridBuilderEditor.
+- SDL3.lib + SDL3_image.lib beim neuen EXE eingebunden.
+- GridBuilderGameApp baut erfolgreich.
+
+Architektur:
+
+GridBuilderEditor.lib
+    gemeinsame Editor-/Spiellogik
+    GameModule
+    GameModuleManager
+    MapPlayerMarker
+    WorldViewWindow
+           ↑
+           |
+    Game-Module
+
+MM3ReverseEngeneering
+    gesamte MM3-spezifische Logik
+    RAM-Adressen
+    Position/Direction
+    Items usw.
+
+GridBuilderGameApp.exe
+    main()
+    soll möglichst wenig Logik enthalten
+    registriert nur die verfügbaren Game-Module
+
+Als Nächstes:
+1. Alte main.cpp aus GridBuilderEditor entfernen.
+2. MM3GameModule als Adapter zwischen GameModule und
+   MM3ReverseEngeneering bauen.
+3. MM3GameModule beim GameModuleManager registrieren.
+4. Prüfen, ob MM3 im Game-Menü erscheint.
+5. X/Y/Direction über StateReader lesen und als MapPlayerMarker anzeigen.
+6. Danach allgemeine Schnittstellen für Inventory/Characters usw.
+   schrittweise zu GameModule hinzufügen.
