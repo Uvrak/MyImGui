@@ -778,7 +778,7 @@ namespace DosBoxMemoryTools
     void DisassemblyWindow::saveSession()
     {
         std::ofstream file(
-            "settings/dosbox_disassembly.cfg"
+            "../settings/dosbox_disassembly.cfg"
         );
 
         if (!file)
@@ -808,7 +808,7 @@ namespace DosBoxMemoryTools
         m_savedAddresses.clear();
 
         std::ifstream file(
-            "settings/dosbox_disassembly.cfg"
+            "../settings/dosbox_disassembly.cfg"
         );
 
         if (!file)

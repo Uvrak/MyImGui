@@ -193,6 +193,7 @@ copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Co
     <ClCompile Include="EditorEdgeBox.cpp" />
     <ClCompile Include="EditorMiscBox.cpp" />
     <ClCompile Include="EditorToolBox.cpp" />
+    <ClCompile Include="GameModule.cpp" />
     <ClCompile Include="GameModuleManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MightAndMagic1Reader.cpp" />

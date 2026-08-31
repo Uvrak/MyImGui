@@ -1,62 +1,115 @@
-Stand 30.08.2026 – GridBuilder / Game-Module Umbau
+MM3 – Notiz für später
+Stand: 31.08.2026
 
-Ziel:
-GridBuilder soll spielunabhängig bleiben und zwischen mehreren Spielen
-umschalten können. Gemeinsame Funktionen bleiben im GridBuilder,
-spielspezifische Logik in eigenen Modulen.
+HEUTIGER STAND
 
-Erledigt:
-- MM1 vollständig aus GridBuilder entfernt.
-- Direkte MM3-Verbindungen aus GridBuilder entfernt.
-- MM3ReverseEngeneering enthält wieder:
-  - Position.h
-  - GameState
-  - StateReader
-  - MM3 X/Y/Direction-Logik
-- MapPlayerMarker aus WorldViewWindow.h nach MapPlayerMarker.h ausgelagert.
-- GameModule.h angelegt:
-  - update()
-  - playerMarker()
-- GameModuleManager angelegt:
-  - mehrere Module registrieren
-  - aktives Modul auswählen
-- EditorApplication benutzt GameModuleManager.
-- Game-Menü zeigt registrierte Module und kann umschalten.
-- GridBuilderEditor von EXE auf Static Library (.lib) umgestellt.
-- Neues EXE-Projekt GridBuilderGameApp angelegt.
-- GridBuilderGameApp referenziert GridBuilderEditor.
-- SDL3.lib + SDL3_image.lib beim neuen EXE eingebunden.
-- GridBuilderGameApp baut erfolgreich.
+Die automatische Screen-Erkennung funktioniert jetzt.
 
-Architektur:
+Generische Seite:
+- GameModule besitzt setFrame().
+- GameModule besitzt matchesScreen(ScreenSignature).
+- ScreenPixel / ScreenSignature sind generisch.
+- GridBuilder enthält keine festen MM3-Pixelkoordinaten.
+- Der aktuelle DOSBox-Frame wird dem GameModule übergeben.
 
-GridBuilderEditor.lib
-    gemeinsame Editor-/Spiellogik
-    GameModule
-    GameModuleManager
-    MapPlayerMarker
-    WorldViewWindow
-           ↑
-           |
-    Game-Module
+MM3ReverseEngineering:
+- ScreenSignatures enthält die MM3-spezifischen Pixelwerte.
+- mainMenu() funktioniert.
+- loadGame() wurde angelegt.
 
-MM3ReverseEngeneering
-    gesamte MM3-spezifische Logik
-    RAM-Adressen
-    Position/Direction
-    Items usw.
+Main Menu:
+- Main Menu wird zuverlässig per Pixel-Signatur erkannt.
+- m_activeWindow = 0 nur solange das Main Menu tatsächlich sichtbar ist.
+- Vor dem Main Menu erscheint kein Auswahlrahmen mehr.
+- Beim Verlassen verschwindet der Rahmen.
+- Die zwei gespeicherten Buttons werden geladen.
+- Gelber Auswahlrahmen funktioniert wieder.
+- UP/DOWN kann zwischen Buttons wechseln.
+- RETURN aktiviert den ausgewählten Button per Mausklick.
+- Wechsel vom Main Menu zum Load-Game-Screen funktioniert.
 
-GridBuilderGameApp.exe
-    main()
-    soll möglichst wenig Logik enthalten
-    registriert nur die verfügbaren Game-Module
+Load Game:
+Erkennung über diese Pixel:
 
-Als Nächstes:
-1. Alte main.cpp aus GridBuilderEditor entfernen.
-2. MM3GameModule als Adapter zwischen GameModule und
-   MM3ReverseEngeneering bauen.
-3. MM3GameModule beim GameModuleManager registrieren.
-4. Prüfen, ob MM3 im Game-Menü erscheint.
-5. X/Y/Direction über StateReader lesen und als MapPlayerMarker anzeigen.
-6. Danach allgemeine Schnittstellen für Inventory/Characters usw.
-   schrittweise zu GameModule hinzufügen.
+    { 286, 250, 203,   0,   0 }
+    { 330,  80, 255, 255, 255 }
+    { 148, 234, 190, 117,  69 }
+
+- loadGameVisible() erkennt den Bildschirm.
+- m_activeWindow = 1 wird automatisch durch die Screen-Erkennung gesetzt.
+- Die gespeicherten Load-Game-Rechtecke werden verwendet.
+- UP/DOWN wurde auf beliebig viele Buttons erweitert:
+  selectedButton läuft zyklisch durch window.buttons.
+- Die Buttonsteuerung hängt nicht mehr fest an activeWindow == 0.
+
+WICHTIGE ARCHITEKTUR
+
+Der sichtbare Bildschirm entscheidet über m_activeWindow.
+
+Nicht mehr:
+    "Button X wurde gedrückt, also muss jetzt Fenster Y aktiv sein."
+
+Sondern:
+    mainMenuVisible() -> Window 0
+    loadGameVisible() -> Window 1
+    nichts erkannt -> Window -1
+
+Damit ist die Steuerung unabhängig davon, wie oft vorher ESC/RETURN
+gedrückt wurde.
+
+OFFENER PUNKT: SPIELSTAND LADEN
+
+Wir wissen noch NICHT sicher, wie ein Spielstand aktiviert wird.
+
+Vermutung war zunächst:
+- Doppelklick auf Spielstand.
+
+Dafür wurde vorbereitet:
+- GameModule::takeDosMouseDoubleClick()
+- MM3GameModule::takeDosMouseDoubleClick()
+- m_pendingMouseDoubleClick
+- DosBoxWindow::sendDosMouseDoubleClick()
+- IPC-Befehl MOUSEDOUBLECLICK
+- DOSBox-X Double-Click-Versuch
+
+Dieser Versuch funktioniert bisher NICHT zuverlässig.
+
+NICHT weiter am Double-Click-Timing raten.
+
+NÄCHSTER TEST
+
+Auf dem Load-Game-Screen gibt es rechts unten:
+
+    OK
+    Ende
+
+Sehr wahrscheinlich ist die Bedienung:
+
+1. Spielstand auswählen
+2. OK anklicken
+
+Deshalb als Nächstes:
+- Rechteck für OK mit dem vorhandenen Button-Rect-Tool aufnehmen.
+- Als weiteren Button für "Load Game" speichern.
+- Prüfen, ob Auswahl eines Spielstands + OK den Spielstand lädt.
+
+Falls das funktioniert:
+- Doppelklick wird nicht benötigt.
+- MOUSEDOUBLECLICK-Code kann eventuell wieder entfernt werden.
+
+Falls OK nicht funktioniert:
+- Erst dann untersuchen, welche Mausaktion MM3 tatsächlich erwartet.
+
+AUFRÄUMEN SPÄTER
+
+Temporäre Debug-Ausgaben wieder entfernen:
+- ButtonSelection active=...
+- Main Menu detected / left, falls nicht mehr benötigt.
+
+Außerdem mm3_buttons.cfg kontrollieren:
+- RGBA-Werte müssen jeweils 0..255 sein.
+- Es waren zeitweise kaputte Alpha-Werte wie 2323 / 255255 vorhanden.
+
+WICHTIG:
+Erst Load-Game-Bedienung vollständig fertigstellen.
+Danach weitere MM3-Fenster/ScreenSignaturen hinzufügen.

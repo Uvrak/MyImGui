@@ -537,7 +537,7 @@ namespace DosBoxMemoryTools
         );
 
         const std::string filename =
-            "settings/memory_read_session_" +
+            "../settings/memory_read_session_" +
             m_gameId +
             ".cfg";
 
@@ -690,7 +690,7 @@ namespace DosBoxMemoryTools
         }
 
         const std::string filename =
-            "settings/memory_read_session_" +
+            "../settings/memory_read_session_" +
             m_gameId +
             ".cfg";
 

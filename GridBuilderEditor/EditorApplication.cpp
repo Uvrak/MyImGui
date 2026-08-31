@@ -1,4 +1,5 @@
 #include "EditorApplication.h"
+#include "GameModule.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -229,9 +230,19 @@ void EditorApplication::processEvents()
             if (event.type ==
                 SDL_EVENT_KEY_DOWN)
             {
-                gameModule->keyDown(
-                    event.key.key
-                );
+                const bool handledByButtonEditor =
+                    dosBoxWindow &&
+                    dosBoxWindow->
+                    handleButtonRectEditorKeyDown(
+                        event.key.key
+                    );
+
+                if (!handledByButtonEditor)
+                {
+                    gameModule->keyDown(
+                        event.key.key
+                    );
+                }
             }
             else if (event.type ==
                 SDL_EVENT_KEY_UP)
@@ -416,38 +427,8 @@ void EditorApplication::render()
 
     }
 
-    dosBoxWindow->setCustomSwitchViewKey(
-        m_dosBoxKeyBindings.binding(
-            DosBoxAction::SwitchView
-        ).customKey
-    );
-
-    dosBoxWindow->setKeyBindings(
-        m_dosBoxKeyBindings
-    );
-
-    GameModule* activeGameModule =
+    GameModule* gameModule =
         m_gameModuleManager.active();
-
-    dosBoxWindow->setDirectKeyboardBlocked(
-        activeGameModule&&
-        activeGameModule->
-        blockDirectDosBoxKeyboard()
-    );
-
-    int selectedGameButton =
-        -1;
-
-    const bool gameButtonSelectionActive =
-        activeGameModule &&
-        activeGameModule->gameButtonSelection(
-            selectedGameButton
-        );
-
-    dosBoxWindow->setGameButtonSelection(
-        gameButtonSelectionActive,
-        selectedGameButton
-    );
 
     dosBoxWindow->draw();
 
@@ -462,21 +443,194 @@ void EditorApplication::render()
         m_memoryTools->refreshMemory();
     }
 
-    GameModule* gameModule =
-        m_gameModuleManager.active();
+    GameButtonRect buttonRect;
+
+    const bool gameButtonSelectionActive =
+        gameModule &&
+        gameModule->gameButtonSelection(
+            buttonRect
+        );
+
+    static bool previousActive =
+        false;
+
+    static GameButtonRect previousRect;
+
+    const bool selectionChanged =
+        gameButtonSelectionActive !=
+        previousActive ||
+        buttonRect.x != previousRect.x ||
+        buttonRect.y != previousRect.y ||
+        buttonRect.width != previousRect.width ||
+        buttonRect.height != previousRect.height;
+
+    if (selectionChanged)
+    {
+        char debugText[256] = {};
+
+        std::snprintf(
+            debugText,
+            sizeof(debugText),
+            "ButtonSelection active=%d x=%.1f y=%.1f w=%.1f h=%.1f\n",
+            gameButtonSelectionActive ? 1 : 0,
+            buttonRect.x,
+            buttonRect.y,
+            buttonRect.width,
+            buttonRect.height
+        );
+
+        OutputDebugStringA(
+            debugText
+        );
+
+        previousActive =
+            gameButtonSelectionActive;
+
+        previousRect =
+            buttonRect;
+    }
+
+    dosBoxWindow->setGameButtonSelection(
+        gameButtonSelectionActive,
+        buttonRect
+    );
+    dosBoxWindow->setButtonRectSaveCallback(
+        [gameModule](
+            const GameButtonRect& rect
+            )
+        {
+            if (gameModule)
+            {
+                gameModule->
+                    addButtonToActiveWindow(
+                        rect
+                    );
+            }
+        }
+    );
+
+    dosBoxWindow->setButtonRectModifyCallback(
+        [gameModule](
+            const GameButtonRect& rect
+            )
+        {
+            if (gameModule)
+            {
+                gameModule->
+                    updateActiveButton(
+                        rect
+                    );
+            }
+        }
+    );
+
+    dosBoxWindow->setButtonRectDeleteCallback(
+        [gameModule]()
+        {
+            if (gameModule)
+            {
+                gameModule->
+                    deleteActiveButton();
+            }
+        }
+    );
 
     if (gameModule)
     {
-        gameModule->update();
+        gameModule->setFrame(
+            dosBoxWindow->frameHeader(),
+            dosBoxWindow->framePixels()
+        );
 
+        gameModule->update();
+   
         std::string dosKey;
 
         while (gameModule->takeDosKey(
             dosKey
         ))
         {
+            OutputDebugStringA(
+                "EditorApplication: sendDosKey -> "
+            );
+
+            OutputDebugStringA(
+                dosKey.c_str()
+            );
+
+            OutputDebugStringA(
+                "\n"
+            );
+
             dosBoxWindow->sendDosKey(
                 dosKey.c_str()
+            );
+        }
+
+        float mouseClickX = 0.0f;
+        float mouseClickY = 0.0f;
+
+        float mousePositionX = 0.0f;
+        float mousePositionY = 0.0f;
+
+        if (gameModule->takeDosMousePosition(
+            mousePositionX,
+            mousePositionY
+        ))
+        {
+            dosBoxWindow->sendDosMousePosition(
+                mousePositionX,
+                mousePositionY
+            );
+        }
+
+        if (gameModule->takeDosMouseClick(
+            mouseClickX,
+            mouseClickY
+        ))
+        {
+            OutputDebugStringA(
+                "EditorApplication: DOS mouse click\n"
+            );
+
+            char mouseDebug[128] = {};
+
+            std::snprintf(
+                mouseDebug,
+                sizeof(mouseDebug),
+                "DOS mouse click position: %.1f, %.1f\n",
+                mouseClickX,
+                mouseClickY
+            );
+
+            OutputDebugStringA(
+                mouseDebug
+            );
+
+            const bool clickSent =
+                dosBoxWindow->sendDosMouseClick(
+                    mouseClickX,
+                    mouseClickY
+                );
+
+            OutputDebugStringA(
+                clickSent
+                ? "EditorApplication: DOS mouse click SENT\n"
+                : "EditorApplication: DOS mouse click FAILED\n"
+            );
+        }
+
+        float mouseDoubleClickX = 0.0f;
+        float mouseDoubleClickY = 0.0f;
+
+        if (gameModule->takeDosMouseDoubleClick(
+            mouseDoubleClickX,
+            mouseDoubleClickY
+        ))
+        {
+            dosBoxWindow->sendDosMouseDoubleClick(
+                mouseDoubleClickX,
+                mouseDoubleClickY
             );
         }
 
@@ -4456,6 +4610,6 @@ std::string
 EditorApplication::dosBoxKeyBindingsFilename() const
 {
     return
-        "settings/dosbox-key-bindings.cfg";
+        "../settings/dosbox-key-bindings.cfg";
 }
 

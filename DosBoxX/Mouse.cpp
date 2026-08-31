@@ -27,6 +27,12 @@ namespace DosBoxX
         const float mouseInImageY =
             mousePos.y - imageTop;
 
+        const bool mouseInsideImage =
+            mouseInImageX >= 0.0f &&
+            mouseInImageY >= 0.0f &&
+            mouseInImageX < imageWidth &&
+            mouseInImageY < imageHeight;
+
         const float mouseScaleX =
             static_cast<float>(
                 frameHeader.contentWidth
@@ -74,8 +80,10 @@ namespace DosBoxX
         static int lastDosBoxMouseX = -1;
         static int lastDosBoxMouseY = -1;
 
-        if (dosBoxMouseX != lastDosBoxMouseX ||
-            dosBoxMouseY != lastDosBoxMouseY)
+        if (false &&
+            mouseInsideImage &&
+            (dosBoxMouseX != lastDosBoxMouseX ||
+                dosBoxMouseY != lastDosBoxMouseY))
         {
             std::string command =
                 "MOUSEMOVE:";
@@ -249,4 +257,6 @@ namespace DosBoxX
             m_clickPending = false;
         }
     }
+
+
 }

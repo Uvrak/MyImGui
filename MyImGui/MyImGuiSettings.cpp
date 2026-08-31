@@ -44,7 +44,7 @@ namespace MyImGui
     void MyImGuiSettings::load()
     {
         std::ifstream file(
-            "settings/myimgui_settings.cfg"
+            "../settings/myimgui_settings.cfg"
         );
 
         if (!file)
@@ -67,7 +67,7 @@ namespace MyImGui
         );
 
         std::ofstream file(
-            "settings/myimgui_settings.cfg"
+            "../settings/myimgui_settings.cfg"
         );
 
         if (!file)

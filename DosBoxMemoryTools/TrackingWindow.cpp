@@ -401,7 +401,7 @@ namespace DosBoxMemoryTools
         );
 
         const std::string filename =
-            "settings/execution_trace_session_" +
+            "../settings/execution_trace_session_" +
             m_gameId +
             ".cfg";
 
@@ -425,7 +425,7 @@ namespace DosBoxMemoryTools
             '\n';
 
         const std::string traceFilename =
-            "settings/execution_trace_last_" +
+            "../settings/execution_trace_last_" +
             m_gameId +
             ".trace";
 
@@ -442,7 +442,7 @@ namespace DosBoxMemoryTools
         }
 
         const std::string filename =
-            "settings/execution_trace_session_" +
+            "../settings/execution_trace_session_" +
             m_gameId +
             ".cfg";
 
@@ -491,7 +491,7 @@ namespace DosBoxMemoryTools
         );
 
         const std::string traceFilename =
-            "settings/execution_trace_last_" +
+            "../settings/execution_trace_last_" +
             m_gameId +
             ".trace";
 

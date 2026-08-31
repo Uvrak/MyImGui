@@ -1,10 +1,18 @@
 #pragma once
-
 #include "GameModule.h"
 #include "GameState.h"
 #include "MM3KeyBindings.h"
+#include "ScreenSignatures.h"
+
 
 #include <string>
+#include <vector>
+#include <windows.h>
+
+namespace DosBoxX
+{
+    struct DosBoxFrameHeader;
+}
 
 namespace DosBoxX
 {
@@ -16,6 +24,14 @@ namespace MightAndMagic3
 {
     class StateReader;
 }
+
+struct MM3Window
+{
+    std::string name;
+
+    std::vector<GameButtonRect>
+        buttons;
+};
 
 class MM3GameModule final :
     public GameModule
@@ -56,8 +72,38 @@ public:
     }
 
     bool gameButtonSelection(
-        int& selectedButton
+        GameButtonRect& rect
     ) const override;
+
+    void addButtonToActiveWindow(
+        const GameButtonRect& rect
+    ) override;
+
+    void saveButtons() const;
+
+    void loadButtons();
+
+    void updateActiveButton(
+        const GameButtonRect& rect
+    ) override;
+
+    void deleteActiveButton() override;
+
+    bool takeDosMouseClick(
+        float& x,
+        float& y
+    ) override;
+
+
+    bool takeDosMouseDoubleClick(
+        float& x,
+        float& y
+    ) override;
+
+    bool takeDosMousePosition(
+        float& x,
+        float& y
+    ) override;
 
 private:
     bool m_buttonMode = false;
@@ -73,6 +119,37 @@ private:
 
     std::string m_pendingDosKey;
 
-    int m_selectedButton = -1;
+    int m_selectedButton =
+        -1;
 
+    std::vector<MM3Window>
+        m_windows;
+
+    int m_activeWindow =
+        -1;
+
+    void activateSelectedButton();
+
+    bool m_pendingMouseClick =
+        false;
+
+    const DosBoxX::DosBoxFrameHeader*
+        m_frameHeader =
+        nullptr;
+
+    const uint8_t*
+        m_framePixels =
+        nullptr;
+
+    bool mainMenuVisible() const;
+
+    bool loadGameVisible() const;
+
+    bool m_pendingMouseDoubleClick =
+        false;
+
+    bool m_pendingMousePosition =
+        false;
 };
+
+    

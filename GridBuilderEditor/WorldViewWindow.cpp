@@ -2945,7 +2945,7 @@ bool WorldViewWindow::isSameEdge(
  void WorldViewWindow::loadSettings()
  {
      std::ifstream file(
-         "settings/world_view.cfg"
+         "../settings/world_view.cfg"
      );
 
      if (!file)
@@ -2968,7 +2968,7 @@ bool WorldViewWindow::isSameEdge(
      );
 
      std::ofstream file(
-         "settings/world_view.cfg"
+         "../settings/world_view.cfg"
      );
 
      if (!file)

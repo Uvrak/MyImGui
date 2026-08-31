@@ -1,1054 +1,215 @@
-MM3 – WICHTIGE REVERSE-ENGINEERING-ERKENNTNISSE
-Stand: 29.08.2026
-==================================================
-
-Zweck
------
-Diese Datei fasst die wichtigen, weiterhin relevanten Erkenntnisse aus den
-bisherigen MM3-/DOSBox-X-/MyImGui-Notizen zusammen.
-
-Unklare oder überholte Zwischenstände wurden möglichst nicht als bestätigte
-Fakten übernommen. Offene Punkte sind ausdrücklich als solche markiert.
-
-
-1. GRUNDREGEL FÜR DAS REVERSE ENGINEERING
-==========================================
-
-MM3 verwendet offenbar dynamisch geladenen bzw. überschriebenen Code /
-Overlay-Mechanismen.
-
-Deshalb kann ein späteres statisches Disassembly an derselben physischen
-Adresse von dem Code abweichen, der dort tatsächlich ausgeführt wurde.
-
-Für die Forschung gelten daher Runtime-Daten als maßgeblich:
-
-- physische Instruction-Adresse
-- CS:IP
-- echte Instruction-Bytes zum Ausführungszeitpunkt
-- Register
-- Stack
-- tatsächlicher Kontrollfluss
-
-Bevorzugte Werkzeuge:
-
-1. Memory Read Tracker
-   RAM-Adresse -> lesende Instruktion
-
-2. Memory Write Tracker
-   RAM-Adresse -> schreibende Instruktion
-
-3. Instruction Transition Tracker
-   unmittelbarer Kontrollfluss um ein Target
-
-4. Execution Trace
-   bis zu 1000 tatsächlich ausgeführte Instruktionen vor einem Target
-
-5. Trace Navigation
-   Rückwärtsverfolgung von Registeränderungen, Instruktionen und
-   Speicherzugriffen.
-
-
-2. MM3 CHARACTER RECORD
-=======================
-
-Bestätigte Character-Record-Basis für Character Index 0:
-
-    0x2BF12
-
-Record-Größe / Stride:
-
-    0x012F = 303 Bytes
-
-Allgemein:
-
-    CharacterRecord =
-        0x2BF12 + characterIndex * 0x012F
-
-Bestätigte Felder:
-
-    +0x13   Class ID
-    +0x1E   Accuracy
-    +0x23   Level
-
-Für Character Index 0:
-
-    Class ID = 0x2BF25
-    Accuracy = 0x2BF30
-    Level    = 0x2BF35
-
-Runtime-Ableitung:
-
-    DS = 0x2053
-    Offset = 0xB9E2 + characterIndex * 0x012F
-    physical = DS * 0x10 + Offset
-
-
-3. KLASSEN UND HIT-CHANCE-LEVEL-DIVISOR
-=======================================
-
-Class IDs:
-
-    0  Ritter
-    1  Paladin
-    2  Bogenschütze
-    3  Kleriker
-    4  Zauberer
-    5  Dieb
-    6  Ninja
-    7  Barbar
-    8  Druide
-    9  Waldläufer
-
-Die Class ID wird aus:
-
-    CharacterRecord + 0x13
-
-gelesen und über eine Jump Table in einen klassenspezifischen Divisor
-umgesetzt.
-
-Vollständige bestätigte Divisor-Tabelle:
-
-    Ritter         /1
-    Paladin        /2
-    Bogenschütze   /2
-    Kleriker       /3
-    Zauberer       /4
-    Dieb           /2
-    Ninja          /2
-    Barbar         /1
-    Druide         /2
-    Waldläufer     /2
-
-Der Runtime-Code führt aus:
-
-    xor dx, dx
-    div di
-
-Dabei enthält AX den Levelwert und DI den ClassDivisor.
-
-Damit:
-
-    LevelHitBonus =
-        Level / ClassDivisor
-
-Ganzzahlige Division.
-
-
-4. ACCURACY-HIT-BONUS
-=====================
-
-Accuracy liegt bei:
-
-    CharacterRecord + 0x1E
-
-für Character Index 0:
-
-    0x2BF30
-
-Accuracy wird NICHT direkt zur Hit Chance addiert.
-
-Sie wird zunächst über eine Grenzwerttabelle klassifiziert.
-
-Im untersuchten Runtime-Kontext:
-
-    Grenzwerttabelle: 0x21476
-    Bonus-Tabelle:    0x214A6
-
-Die Grenzwertsuche erzeugt einen SI-Index.
-
-Bestätigter Bereich der Bonus-Tabelle:
-
-    SI  0 -> -5
-    SI  1 -> -4
-    SI  2 -> -3
-    SI  3 -> -2
-    SI  4 -> -1
-    SI  5 ->  0
-    SI  6 -> +1
-    SI  7 -> +2
-    SI  8 -> +3
-    SI  9 -> +4
-    SI 10 -> +5
-    SI 11 -> +6
-    SI 12 -> +7
-    SI 13 -> +8
-    SI 14 -> +9
-    SI 15 -> +10
-
-Für diesen Tabellenbereich:
-
-    AccuracyBonus = SI - 5
-
-Bestätigtes Beispiel:
-
-    Accuracy 18
-        -> SI = 8
-        -> Accuracy Hit Bonus = +3
-
-
-5. MATERIALSYSTEM
-=================
-
-Material-IDs sind 1-basiert.
-
-    1  Holz
-    2  Leder
-    3  Messing
-    4  Bronze
-    5  Eisen
-    6  Silber
-    7  Stahl
-    8  Gold
-    9  Platin
-   10  Glas
-   11  Korallen
-   12  Kristall
-   13  Lapis
-   14  Perlen
-   15  Bernstein
-   16  Ebenholz
-   17  Quarz
-   18  Rubin
-   19  Smaragd
-   20  Saphir
-   21  Diamant
-   22  Obsidian
-
-Material-Modifier:
-
-    ID  Material      Hit   Damage   AC
-    ------------------------------------
-     1  Holz           -3      -3    -3
-     2  Leder          -4      -6     0
-     3  Messing        +3      -4    -2
-     4  Bronze         +2      -2    -1
-     5  Eisen          +1      +2    +1
-     6  Silber         +2      +4    +2
-     7  Stahl          +3      +6    +4
-     8  Gold           +4      +8    +6
-     9  Platin         +6     +10    +8
-    10  Glas            0       0     0
-    11  Korallen       +1      +1    +1
-    12  Kristall       +1      +1    +1
-    13  Lapis          +2      +2    +2
-    14  Perlen         +2      +2    +2
-    15  Bernstein      +3      +3    +3
-    16  Ebenholz       +4      +4    +4
-    17  Quarz          +5      +5    +5
-    18  Rubin          +6     +10   +10
-    19  Smaragd        +7     +20   +12
-    20  Saphir         +8     +30   +14
-    21  Diamant        +9     +40   +16
-    22  Obsidian      +10     +50   +20
-
-Modifier-Tabellen im MM3-Speicher:
-
-    0x20FA2 = Hit
-    0x20FB9 = Damage
-    0x20FD0 = AC
-
-Jede Tabelle enthält 22 Materialwerte.
-
-Negative Werte sind signed Bytes.
-
-
-6. MATERIAL-HIT-BONUS IM RUNTIME-PFAD
-=====================================
-
-Während der untersuchten Hit-Berechnung enthält:
-
-    0x9306
-
-den aktuellen Material-Hit-Modifikator.
-
-Runtime-Code sinngemäß:
-
-    mov si, ax
-    mov al, [0x9306]
-    cbw
-    add si, ax
-
-Experimentell bestätigt:
-
-    kein Material ->  0
-    Eisen         -> +1
-    Lapis         -> +2
-    Obsidian      -> +10
-
-
-7. BISHER BESTÄTIGTE HIT-CHANCE-STRUKTUR
-========================================
-
-Der bislang direkt rekonstruierte Beitrag lautet:
-
-    HitContribution =
-        AccuracyBonus
-        + MaterialHitModifier
-        + (Level / ClassDivisor)
-
-Beispiel:
-
-    Ritter
-    Level 10
-    Accuracy 18
-    Obsidian
-
-    AccuracyBonus       = +3
-    MaterialHitModifier = +10
-    LevelBonus          = 10 / 1 = +10
-
-    HitContribution = 23
-
-WICHTIG:
-Das ist der bisher bestätigte Beitrag im Berechnungspfad, nicht zwingend
-bereits die vollständige endgültige Trefferwahrscheinlichkeit.
-
-Spätere Modifikatoren, Gegnerwerte, Caps oder die eigentliche
-Trefferentscheidung müssen weiterhin untersucht werden.
-
-
-8. INVENTORY / ITEM-AUSWAHL
-===========================
-
-Ausgewählter Party-Slot:
-
-    0x2068E = primärer zero-based Party Index
-    0x304F4 = beobachteter Mirror / related value
-
-Ausgewählter Inventory-Slot:
-
-    0x304D0 = primärer zero-based Slot Index
-    0x304D2 = beobachteter Mirror / related value
-
-Item-ID-Array für Party Slot 1:
-
-    0x2BFEE
-
-Allgemein:
-
-    itemIdAddress =
-        0x2BFEE
-        + partyIndex * 0x12F
-        + inventorySlotIndex
-
-Material-Array für Party Slot 1:
-
-    0x2BFC8 - 0x2BFD9
-
-Allgemein:
-
-    materialAddress =
-        0x2BFC8
-        + partyIndex * 0x12F
-        + inventorySlotIndex
-
-Inventory Symbol/Type für Party Slot 1 beginnt bei:
-
-    0x2BF8F
-
-Das Symbol/Type-Byte ist NICHT die eigentliche Item ID.
-
-Bestätigte Item IDs unter anderem:
-
-    1  Lang Schwert
-    5  Messer
-    7  Stock
-    41 Platten Rüstung
-    42 Schild
-    43 Helm
-
-Beispiel:
-
-    Item ID 7 = Stock
-
-Das sichtbare "Bronze Stock" entsteht, weil das Material separat
-gespeichert wird.
-
-
-9. DAMAGE – BISHER BEKANNT
-==========================
-
-Für Waffen ist die Basis-Damage beispielsweise als Würfelausdruck bekannt:
-
-    Messer:
-        Damage = 2d4
-
-Daraus folgt mathematisch der Basisbereich:
-
-    2 - 8
-
-Die Material-Damage-Modifikatoren sind bereits vollständig bekannt
-(siehe Materialtabelle).
-
-Beispiel:
-
-    Obsidian:
-        Hit    +10
-        Damage +50
-        AC     +20
-
-WICHTIG:
-Hit-, Damage- und AC-Materialbonus sind drei getrennte Werte.
-
-Die vollständige Runtime-Schadensberechnung ist NOCH NICHT rekonstruiert.
-
-Insbesondere zu klären:
-
-- Wie der Waffenwürfelwert verarbeitet wird.
-- Wo der Material-Damage-Modifikator addiert wird.
-- Wie Buffs in den Schaden eingehen.
-- Ob Charakterwerte weitere Damage-Modifikatoren liefern.
-- Wie Minimum/Maximum bzw. der konkrete Würfelwurf behandelt werden.
-- Welche Caps oder Sonderregeln existieren.
-
-Sehr interessantes neues Target:
-
-    Material Damage Modifier Table = 0x20FB9
-
-Nächster sinnvoller Runtime-Test:
-
-    Während eines Angriffs feststellen,
-    welche Instruktion aus 0x20FB9 ... 0x20FCE liest.
-
-Am besten mit stark unterschiedlichen Materialien vergleichen:
-
-    Glas      Damage +0
-    Eisen     Damage +2
-    Obsidian  Damage +50
-
-Damit sollte die Damage-Berechnung im Runtime-Trace gut erkennbar werden.
-
-
-10. ROUTINE 0xEC4B – GENERISCHE BONUS-/STAT-BERECHNUNG
-======================================================
-
-Untersuchte Routine ungefähr:
-
-    0xEC4B - 0xED80
-
-Sie besitzt eine Jump Table, deren Parameter [bp+0x0A] verschiedene
-Berechnungszweige auswählt.
-
-Beobachtete Feldpaare:
-
-    +0x16 / +0x17
-    +0x18 / +0x19
-    ...
-    +0x1E / +0x1F
-    +0x20 / +0x21
-
-Der untersuchte +0x1E/+0x1F-Zweig enthält Accuracy.
-
-Gemeinsame Struktur sinngemäß:
-
-    SI = Ausgangswert
-    SI += Ergebnis von 0xEB05
-    SI += optional Ergebnis einer FAR-Funktion
-    SI += zweiter Wert
-
-Am Ende ungefähr:
-
-    return (SI < 1) ? 0 : SI
-
-0xEB05 iteriert über 18 Item-/Equipment-Einträge und akkumuliert
-tabellenbasierte Boni.
-
-WICHTIG:
-Die Routine ist nicht als reine Damage-Funktion bestätigt.
-Sie sieht vielmehr nach einer generischen Berechnung mehrerer
-Charakter-/Combat-Werte aus.
-
-Ein interessantes späteres Ziel ist daher:
-
-    Welcher Jump-Table-Fall entspricht Damage?
-
-
-11. TRACKER – WICHTIGER TECHNISCHER STAND
-=========================================
-
-Memory Read Tracking:
-
-    RAM-Adresse
-        -> lesende Runtime-Instruktion
-
-Instruction Tracking / Transition Tracking:
-
-    Instruktion A
-        -> Instruktion B
-
-Execution Capture enthält unter anderem:
-
-- physische Adresse
-- CS:IP
-- AX/BX/CX/DX
-- SI/DI/BP/SP
-- DS/ES/SS
-- 16 Instruction-Bytes
-- 32 Stack-Bytes
-
-Instruction Transition Tracker:
-
-- Runtime-Bytes
-- CS:IP
-- Register
-- nächste tatsächlich ausgeführte Instruktion
-- Runtime History
-
-Execution Trace:
-
-- bis zu 1000 tatsächlich ausgeführte Instruktionen vor Target
-- echte Runtime-Bytes
-- Registerzustände
-- Zydis-Disassembly
-
-Trace Navigation unterstützt unter anderem:
-
-- Previous Register Change
-- Previous Instruction
-- Memory Address Search
-- Suche nach bestimmten Instruktionsmustern
-
-Performance-Grundregel:
-
-Instruktionsbytes nicht permanent im CPU-Hotpath lesen.
-Bytes möglichst erst bei tatsächlichem Target-Hit erfassen.
-
-
-12. SELECTED PARTY SLOT – WRITE-PFAD
-====================================
-
-Für die Untersuchung des ausgewählten Party-Slots wurde:
-
-    0x2068E
-
-als primäre UI-/Auswahladresse verwendet.
-
-Ein rückwärts verfolgter Pfad führte unter anderem über:
-
-    0x2067F
-        -> Writer 0x31A95
-
-Runtime-Code:
-
-    0x31A8F  mov bx, ax
-    0x31A91  mov al, [bx-0x52A0]
-    0x31A95  mov [0x014F], al
-
-Beim beobachteten Test:
-
-    BX = 0005
-    Quelle physisch = 0x2B295
-    gelesener Wert  = 03
-
-WICHTIG:
-
-    0x2B295 != 0x2C295
-
-0x2B295 ist nach aktuellem Stand eine andere Struktur/Tabelle und
-nicht der bekannte Character Record von Party Slot 3.
-
-Dieser Pfad bleibt interessant, ist für das aktuelle Damage-Ziel aber
-vorläufig nachrangig.
-
-
-13. AKTUELLES FORSCHUNGSZIEL
-============================
-
-Aktueller Schwerpunkt:
-
-    GENAUE DAMAGE-BERECHNUNG FÜR DAS IM ITEM EXPLORER GEWÄHLTE ITEM
-
-Gewünschte spätere Anzeige sinngemäß:
-
-    Item
-    Damage Dice
-    Base Damage Range
-    Material Damage Bonus
-    Buff Damage Bonus
-    weitere bestätigte Damage-Modifikatoren
-    möglicher / endgültiger Damage-Bereich
-
-Dabei nur Werte anzeigen, deren Herkunft im MM3-Code bzw. Speicher
-hinreichend bestätigt wurde.
-
-Konkreter nächster Einstieg:
-
-    0x20FB9 = Material Damage Modifier Table
-
-Ziel:
-
-    Reader-Instruktion dieser Tabelle während eines Angriffs finden
-        ->
-    Runtime-Trace um diesen Read untersuchen
-        ->
-    Material-Damage-Pfad verfolgen
-        ->
-    Basis-Waffenschaden und Buff-Pfad zuordnen
-        ->
-    vollständige Damage-Formel rekonstruieren.
-
-
-14. OFFENE WICHTIGE FRAGEN
-==========================
-
-Hit Chance:
-- Welche Komponenten folgen nach dem bekannten HitContribution?
-- Welche Gegner-/Zielwerte werden abgezogen oder verglichen?
-- Gibt es Minimum/Maximum/Caps?
-- Wie erfolgt die endgültige Trefferentscheidung?
-
-Damage:
-- Wo wird 2d4 / der jeweilige Waffenwürfel verarbeitet?
-- Wo wird 0x20FB9 gelesen?
-- Wie wird der Material-Damage-Bonus addiert?
-- Wo kommt der mögliche Damage-Buff her?
-- Welche Charakterwerte beeinflussen Damage?
-- Wie wird der konkrete Schadenswurf erzeugt?
-
-Routine 0xEC4B:
-- Bedeutung aller Jump-Table-Fälle.
-- Welcher Fall berechnet Damage?
-- Bedeutung der noch nicht identifizierten benachbarten Felder.
-- Exakte Rolle der optionalen FAR-Funktion.
-
-Tracker/UI:
-- Werkzeuge nur erweitern, wenn ein konkretes Reverse-Engineering-Problem
-  eine neue Funktion erfordert.
-- Item Explorer als Forschungsoberfläche verwenden:
-  bestätigte Werte dort schrittweise sichtbar machen.
-
-
-15. ARBEITSMETHODE
-==================
-
-Bevorzugter Ablauf:
-
-    konkrete MM3-Frage
-        ->
-    bekannten RAM-/Tabellenwert als Target wählen
-        ->
-    Reader/Writer finden
-        ->
-    Runtime Trace aufnehmen
-        ->
-    Register und Kontrollfluss rückwärts/vorwärts verfolgen
-        ->
-    Hypothese mit gezielt verändertem Einzelwert testen
-        ->
-    erst nach Bestätigung in Item Explorer / Notizen übernehmen
-
-Für Vergleichstests möglichst immer nur EINE Variable verändern.
-
-Beispiel Damage:
-
-    gleiches Item
-    gleicher Charakter
-    gleicher Gegner
-    kein Buff
-
-nur Material ändern:
-
-    Glas -> Eisen -> Obsidian
-
-Danach Buff separat testen.
-
-==================================================
-ENDE DER ZUSAMMENFASSUNG 
-==================================================
-
-MM3 – X/Y-Koordinaten gefunden
+Notiz für morgen – MM3 Tastatur-Button-Modus
 Stand: 30.08.2026
 
-Bestätigte Adressen:
-
-0x2EE31 = X-Koordinate (Byte)
-0x2EE32 = Y-Koordinate (Byte)
+ZIEL
 
-Nachweis:
+Might and Magic III soll im GridBuilder vollständig per Tastatur bedienbar sein, auch wenn DOSBox nicht den Fokus hat.
 
-X-Bewegung:
-0x2EE31: 7 -> 6
-0x2EE32: 3 -> 3
+Normale Bewegung:
+- Pfeil hoch = vorwärts
+- Pfeil runter = rückwärts
+- Pfeil links = links drehen
+- Pfeil rechts = rechts drehen
 
-Weitere 2 Schritte auf X:
-0x2EE31: 6 -> 4
-0x2EE32: 3 -> 3
+Button-Modus:
+- End schaltet Button-Modus ein/aus.
+- Im Button-Modus wird die normale Bewegung blockiert.
+- Pfeiltasten sollen grafische MM3-Buttons auswählen.
+- Return soll den ausgewählten Button aktivieren.
+- Bedienung ohne physische Maus.
 
-Danach Bewegung auf Y:
-0x2EE31: 4 -> 4
-0x2EE32: 3 -> 2
 
-Damit reagieren die beiden Bytes unabhängig:
-- Bewegung auf X verändert nur 0x2EE31.
-- Bewegung auf Y verändert nur 0x2EE32.
+AKTUELLER FUNKTIONIERENDER STAND
 
-Wichtig:
-Die Adressen müssen als BYTE betrachtet werden.
-Der vorherige Short-Scan hatte beide benachbarten Bytes zu einem
-16-Bit-Wert zusammengefasst und dadurch die Interpretation erschwert.
+- MM3GameModule erhält Tastatureingaben unabhängig vom DOSBox-Fokus.
 
-Segmentbezug:
-Beim Capture war DS = 0x2053.
+- Die normalen Pfeiltasten bewegen MM3 auch dann, wenn die Maus über anderen GridBuilder-Fenstern steht.
 
-DS:0xE901:
-0x20530 + 0xE901 = 0x2EE31  -> X
+- End schaltet m_buttonMode zuverlässig ON/OFF.
 
-DS:0xE902:
-0x20530 + 0xE902 = 0x2EE32  -> Y
+Debug-Ausgabe:
+MM3 Button Mode: ON
+MM3 Button Mode: OFF
 
-Memory-Write-Tracking X:
-Target:        0x2EE31
-Writer:        0x315E1
-CS:IP:         3055:1091
-Written Value: 0x03
+- MM3GameModule::blockDirectDosBoxKeyboard() liefert m_buttonMode zurück.
 
-Disassembly:
-0x315E1  inc [0xE901]
-0x315E7  dec [0xE901]
+- EditorApplication reicht diesen Zustand an DosBoxWindow weiter.
 
-Damit wird X direkt über DS:E901 erhöht/verringert.
+- DosBoxWindow besitzt:
+  m_directKeyboardBlocked
 
-Memory-Write-Tracking Y:
-Target:        0x2EE32
-Writer:        0x315D5
-CS:IP:         3055:1085
-Written Value: 0x04
+- m_keyboard.update() läuft nur bei:
 
-0x304D4:
-Kein primärer Y-Koordinatenwert.
-Die Adresse kann Y zeitweise folgen (z.B. 3 -> 2), verändert sich aber
-auch unabhängig/temporär. Daher nicht als eigentliche Koordinate verwenden.
+  m_inputActive &&
+  !m_directKeyboardBlocked
 
-Zusätzlicher technischer Fix:
-Der DOSBox-X Output Directory war falsch konfiguriert.
-DOSBox-X wurde zuvor nach:
-C:\Projects\bin\x64\Debug SDL2\
-gebaut, während MyImGui die EXE aus:
-C:\Projects\MyImGui\dosbox-x\bin\x64\Debug SDL2\
-startete.
+- Dadurch bewegt sich die Party im Button-Modus nicht mehr.
 
-Korrigiertes Output Directory:
-$(ProjectDir)..\bin\$(Platform)\$(Configuration)\
+- Escape wird über:
 
-Dadurch werden Änderungen an dosbox_memory_scanner_ipc.cpp jetzt
-tatsächlich in die von MyImGui gestartete DOSBox-X-EXE eingebaut.
+  m_pendingDosKey = "ESC";
 
-Memory-Write-Tracker funktioniert jetzt vollständig:
-- Target-Adresse
-- Writer/Instruction-Adresse
-- CS:IP
-- Register
-- Stack
-- Written Value
+  an DOSBox geschickt.
 
-MM3 – Position und Blickrichtung gefunden
-Stand: 30.08.2026
+- takeDosKey() transportiert MM3-DOS-Tasten über EditorApplication zu:
 
-Bestätigte RAM-Adressen:
+  DosBoxWindow::sendDosKey()
 
-0x2EE30 = Facing / Blickrichtung (Byte)
-0x2EE31 = X-Koordinate (Byte)
-0x2EE32 = Y-Koordinate (Byte)
 
-Wichtig:
-Diese Werte müssen als BYTE betrachtet werden.
-Ein früherer Short-Scan auf 0x2EE31 hatte X und Y zu einem 16-Bit-Wert
-zusammengefasst und dadurch die Interpretation erschwert.
+BUTTON-AUSWAHL
 
-Beispiel:
-Short 770 = 0x0302
+MM3GameModule besitzt:
 
-Little Endian:
-0x2EE31 = 0x02
-0x2EE32 = 0x03
+bool m_buttonMode;
+int m_selectedButton = -1;
 
+Beim Einschalten mit End:
 
---------------------------------------------------
-X-Koordinate
---------------------------------------------------
+m_buttonMode = true;
+m_selectedButton = 0;
 
-0x2EE31 = X
+Beim Ausschalten:
 
-Nachweis:
+m_selectedButton = -1;
 
-X-Bewegung:
-0x2EE31: 7 -> 6
-0x2EE32: 3 -> 3
+Im Button-Modus:
 
-Weitere 2 Schritte auf derselben Achse:
-0x2EE31: 6 -> 4
-0x2EE32: 3 -> 3
+Pfeil hoch:
+m_selectedButton = 0;
 
-Damit verändert sich bei dieser Bewegung nur X.
+Pfeil runter:
+m_selectedButton = 1;
 
+Die normale Party-Bewegung wird dabei nicht ausgeführt.
 
-Memory-Write-Capture für X:
 
-Target:
-0x2EE31
+GAME MODULE SCHNITTSTELLE
 
-Writer:
-0x315E1
+GameModule besitzt die neutrale Schnittstelle:
 
-CS:IP:
-3055:1091
+gameButtonSelection(
+    int& selectedButton
+) const
 
-Beispiel:
-Written Value = 0x03
+MM3GameModule überschreibt diese und gibt im Button-Modus den aktuellen selectedButton zurück.
 
 
-Disassembly:
+DOSBOX WINDOW
 
-0x315E1
-inc byte ptr [0xE901]
+DosBoxWindow besitzt:
 
-0x315E7
-dec byte ptr [0xE901]
+setGameButtonSelection(
+    bool active,
+    int selectedButton
+);
 
-Beim Capture:
-DS = 0x2053
+sowie:
 
-Lineare Adresse:
+bool m_gameButtonSelectionActive;
+int m_selectedGameButton;
 
-0x2053 * 0x10 = 0x20530
+EditorApplication verbindet:
 
-0x20530 + 0xE901 = 0x2EE31
+GameModule::gameButtonSelection()
 
-Damit ist bestätigt:
-DS:E901 = X
+mit:
 
+DosBoxWindow::setGameButtonSelection()
 
---------------------------------------------------
-Y-Koordinate
---------------------------------------------------
 
-0x2EE32 = Y
+GRAFISCHE HERVORHEBUNG
 
-Nachweis:
+Direkt vor ImGui::Image() wird gespeichert:
 
-Nach Ausrichtung auf die andere Achse:
+const ImVec2 imagePos =
+    ImGui::GetCursorScreenPos();
 
-0x2EE31: 4 -> 4
-0x2EE32: 3 -> 2
+Nach ImGui::Image() wird aktuell mit AddRect() ein gelber Auswahlrahmen über das DOSBox-Bild gezeichnet.
 
-Damit verändert sich bei dieser Bewegung nur Y.
+Der Rahmen funktioniert und ist sichtbar.
 
+ABER:
 
-Memory-Write-Capture für Y:
+Die aktuellen Button-Koordinaten sind nur Platzhalter.
 
-Target:
-0x2EE32
+Das gelbe längliche Rechteck erscheint momentan mitten im DOSBox-Bild und sitzt noch NICHT auf den echten MM3-Buttons.
 
-Writer:
-0x315D5
+Aktuelle provisorische Werte:
 
-CS:IP:
-3055:1085
+buttonX = 78
+buttonWidth = 164
+buttonHeight = 24
 
-Beispiel:
-Written Value = 0x04
+Button 0:
+buttonY = 112
 
+Button 1:
+buttonY = 143
 
-Segmentbezug:
+Die Position wird mit imagePos und scale auf die dargestellte DOSBox-Größe skaliert.
 
-0x20530 + 0xE902 = 0x2EE32
 
-Damit ist bestätigt:
-DS:E902 = Y
+ALS ERSTES MORGEN
 
+1. Gelben Auswahlrahmen exakt auf die beiden Buttons des MM3-Startmenüs setzen:
 
---------------------------------------------------
-Facing / Blickrichtung
---------------------------------------------------
+   - Neues Spiel starten
+   - Spielstand laden
 
-0x2EE30 = Facing
+2. Prüfen:
 
-Segmentbezug:
+   End
+   -> erster Button sichtbar markiert
 
-0x20530 + 0xE900 = 0x2EE30
+   Down
+   -> zweiter Button markiert
 
-Disassembly vor den Koordinaten-Writern:
+   Up
+   -> erster Button markiert
 
-mov al,[0xE900]
-mov ah,0x00
-mov bx,ax
-cmp bx,0x03
-jnbe ...
-shl bx,0x01
-jmp cs:[bx+0x1F80]
+   End
+   -> Markierung verschwindet
+   -> normale Bewegung wieder aktiv
 
-Damit wird der Wert aus DS:E900 als Index 0..3
-für eine Sprungtabelle benutzt.
+3. Danach Return implementieren:
 
-Die vier Fälle führen zu:
+   Return
+   -> ausgewählten MM3-Button aktivieren
 
-inc [0xE902]   -> Y + 1
-dec [0xE902]   -> Y - 1
-inc [0xE901]   -> X + 1
-dec [0xE901]   -> X - 1
+   Der Benutzer soll dafür keine Maus benötigen.
 
-Damit bestimmt Facing direkt,
-welche Koordinate beim Vorwärtsgehen verändert wird.
+4. Danach Button-System verallgemeinern, damit nicht nur das Startmenü, sondern weitere MM3-Dialoge und Buttons per Tastatur bedient werden können.
 
 
-Bestätigte Facing-Werte:
+WICHTIG
 
-0 = West
-1 = East
-2 = North
-3 = South
+Nicht wieder die zwei Eingabepfade vermischen:
 
+1.
+MM3GameModule
+-> m_pendingDosKey
+-> takeDosKey()
+-> DosBoxWindow::sendDosKey()
 
-Bestätigter Rechtsdreh-Zyklus:
+2.
+Direkte DOSBox-Tastatur
+-> m_keyboard.update()
 
-South = 3
-West  = 0
-North = 2
-East  = 1
-South = 3
+Im Button-Modus muss der zweite Pfad blockiert bleiben.
 
+Sonst bewegen die Pfeiltasten weiterhin die Party.
 
---------------------------------------------------
-Zusammenfassung
---------------------------------------------------
 
-MM3 Player State:
+HEUTIGER TESTSTAND
 
-Facing:
-0x2EE30
+- End ON/OFF funktioniert.
+- Direkte DOSBox-Tastatur wird bei Button Mode ON als BLOCKED gemeldet.
+- Party-Bewegung ist im Button Mode tatsächlich blockiert.
+- Gelber Auswahlrahmen wird angezeigt.
+- Rahmenposition ist noch falsch und muss morgen kalibriert werden.
+- Return zum Aktivieren ist noch nicht implementiert.
 
-X:
-0x2EE31
 
-Y:
-0x2EE32
+COMMIT
 
-
-Facing Mapping:
-
-0 -> West
-1 -> East
-2 -> North
-3 -> South
-
-
-Diese drei Bytes können jetzt direkt
-in den GridBuilder übernommen werden.
-
-
---------------------------------------------------
-Memory-Write-Tracker
---------------------------------------------------
-
-Der Memory-Write-Tracker funktioniert jetzt vollständig.
-
-Er zeigt:
-
-- Target-Adresse
-- Writer / Instruction-Adresse
-- CS:IP
-- Register
-- Stack
-- Written Value
-
-Der Written Value wird als 17. Feld
-über die Named Pipe übertragen.
-
-
---------------------------------------------------
-Wichtiger Build-Fix DOSBox-X
---------------------------------------------------
-
-Der DOSBox-X Output Directory war falsch konfiguriert.
-
-Vorher wurde gebaut nach:
-
-C:\Projects\bin\x64\Debug SDL2\dosbox-x.exe
-
-MyImGui startete aber:
-
-C:\Projects\MyImGui\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe
-
-Dadurch liefen Änderungen an
-dosbox_memory_scanner_ipc.cpp zunächst
-nicht in der tatsächlich gestarteten DOSBox-X-Version.
-
-Korrigiertes Output Directory:
-
-$(ProjectDir)..\bin\$(Platform)\$(Configuration)\
-
-Danach zeigt der Build korrekt:
-
-C:\Projects\MyImGui\dosbox-x\bin\x64\Debug SDL2\dosbox-x.exe
-
-Seitdem werden Änderungen an DOSBox-X
-von MyImGui tatsächlich verwendet.
-
---------------------------------------------------
-Architektur-Hinweis für GridBuilder
---------------------------------------------------
-
-Die MM3-Adressen dürfen nicht fest in die allgemeine
-GridBuilder-Logik eingebaut werden.
-
-Der Player-State soll dynamisch pro Spiel konfigurierbar sein.
-
-Beispiel MM3:
-
-Game: MM3.EXE
-
-FacingAddress = 0x2EE30
-XAddress      = 0x2EE31
-YAddress      = 0x2EE32
-
-FacingMapping:
-0 = West
-1 = East
-2 = North
-3 = South
-
-Andere Spiele können andere:
-- Speicheradressen
-- Datentypen
-- Koordinatenachsen
-- Vorzeichen
-- Y-Richtung
-- Facing-Werte
-
-verwenden.
-
-Der GridBuilder soll deshalb nur einen allgemeinen Zustand bekommen:
-
-PlayerState
-{
-    x
-    y
-    direction
-    valid
-}
-
-Eine spielspezifische Memory-Konfiguration bzw. ein
-Game-State-Reader übersetzt die Rohwerte aus DOSBox
-in diesen allgemeinen PlayerState.
-
-Beispiel:
-
-MM3 Memory
-0x2EE31 = 4
-0x2EE32 = 2
-0x2EE30 = 3
-
-wird übersetzt zu:
-
-PlayerState
-X = 4
-Y = 2
-Direction = South
-
-Der World/GridBuilder-Code selbst muss dafür nicht wissen,
-dass diese Werte aus MM3 oder von bestimmten RAM-Adressen stammen.
-
-Ziel:
-Neue Spiele sollen später nur durch eine neue Konfiguration
-bzw. einen neuen Game-State-Reader ergänzt werden können,
-ohne die allgemeine GridBuilder-Logik umzubauen.
+Add MM3 keyboard navigation mode and DOSBox input blocking

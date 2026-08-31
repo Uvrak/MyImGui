@@ -15,7 +15,7 @@ namespace
 {
     const std::filesystem::path
         edgeBoxSettingsPath =
-        "settings/editor_edge_box.cfg";
+        "../settings/editor_edge_box.cfg";
 
     const std::filesystem::path
         edgeDirectory =

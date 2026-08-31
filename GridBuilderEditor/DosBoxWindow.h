@@ -6,6 +6,7 @@
 #endif
 
 #include <string>
+#include <functional>
 
 #include "FrameReader.h"
 #include "DosBoxFrameTextureSDL.h"
@@ -16,6 +17,8 @@
 #include "NamedPipeClient.h"
 #include "DosBoxKeyBindings.h"
 #include "DosBoxProgramReader.h"
+#include "GameModule.h"
+
 #include "imgui.h"
 
 enum class DosBoxInputMode
@@ -69,8 +72,50 @@ public:
 
     void setGameButtonSelection(
         bool active,
-        int selectedButton
+        const GameButtonRect& rect
     );
+
+    void setButtonRectSaveCallback(
+        std::function<void(
+            const GameButtonRect&
+            )> callback
+    );
+
+    void setButtonRectModifyCallback(
+        std::function<void(
+            const GameButtonRect&
+            )> callback
+    );
+
+    bool handleButtonRectEditorKeyDown(
+        SDL_Keycode key
+    );
+
+    void setButtonRectDeleteCallback(
+        std::function<void()> callback
+    );
+
+    bool sendDosMouseClick(
+        float x,
+        float y
+    );
+
+    const DosBoxX::DosBoxFrameHeader*
+        frameHeader() const;
+
+    const uint8_t*
+        framePixels() const;
+
+    bool sendDosMouseDoubleClick(
+        float x,
+        float y
+    );
+
+    bool sendDosMousePosition(
+        float x,
+        float y
+    );
+
 private:
     SDL_Window* m_parentWindow =
         nullptr;
@@ -130,6 +175,41 @@ private:
     bool m_gameButtonSelectionActive =
         false;
 
-    int m_selectedGameButton =
-        -1;
+    GameButtonRect m_gameButtonRect;
+
+    GameButtonRect m_debugButtonRect;
+
+    bool m_buttonRectToolActive =
+        false;
+
+    bool m_buttonRectDragging =
+        false;
+
+    bool m_buttonRectDefined =
+        false;
+
+    bool m_buttonRectMoving =
+        false;
+
+    bool m_buttonRectResizing =
+        false;
+
+    bool m_modifyingGameButton =
+        false;
+
+    ImVec2 m_buttonRectMoveOffset;
+
+    ImVec2 m_buttonRectStart;
+    ImVec2 m_buttonRectEnd;
+
+    std::function<void(
+        const GameButtonRect&
+        )> m_buttonRectSaveCallback;
+
+    std::function<void(
+        const GameButtonRect&
+        )> m_buttonRectModifyCallback;
+
+    std::function<void()>
+        m_buttonRectDeleteCallback;
 };

@@ -1694,7 +1694,7 @@ namespace DosBoxMemoryTools
         pinnedAddressesFilePath() const
     {
         return
-            "settings/memory_pins_" +
+            "../settings/memory_pins_" +
             m_gameId +
             ".cfg";
     }
@@ -1703,7 +1703,7 @@ namespace DosBoxMemoryTools
         scannerSettingsFilePath() const
     {
         return
-            "settings/memory_scanner_" +
+            "../settings/memory_scanner_" +
             m_gameId +
             ".cfg";
     }

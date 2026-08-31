@@ -141,6 +141,8 @@ void DosBoxWindow::draw()
                 "GridBuilder IPC: not ready, retrying\n"
             );
         }
+
+  
     }
 
     ImGui::SetNextWindowSize(
@@ -352,7 +354,31 @@ void DosBoxWindow::draw()
         const uint8_t* framePixels =
             m_frameReader.pixels();
 
-        if (framePixels != nullptr)
+        auto pixelMatches =
+            [framePixels, frameHeader](
+                int x,
+                int y,
+                int r,
+                int g,
+                int b
+                )
+            {
+                const int bytesPerPixel =
+                    frameHeader->pitch /
+                    frameHeader->width;
+
+                const uint8_t* pixel =
+                    framePixels +
+                    y * frameHeader->pitch +
+                    x * bytesPerPixel;
+
+                return
+                    pixel[2] == r &&
+                    pixel[1] == g &&
+                    pixel[0] == b;
+            };
+
+       if (framePixels != nullptr)
         {
             if (m_frameTexture.update(
                 framePixels,
@@ -429,44 +455,535 @@ void DosBoxWindow::draw()
                         )
                     );
 
-                    if (m_gameButtonSelectionActive &&
-                        m_selectedGameButton >= 0)
+                    const bool imageHovered =
+                        ImGui::IsItemHovered();
+
+                    if (imageHovered)
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        const int contentX =
+                            static_cast<int>(
+                                (mousePos.x - imagePos.x) /
+                                scale
+                                );
+
+                        const int contentY =
+                            static_cast<int>(
+                                (mousePos.y - imagePos.y) /
+                                scale
+                                );
+
+                        if (contentX >= 0 &&
+                            contentY >= 0 &&
+                            contentX <
+                            frameHeader->contentWidth &&
+                            contentY <
+                            frameHeader->contentHeight)
+                        {
+                            const int bytesPerPixel =
+                                frameHeader->pitch /
+                                frameHeader->width;
+
+                            const uint8_t* pixel =
+                                framePixels +
+                                contentY *
+                                frameHeader->pitch +
+                                contentX *
+                                bytesPerPixel;
+
+                            ImGui::SetTooltip(
+                                "DOS %d,%d  RGB %u,%u,%u",
+                                contentX,
+                                contentY,
+                                static_cast<unsigned>(pixel[2]),
+                                static_cast<unsigned>(pixel[1]),
+                                static_cast<unsigned>(pixel[0])
+                            );
+                        }
+                    }
+
+                    if (imageHovered &&
+                        ImGui::GetIO().KeyShift &&
+                        ImGui::IsMouseClicked(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        m_buttonRectStart =
+                            ImVec2(
+                                (mousePos.x - imagePos.x) /
+                                scale,
+                                (mousePos.y - imagePos.y) /
+                                scale
+                            );
+
+                        m_buttonRectEnd =
+                            m_buttonRectStart;
+
+                        m_buttonRectDragging =
+                            true;
+                    }
+
+                    if (m_buttonRectDefined &&
+                        !m_buttonRectDragging &&
+                        ImGui::IsMouseClicked(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        const float contentX =
+                            (mousePos.x - imagePos.x) /
+                            scale;
+
+                        const float contentY =
+                            (mousePos.y - imagePos.y) /
+                            scale;
+
+                        const float left =
+                            (std::min)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                                );
+
+                        const float right =
+                            (std::max)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                                );
+
+                        const float top =
+                            (std::min)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                                );
+
+                        const float bottom =
+                            (std::max)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                                );
+
+                        const float handleHitSize =
+                            12.0f /
+                            scale;
+
+                        const bool resizeHandleHit =
+                            contentX >=
+                            right - handleHitSize &&
+                            contentX <=
+                            right + handleHitSize &&
+                            contentY >=
+                            bottom - handleHitSize &&
+                            contentY <=
+                            bottom + handleHitSize;
+
+
+                        if (resizeHandleHit)
+                        {
+                            m_buttonRectResizing =
+                                true;
+
+                            m_buttonRectMoving =
+                                false;
+                        }
+                        else if (
+                            contentX >= left &&
+                            contentX <= right &&
+                            contentY >= top &&
+                            contentY <= bottom)
+                        {
+                            m_buttonRectMoving =
+                                true;
+
+                            m_buttonRectMoveOffset =
+                                ImVec2(
+                                    contentX - left,
+                                    contentY - top
+                                );
+                        }
+                    }
+
+                    if (m_buttonRectResizing)
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        const float contentX =
+                            (mousePos.x - imagePos.x) /
+                            scale;
+
+                        const float contentY =
+                            (mousePos.y - imagePos.y) /
+                            scale;
+
+                        m_buttonRectEnd =
+                            ImVec2(
+                                contentX,
+                                contentY
+                            );
+                    }
+
+                    if (m_buttonRectResizing &&
+                        ImGui::IsMouseReleased(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        m_buttonRectResizing =
+                            false;
+                    }
+
+                    if (m_buttonRectDragging)
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        m_buttonRectEnd =
+                            ImVec2(
+                                (mousePos.x - imagePos.x) /
+                                scale,
+                                (mousePos.y - imagePos.y) /
+                                scale
+                            );
+                    }
+
+                    if (m_buttonRectMoving)
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        const float contentX =
+                            (mousePos.x - imagePos.x) /
+                            scale;
+
+                        const float contentY =
+                            (mousePos.y - imagePos.y) /
+                            scale;
+
+                        const float width =
+                            std::abs(
+                                m_buttonRectEnd.x -
+                                m_buttonRectStart.x
+                            );
+
+                        const float height =
+                            std::abs(
+                                m_buttonRectEnd.y -
+                                m_buttonRectStart.y
+                            );
+
+                        const float newLeft =
+                            contentX -
+                            m_buttonRectMoveOffset.x;
+
+                        const float newTop =
+                            contentY -
+                            m_buttonRectMoveOffset.y;
+
+                        m_buttonRectStart =
+                            ImVec2(
+                                newLeft,
+                                newTop
+                            );
+
+                        m_buttonRectEnd =
+                            ImVec2(
+                                newLeft + width,
+                                newTop + height
+                            );
+                    }
+
+                    if (m_buttonRectMoving &&
+                        ImGui::IsMouseReleased(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        m_buttonRectMoving =
+                            false;
+                    }
+
+                    if (m_buttonRectDragging ||
+                        m_buttonRectDefined)
                     {
                         ImDrawList* drawList =
                             ImGui::GetWindowDrawList();
 
-                        // Vorläufige MM3-Koordinaten.
-                        // Die passen wir danach exakt an.
-                        const float buttonX =
-                            78.0f;
+                        const ImVec2 rectMin(
+                            imagePos.x +
+                            (std::min)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                            ) * scale,
+                            imagePos.y +
+                            (std::min)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                            ) * scale
+                        );
 
-                        const float buttonWidth =
-                            164.0f;
+                        const ImVec2 rectMax(
+                            imagePos.x +
+                            (std::max)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                            ) * scale,
+                            imagePos.y +
+                            (std::max)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                            ) * scale
+                        );
 
-                        const float buttonHeight =
-                            24.0f;
+                        drawList->AddRect(
+                            rectMin,
+                            rectMax,
+                            IM_COL32(
+                                0,
+                                255,
+                                255,
+                                255
+                            ),
+                            0.0f,
+                            0,
+                            2.0f
+                        );
 
-                        float buttonY =
-                            112.0f;
+                        const float handleSize =
+                            6.0f;
 
-                        if (m_selectedGameButton == 1)
+                        drawList->AddRectFilled(
+                            ImVec2(
+                                rectMax.x - handleSize,
+                                rectMax.y - handleSize
+                            ),
+                            rectMax,
+                            IM_COL32(
+                                0,
+                                255,
+                                255,
+                                255
+                            )
+                        );
+                    }
+
+                    if (m_buttonRectDefined &&
+                        ImGui::IsMouseClicked(
+                            ImGuiMouseButton_Right
+                        ))
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        const float contentX =
+                            (mousePos.x - imagePos.x) /
+                            scale;
+
+                        const float contentY =
+                            (mousePos.y - imagePos.y) /
+                            scale;
+
+                        const float left =
+                            (std::min)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                                );
+
+                        const float right =
+                            (std::max)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                                );
+
+                        const float top =
+                            (std::min)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                                );
+
+                        const float bottom =
+                            (std::max)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                                );
+
+                        if (contentX >= left &&
+                            contentX <= right &&
+                            contentY >= top &&
+                            contentY <= bottom)
                         {
-                            buttonY =
-                                143.0f;
+                            ImGui::OpenPopup(
+                                "ButtonRectContextMenu"
+                            );
                         }
+                    }
+
+                    if (ImGui::BeginPopup(
+                        "ButtonRectContextMenu"
+                    ))
+                    {
+                        if (ImGui::MenuItem(
+                            "Als Button speichern"
+                        ))
+                        {
+                            const float x1 =
+                                (std::min)(
+                                    m_buttonRectStart.x,
+                                    m_buttonRectEnd.x
+                                    );
+
+                            const float y1 =
+                                (std::min)(
+                                    m_buttonRectStart.y,
+                                    m_buttonRectEnd.y
+                                    );
+
+                            const float x2 =
+                                (std::max)(
+                                    m_buttonRectStart.x,
+                                    m_buttonRectEnd.x
+                                    );
+
+                            const float y2 =
+                                (std::max)(
+                                    m_buttonRectStart.y,
+                                    m_buttonRectEnd.y
+                                    );
+
+                            m_debugButtonRect.x =
+                                x1;
+
+                            m_debugButtonRect.y =
+                                y1;
+
+                            m_debugButtonRect.width =
+                                x2 - x1;
+
+                            m_debugButtonRect.height =
+                                y2 - y1;
+
+                            if (m_buttonRectSaveCallback)
+                            {
+                                m_buttonRectSaveCallback(
+                                    m_debugButtonRect
+                                );
+                            }
+
+                            m_buttonRectDefined =
+                                false;
+
+                            m_buttonRectDragging =
+                                false;
+
+                            m_buttonRectMoving =
+                                false;
+
+                            m_buttonRectResizing =
+                                false;
+                        }
+
+                        ImGui::EndPopup();
+                    }
+
+                    if (m_buttonRectDragging &&
+                        ImGui::IsMouseReleased(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        m_buttonRectDragging =
+                            false;
+
+                        m_buttonRectDefined =
+                            true;
+
+                        const float x1 =
+                            (std::min)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                            );
+
+                        const float y1 =
+                            (std::min)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                            );
+
+                        const float x2 =
+                            (std::max)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                            );
+
+                        const float y2 =
+                            (std::max)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                            );
+
+                        m_debugButtonRect.x =
+                            x1;
+
+                        m_debugButtonRect.y =
+                            y1;
+
+                        m_debugButtonRect.width =
+                            x2 - x1;
+
+                        m_debugButtonRect.height =
+                            y2 - y1;
+
+                        m_buttonRectStart =
+                            ImVec2(
+                                x1,
+                                y1
+                            );
+
+                        m_buttonRectEnd =
+                            ImVec2(
+                                x2,
+                                y2
+                            );
+                    }
+                    
+                    ImGui::Text(
+                        "Button Rect: x=%.1f y=%.1f w=%.1f h=%.1f",
+                        m_debugButtonRect.x,
+                        m_debugButtonRect.y,
+                        m_debugButtonRect.width,
+                        m_debugButtonRect.height
+                    );
+
+                    ImGui::Text(
+                        "Selection: %d x=%.1f y=%.1f w=%.1f h=%.1f",
+                        m_gameButtonSelectionActive ? 1 : 0,
+                        m_gameButtonRect.x,
+                        m_gameButtonRect.y,
+                        m_gameButtonRect.width,
+                        m_gameButtonRect.height
+                    );
+
+                    if (m_gameButtonSelectionActive &&
+                        !m_modifyingGameButton)
+                    {
+                        ImDrawList* drawList =
+                            ImGui::GetWindowDrawList();
 
                         const ImVec2 selectionMin(
                             imagePos.x +
-                            buttonX * scale,
+                            m_gameButtonRect.x * scale,
                             imagePos.y +
-                            buttonY * scale
+                            m_gameButtonRect.y * scale
                         );
 
                         const ImVec2 selectionMax(
                             selectionMin.x +
-                            buttonWidth * scale,
+                            m_gameButtonRect.width * scale,
                             selectionMin.y +
-                            buttonHeight * scale
+                            m_gameButtonRect.height * scale
                         );
 
                         drawList->AddRect(
@@ -482,6 +999,186 @@ void DosBoxWindow::draw()
                             0,
                             2.0f
                         );
+                    }
+
+                    if (m_gameButtonSelectionActive &&
+                        ImGui::IsMouseClicked(
+                            ImGuiMouseButton_Right
+                        ))
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        const ImVec2 selectionMin(
+                            imagePos.x +
+                            m_gameButtonRect.x * scale,
+                            imagePos.y +
+                            m_gameButtonRect.y * scale
+                        );
+
+                        const ImVec2 selectionMax(
+                            selectionMin.x +
+                            m_gameButtonRect.width * scale,
+                            selectionMin.y +
+                            m_gameButtonRect.height * scale
+                        );
+
+                        if (mousePos.x >= selectionMin.x &&
+                            mousePos.x <= selectionMax.x &&
+                            mousePos.y >= selectionMin.y &&
+                            mousePos.y <= selectionMax.y)
+                        {
+                            ImGui::OpenPopup(
+                                "GameButtonContextMenu"
+                            );
+                        }
+                    }
+
+                    if (ImGui::BeginPopup(
+                        "GameButtonContextMenu"
+                    ))
+                    {
+                        if (ImGui::MenuItem(
+                            "Modify Button"
+                        ))
+                        {
+                            m_debugButtonRect =
+                                m_gameButtonRect;
+
+                            m_buttonRectStart =
+                                ImVec2(
+                                    m_gameButtonRect.x,
+                                    m_gameButtonRect.y
+                                );
+
+                            m_buttonRectEnd =
+                                ImVec2(
+                                    m_gameButtonRect.x +
+                                    m_gameButtonRect.width,
+                                    m_gameButtonRect.y +
+                                    m_gameButtonRect.height
+                                );
+
+                            m_buttonRectDefined =
+                                true;
+
+                            m_buttonRectDragging =
+                                false;
+
+                            m_buttonRectMoving =
+                                false;
+
+                            m_buttonRectResizing =
+                                false;
+
+                            m_modifyingGameButton =
+                                true;
+                        }
+
+                        if (ImGui::MenuItem(
+                            "Delete Button"
+                        ))
+                        {
+                            if (m_buttonRectDeleteCallback)
+                            {
+                                m_buttonRectDeleteCallback();
+                            }
+                        }
+
+                        ImGui::EndPopup();
+                    }
+
+                    if (m_modifyingGameButton &&
+                        ImGui::IsMouseClicked(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        const ImVec2 mousePos =
+                            ImGui::GetMousePos();
+
+                        const ImVec2 rectMin(
+                            imagePos.x +
+                            (std::min)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                                ) * scale,
+                            imagePos.y +
+                            (std::min)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                                ) * scale
+                        );
+
+                        const ImVec2 rectMax(
+                            imagePos.x +
+                            (std::max)(
+                                m_buttonRectStart.x,
+                                m_buttonRectEnd.x
+                                ) * scale,
+                            imagePos.y +
+                            (std::max)(
+                                m_buttonRectStart.y,
+                                m_buttonRectEnd.y
+                                ) * scale
+                        );
+
+                        const bool clickedInside =
+                            mousePos.x >= rectMin.x &&
+                            mousePos.x <= rectMax.x &&
+                            mousePos.y >= rectMin.y &&
+                            mousePos.y <= rectMax.y;
+
+                        if (!clickedInside)
+                        {
+                            const float x1 =
+                                (std::min)(
+                                    m_buttonRectStart.x,
+                                    m_buttonRectEnd.x
+                                    );
+
+                            const float y1 =
+                                (std::min)(
+                                    m_buttonRectStart.y,
+                                    m_buttonRectEnd.y
+                                    );
+
+                            const float x2 =
+                                (std::max)(
+                                    m_buttonRectStart.x,
+                                    m_buttonRectEnd.x
+                                    );
+
+                            const float y2 =
+                                (std::max)(
+                                    m_buttonRectStart.y,
+                                    m_buttonRectEnd.y
+                                    );
+
+                            m_debugButtonRect.x =
+                                x1;
+
+                            m_debugButtonRect.y =
+                                y1;
+
+                            m_debugButtonRect.width =
+                                x2 - x1;
+
+                            m_debugButtonRect.height =
+                                y2 - y1;
+
+                            if (m_buttonRectModifyCallback)
+                            {
+                                m_buttonRectModifyCallback(
+                                    m_debugButtonRect
+                                );
+                            }
+
+                            m_modifyingGameButton =
+                                false;
+
+                            m_buttonRectDefined =
+                                false;
+                        }
                     }
 
                     const ImVec2 imageMin =
@@ -821,10 +1518,19 @@ bool DosBoxWindow::sendDosKey(
     const char* key
 )
 {
-    return m_controller.sendDosKey(
-        m_pipeClient,
-        key
+    const bool sent =
+        m_controller.sendDosKey(
+            m_pipeClient,
+            key
+        );
+
+    OutputDebugStringA(
+        sent
+        ? "DosBoxWindow: sendDosKey OK\n"
+        : "DosBoxWindow: sendDosKey FAILED\n"
     );
+
+    return sent;
 }
 
 void DosBoxWindow::setGermanKeyboardLayout()
@@ -872,19 +1578,249 @@ void DosBoxWindow::setDirectKeyboardBlocked(
 
     m_directKeyboardBlocked =
         blocked;
-}
+};
 
 void DosBoxWindow::setGameButtonSelection(
     bool active,
-    int selectedButton
+    const GameButtonRect& rect
 )
 {
     m_gameButtonSelectionActive =
         active;
 
-    m_selectedGameButton =
-        selectedButton;
+    if (active)
+    {
+        m_gameButtonRect =
+            rect;
+    }
+    else
+    {
+        m_gameButtonRect =
+        {};
+    }
 }
+
+void DosBoxWindow::setButtonRectSaveCallback(
+    std::function<void(
+        const GameButtonRect&
+        )> callback
+)
+{
+    m_buttonRectSaveCallback =
+        std::move(
+            callback
+        );
+}
+
+void DosBoxWindow::setButtonRectModifyCallback(
+    std::function<void(
+        const GameButtonRect&
+        )> callback
+)
+{
+    m_buttonRectModifyCallback =
+        std::move(
+            callback
+        );
+}
+
+void DosBoxWindow::setButtonRectDeleteCallback(
+    std::function<void()> callback
+)
+{
+    m_buttonRectDeleteCallback =
+        std::move(
+            callback
+        );
+}
+
+bool DosBoxWindow::sendDosMouseClick(
+    float x,
+    float y
+)
+{
+    const DosBoxX::DosBoxFrameHeader*
+        frameHeader =
+        m_frameReader.header();
+
+    if (frameHeader == nullptr ||
+        frameHeader->contentWidth <= 0 ||
+        frameHeader->contentHeight <= 0)
+    {
+        return false;
+    }
+
+    char command[128] = {};
+
+    std::snprintf(
+        command,
+        sizeof(command),
+        "MOUSECLICK:%d:%d:%d:%d",
+        static_cast<int>(x),
+        static_cast<int>(y),
+        frameHeader->contentWidth,
+        frameHeader->contentHeight
+    );
+
+    return m_pipeClient.send(
+        command
+    );
+}
+
+const DosBoxX::DosBoxFrameHeader*
+DosBoxWindow::frameHeader() const
+{
+    return m_frameReader.header();
+}
+
+const uint8_t*
+DosBoxWindow::framePixels() const
+{
+    return m_frameReader.pixels();
+}
+
+bool DosBoxWindow::sendDosMouseDoubleClick(
+    float x,
+    float y
+)
+{
+    const DosBoxX::DosBoxFrameHeader*
+        frameHeader =
+        m_frameReader.header();
+
+    if (frameHeader == nullptr ||
+        frameHeader->contentWidth <= 0 ||
+        frameHeader->contentHeight <= 0)
+    {
+        return false;
+    }
+
+    char command[128] = {};
+
+    std::snprintf(
+        command,
+        sizeof(command),
+        "MOUSEDOUBLECLICK:%d:%d:%d:%d",
+        static_cast<int>(x),
+        static_cast<int>(y),
+        frameHeader->contentWidth,
+        frameHeader->contentHeight
+    );
+
+    return m_pipeClient.send(
+        command
+    );
+}
+
+bool DosBoxWindow::sendDosMousePosition(
+    float x,
+    float y
+)
+{
+    const DosBoxX::DosBoxFrameHeader*
+        frameHeader =
+        m_frameReader.header();
+
+    if (frameHeader == nullptr ||
+        frameHeader->contentWidth <= 0 ||
+        frameHeader->contentHeight <= 0)
+    {
+        return false;
+    }
+
+    char command[128] = {};
+
+    std::snprintf(
+        command,
+        sizeof(command),
+        "MOUSESETPOS:%d:%d:%d:%d",
+        static_cast<int>(x),
+        static_cast<int>(y),
+        frameHeader->contentWidth,
+        frameHeader->contentHeight
+    );
+
+    return m_pipeClient.send(
+        command
+    );
+}
+
+bool DosBoxWindow::handleButtonRectEditorKeyDown(
+    SDL_Keycode key
+)
+{
+    if (!m_modifyingGameButton)
+    {
+        return false;
+    }
+
+    if (key != SDLK_RETURN &&
+        key != SDLK_KP_ENTER)
+    {
+        return false;
+    }
+
+    const float x1 =
+        (std::min)(
+            m_buttonRectStart.x,
+            m_buttonRectEnd.x
+            );
+
+    const float y1 =
+        (std::min)(
+            m_buttonRectStart.y,
+            m_buttonRectEnd.y
+            );
+
+    const float x2 =
+        (std::max)(
+            m_buttonRectStart.x,
+            m_buttonRectEnd.x
+            );
+
+    const float y2 =
+        (std::max)(
+            m_buttonRectStart.y,
+            m_buttonRectEnd.y
+            );
+
+    m_debugButtonRect.x =
+        x1;
+
+    m_debugButtonRect.y =
+        y1;
+
+    m_debugButtonRect.width =
+        x2 - x1;
+
+    m_debugButtonRect.height =
+        y2 - y1;
+
+    if (m_buttonRectModifyCallback)
+    {
+        m_buttonRectModifyCallback(
+            m_debugButtonRect
+        );
+    }
+
+    m_modifyingGameButton =
+        false;
+
+    m_buttonRectDefined =
+        false;
+
+    m_buttonRectDragging =
+        false;
+
+    m_buttonRectMoving =
+        false;
+
+    m_buttonRectResizing =
+        false;
+
+    return true;
+}
+
 void DosBoxWindow::findDosBoxWindow()
 {
     if (m_dosBoxHwnd != nullptr &&
@@ -1023,3 +1959,4 @@ void DosBoxWindow::deactivateInput()
 
     m_inputActive = false;
 }
+

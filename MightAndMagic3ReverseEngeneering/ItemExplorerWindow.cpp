@@ -38,7 +38,7 @@ namespace ItemExplorer
     void ItemExplorerWindow::loadSelectedItem()
     {
         std::ifstream file(
-            "settings/item_explorer.cfg"
+            "../settings/item_explorer.cfg"
         );
 
         if (!file)
@@ -62,7 +62,7 @@ namespace ItemExplorer
     void ItemExplorerWindow::saveSelectedItem() const
     {
         std::ofstream file(
-            "settings/item_explorer.cfg"
+            "../settings/item_explorer.cfg"
         );
 
         if (!file)

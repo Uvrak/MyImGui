@@ -8,7 +8,7 @@ namespace DosBoxX
     class Mouse
     {
     public:
-        void update(
+            void update(
             NamedPipeClient& NamedPipeClient,
             const DosBoxFrameHeader& frameHeader,
             float imageWidth,

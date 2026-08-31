@@ -14,7 +14,7 @@
     <Filter Include="Source Files\Windows">
       <UniqueIdentifier>{41b44395-2049-4e98-8721-1e460ebc3643}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Input">
+    <Filter Include="Source Files\Input">
       <UniqueIdentifier>{78e1cfea-58d2-4d78-86e6-c33adf7f6611}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
@@ -44,7 +44,10 @@
       <Filter>Source Files\Game</Filter>
     </ClInclude>
     <ClInclude Include="MM3KeyBindings.h">
-      <Filter>Input</Filter>
+      <Filter>Source Files\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="ScreenSignatures.h">
+      <Filter>Source Files\Game</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -61,7 +64,10 @@
       <Filter>Source Files\Game</Filter>
     </ClCompile>
     <ClCompile Include="MM3KeyBindings.cpp">
-      <Filter>Input</Filter>
+      <Filter>Source Files\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="ScreenSignatures.cpp">
+      <Filter>Source Files\Game</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
