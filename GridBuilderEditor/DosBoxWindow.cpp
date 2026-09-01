@@ -991,13 +991,13 @@ void DosBoxWindow::draw()
                             selectionMax,
                             IM_COL32(
                                 255,
-                                255,
                                 0,
+                                255,
                                 255
                             ),
                             0.0f,
                             0,
-                            2.0f
+                            3.0f
                         );
                     }
 

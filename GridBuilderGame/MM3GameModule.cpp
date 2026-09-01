@@ -457,6 +457,173 @@ bool MM3GameModule::takeDosMousePosition(
     return true;
 }
 
+void MM3GameModule::selectButtonInDirection(
+    int dx,
+    int dy
+)
+{
+    if (m_activeWindow < 0 ||
+        m_activeWindow >=
+        static_cast<int>(
+            m_windows.size()
+            ))
+    {
+        return;
+    }
+
+    MM3Window& window =
+        m_windows[
+            m_activeWindow
+        ];
+
+    if (window.buttons.empty())
+    {
+        return;
+    }
+
+    if (m_selectedButton < 0 ||
+        m_selectedButton >=
+        static_cast<int>(
+            window.buttons.size()
+            ))
+    {
+        m_selectedButton =
+            0;
+    }
+
+    const GameButtonRect& currentButton =
+        window.buttons[
+            m_selectedButton
+        ];
+
+    const float currentCenterX =
+        currentButton.x +
+        currentButton.width * 0.5f;
+
+    const float currentCenterY =
+        currentButton.y +
+        currentButton.height * 0.5f;
+
+    int bestButton =
+        -1;
+
+    float bestDistance =
+        FLT_MAX;
+
+    for (int i = 0;
+        i < static_cast<int>(
+            window.buttons.size()
+            );
+        ++i)
+    {
+        if (i == m_selectedButton)
+        {
+            continue;
+        }
+
+        const GameButtonRect& button =
+            window.buttons[i];
+
+        const float centerX =
+            button.x +
+            button.width * 0.5f;
+
+        const float centerY =
+            button.y +
+            button.height * 0.5f;
+
+        const float deltaX =
+            centerX -
+            currentCenterX;
+
+        const float deltaY =
+            centerY -
+            currentCenterY;
+
+        if (std::abs(deltaX) < 5.0f &&
+            std::abs(deltaY) < 5.0f)
+        {
+            continue;
+        }
+
+        if (dx < 0)
+        {
+            if (deltaX >= 0.0f ||
+                -deltaX <= std::abs(deltaY))
+            {
+                continue;
+            }
+        }
+
+        if (dx > 0)
+        {
+            if (deltaX <= 0.0f ||
+                deltaX <= std::abs(deltaY))
+            {
+                continue;
+            }
+        }
+
+        if (dy < 0)
+        {
+            if (deltaY >= 0.0f ||
+                -deltaY <= std::abs(deltaX))
+            {
+                continue;
+            }
+        }
+
+        if (dy > 0)
+        {
+            if (deltaY <= 0.0f ||
+                deltaY <= std::abs(deltaX))
+            {
+                continue;
+            }
+        }
+
+        float distance = 0.0f;
+
+        if (dy != 0)
+        {
+            // Up / Down:
+            // gleiche Spalte stark bevorzugen
+            distance =
+                deltaY * deltaY +
+                deltaX * deltaX * 10.0f;
+        }
+        else
+        {
+            // Left / Right:
+            // gleiche Zeile stark bevorzugen
+            distance =
+                deltaX * deltaX +
+                deltaY * deltaY * 10.0f;
+        }
+
+        if (distance <
+            bestDistance)
+        {
+            bestDistance =
+                distance;
+
+            bestButton =
+                i;
+        }
+    }
+
+    if (bestButton >= 0)
+    {
+        m_selectedButton =
+            bestButton;
+
+        m_pendingMousePosition =
+            true;
+    }
+
+
+}
+
 bool MM3GameModule::
 blockDirectDosBoxKeyboard() const
 {
@@ -679,6 +846,12 @@ bool MM3GameModule::gameButtonSelection(
     GameButtonRect& rect
 ) const
 {
+    if (!m_buttonMode)
+    {
+        rect = {};
+        return false;
+    }
+
     if (m_activeWindow < 0 ||
         m_activeWindow >=
         static_cast<int>(
@@ -825,7 +998,8 @@ void MM3GameModule::keyDown(
         ActivateButton
     ))
     {
-        if (m_activeWindow >= 0)
+        if (m_buttonMode &&
+            m_activeWindow >= 0)
         {
             activateSelectedButton();
 
@@ -838,7 +1012,8 @@ void MM3GameModule::keyDown(
         return;
     }
 
-    if (m_activeWindow >= 0)
+    if (m_buttonMode &&
+        m_activeWindow >= 0)
     {
         MM3Window& window =
             m_windows[
@@ -855,18 +1030,10 @@ void MM3GameModule::keyDown(
             ButtonUp
         ))
         {
-            --m_selectedButton;
-
-            if (m_selectedButton < 0)
-            {
-                m_selectedButton =
-                    static_cast<int>(
-                        window.buttons.size()
-                        ) - 1;
-            }
-
-            m_pendingMousePosition =
-                true;
+            selectButtonInDirection(
+                0,
+                -1
+            );
 
             return;
         }
@@ -876,19 +1043,36 @@ void MM3GameModule::keyDown(
             ButtonDown
         ))
         {
-            ++m_selectedButton;
+            selectButtonInDirection(
+                0,
+                1
+            );
 
-            if (m_selectedButton >=
-                static_cast<int>(
-                    window.buttons.size()
-                    ))
-            {
-                m_selectedButton =
-                    0;
-            }
+            return;
+        }
 
-            m_pendingMousePosition =
-                true;
+        if (matches(
+            MightAndMagic3::KeyAction::
+            ButtonLeft
+        ))
+        {
+            selectButtonInDirection(
+                -1,
+                0
+            );
+
+            return;
+        }
+
+        if (matches(
+            MightAndMagic3::KeyAction::
+            ButtonRight
+        ))
+        {
+            selectButtonInDirection(
+                1,
+                0
+            );
 
             return;
         }

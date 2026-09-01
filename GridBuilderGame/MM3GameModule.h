@@ -106,7 +106,13 @@ public:
     ) override;
 
 private:
-    bool m_buttonMode = false;
+
+    void selectButtonInDirection(
+        int dx,
+        int dy
+    );
+
+    bool m_buttonMode = true;
 
     MightAndMagic3::StateReader&
         m_stateReader;

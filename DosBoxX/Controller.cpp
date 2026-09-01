@@ -129,8 +129,6 @@ namespace DosBoxX
             return false;
         }
 
-        Sleep(50);
-
         std::string keyUp =
             "KEYUP:";
 
@@ -142,8 +140,6 @@ namespace DosBoxX
         {
             return false;
         }
-
-        Sleep(50);
 
         return true;
     }
