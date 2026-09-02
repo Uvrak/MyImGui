@@ -502,7 +502,7 @@ bool MM3GameModule::takeDosMouseClick(
 
         y =
             button.y +
-            button.height * 0.5f;
+            button.height * 0.5f + 60.0f;
 
         return true;
     }
@@ -541,8 +541,7 @@ bool MM3GameModule::takeDosMouseClick(
 
     y =
         button.y +
-        button.height * 0.5f +
-        16.0f;
+        button.height * 0.5f + 16.0f;
 
     return true;
 }

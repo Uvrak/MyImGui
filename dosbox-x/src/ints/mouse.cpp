@@ -43,6 +43,9 @@
 #include "control.h"
 #include "SDL.h"
 
+#include <cstdio>
+#include <windows.h>
+
 #if defined(_MSC_VER)
 # pragma warning(disable:4244) /* const fmath::local::uint64_t to double possible loss of data */
 #endif
@@ -2911,15 +2914,6 @@ void Mouse_GridBuilderMove(
     float y
 )
 {
-    OutputDebugStringA(
-        "MM3 MOUSE: GridBuilderMove\n"
-    );
-    mouse.x =
-        x * mouse.max_x;
-
-    mouse.y =
-        y * mouse.max_y;
-
     user_cursor_x =
         static_cast<int>(
             x * (user_cursor_sw - 1)
@@ -2930,8 +2924,12 @@ void Mouse_GridBuilderMove(
             y * (user_cursor_sh - 1)
             );
 
-    Mouse_AddEvent(
-        MOUSE_HAS_MOVED
+    Mouse_CursorMoved(
+        0.0f,
+        0.0f,
+        x,
+        y,
+        false
     );
 }
 

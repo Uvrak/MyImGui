@@ -7,6 +7,10 @@
 #include "FrameReader.h"
 #include "imgui.h"
 
+#include <cstdio>
+#include <windows.h>
+
+
 namespace DosBoxX
 {
     void Mouse::update(
@@ -32,6 +36,8 @@ namespace DosBoxX
             mouseInImageY >= 0.0f &&
             mouseInImageX < imageWidth &&
             mouseInImageY < imageHeight;
+
+        char debug[256];
 
         const float mouseScaleX =
             static_cast<float>(
@@ -71,11 +77,11 @@ namespace DosBoxX
                     ) - 1
             );
 
-        ImGui::SetTooltip(
-            "DOSBox: %d, %d",
-            dosBoxMouseX,
-            dosBoxMouseY
-        );
+        //ImGui::SetTooltip(
+        //    "DOSBox: %d, %d",
+        //    dosBoxMouseX,
+        //    dosBoxMouseY
+        //);
 
         static int lastDosBoxMouseX = -1;
         static int lastDosBoxMouseY = -1;

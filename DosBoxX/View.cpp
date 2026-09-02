@@ -229,13 +229,13 @@ namespace DosBoxX
                             ImGui::GetItemRectMax()
                         );
 
-                    if (m_inputActive &&
-                        dosBoxImageHovered)
-                    {
-                        ImGui::SetMouseCursor(
-                            ImGuiMouseCursor_None
-                        );
-                    }
+                    //if (m_inputActive &&
+                    //    dosBoxImageHovered)
+                    //{
+                    //    ImGui::SetMouseCursor(
+                    //        ImGuiMouseCursor_None
+                    //    );
+                    //}
 
                     const bool dosBoxImageClicked =
                         ImGui::IsItemClicked(
