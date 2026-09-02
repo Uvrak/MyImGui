@@ -80,5 +80,69 @@ namespace MightAndMagic3
         };
 
         return signature;
-    }       
+    }
+    const ScreenSignature&
+        ScreenSignatures::characterScreen()
+    {
+        static const ScreenSignature
+            signature{
+                {
+                    {
+                        581,
+                        29,
+                        178,
+                        178,
+                        178
+                    },
+                    {
+                        573,
+                        135,
+                        190,
+                        117,
+                        69
+                    },
+                    {
+                        603,
+                        237,
+                        190,
+                        190,
+                        190
+                    }
+                }
+        };
+
+        return signature;
+    }
+    const ScreenSignature&
+        ScreenSignatures::inventory()
+    {
+        static const ScreenSignature
+            signature{
+                {
+                    {
+                        58,
+                        264,
+                        255,
+                        255,
+                        255
+                    },
+                    {
+                        340,
+                        261,
+                        182,
+                        239,
+                        239
+                    },
+                    {
+                        590,
+                        265,
+                        255,
+                        255,
+                        255
+                    }
+                }
+        };
+
+        return signature;
+    }
 }

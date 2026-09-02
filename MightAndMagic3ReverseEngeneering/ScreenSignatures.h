@@ -13,6 +13,13 @@ namespace MightAndMagic3
         static const ScreenSignature&
             loadGame();
 
-        static const ScreenSignature& mainGame();
+        static const ScreenSignature&
+            mainGame();
+
+        static const ScreenSignature&
+            characterScreen();
+
+        static const ScreenSignature&
+            inventory();
     };
 }

@@ -587,10 +587,10 @@ void GRIDBUILDER_IPC_ProcessCommands()
                             height - 1
                             );
 
-                   //Mouse_GridBuilderMove(
-                   //     normalizedX,
-                   //     normalizedY
-                   // );
+                   Mouse_GridBuilderMove(
+                        normalizedX,
+                        normalizedY
+                    );
                 }
             }
         }

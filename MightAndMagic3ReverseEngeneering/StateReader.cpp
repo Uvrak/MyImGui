@@ -89,4 +89,44 @@ namespace MightAndMagic3
 
         return true;
     }
+
+    int StateReader::characterLevel(
+        int characterIndex
+    ) const
+    {
+        if (characterIndex < 0 ||
+            characterIndex >= 8)
+        {
+            return 0;
+        }
+
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        constexpr size_t FirstCharacterAddress =
+            0x2BF00;
+
+        constexpr size_t CharacterRecordSize =
+            0x12F;
+
+        constexpr size_t LevelOffset =
+            0x35;
+
+        const size_t levelAddress =
+            FirstCharacterAddress +
+            static_cast<size_t>(
+                characterIndex
+                ) *
+            CharacterRecordSize +
+            LevelOffset;
+
+        if (levelAddress >= memory.size())
+        {
+            return 0;
+        }
+
+        return static_cast<int>(
+            memory[levelAddress]
+            );
+    }
 }

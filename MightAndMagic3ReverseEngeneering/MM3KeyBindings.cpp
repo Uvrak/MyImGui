@@ -12,6 +12,11 @@ namespace MightAndMagic3
                 0
             },
             KeyBinding{
+                KeyAction::TogglePortraitMode,
+                "Portrait Mode",
+                0
+        },
+            KeyBinding{
                 KeyAction::Forward,
                 "Forward",
                 0

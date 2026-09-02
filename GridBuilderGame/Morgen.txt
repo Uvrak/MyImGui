@@ -1,0 +1,90 @@
+MM3 – Notizen für morgen
+Stand: 01.09.2026
+
+Inventory-Steuerung – nächster Schritt
+
+Heute NICHT mehr implementiert.
+
+Ziel:
+Die Item-Auswahl im Inventory soll mit Up/Down über Mausklicks
+gesteuert werden.
+
+Wichtig:
+Das soll sowohl im normalen Game Mode als auch im Button Mode
+funktionieren.
+
+Aktueller Ansatz:
+
+- Inventory ist eigenes erkanntes Fenster.
+- Inventory hat Index 5.
+- Beim Eintritt ins Inventory soll Item-Slot 0 automatisch
+  angeklickt werden.
+- Ausgangskoordinate Item-Liste:
+      X = 75
+      Y ungefähr = 52
+- Die genaue Y-Ausgangsposition muss eventuell noch kalibriert werden.
+
+Neue gewünschte Navigation:
+
+DOWN:
+    Y += 15
+    anschließend Mausklick auf (75, Y)
+
+UP:
+    Y -= 15
+    anschließend Mausklick auf (75, Y)
+
+Damit sollen die Item-Zeilen nacheinander ausgewählt werden.
+
+WICHTIG:
+Diese Inventory-Up/Down-Behandlung muss in keyDown() VOR der
+Trennung zwischen Button Mode und Game Mode stattfinden.
+Dadurch funktioniert sie in beiden Modi.
+
+Vorgesehener Member:
+
+    float m_inventoryItemY = 52.0f;
+
+Der bereits vorhandene Pending-Mechanismus kann für den Klick
+verwendet werden:
+
+    m_pendingInventorySlot0Click
+
+takeDosMouseClick() soll dann ungefähr:
+
+    x = 75.0f;
+    y = m_inventoryItemY;
+
+zurückgeben.
+
+Inventory Screen Signature wurde heute geändert, weil die vorherigen
+Signature-Pixel auf den Buttons lagen und sich durch den Maus-Hover
+änderten.
+
+Neue Inventory-Signature:
+
+    (58, 264)  RGB 255,255,255
+    (340,261)  RGB 182,239,239
+    (590,265)  RGB 255,255,255
+
+Diese Pixel stammen aus den festen Beschriftungen unter den
+Inventory-Buttons.
+
+Problem vorher:
+Beim Navigieren sprang die Auswahl kurz auf den nächsten Button und
+verlor sofort wieder den Fokus. Ursache sehr wahrscheinlich:
+Inventory-Signature wurde durch den Maus-Hover ungültig.
+
+Außerdem neu:
+Character Screen wurde als eigenes Fenster/Screen Signature angelegt.
+Inventory ebenfalls als eigenes MM3Window.
+
+MORGEN LANGSAM VORGEHEN:
+1. Erst aktuellen Codezustand prüfen.
+2. Nur m_inventoryItemY hinzufügen.
+3. Build.
+4. Dann DOWN implementieren.
+5. Build + testen.
+6. Erst danach UP implementieren.
+7. Automatischen Slot-0-Klick separat prüfen.
+8. Keine anderen Navigationsteile gleichzeitig umbauen.

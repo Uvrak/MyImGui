@@ -34,6 +34,11 @@ MM3GameModule::MM3GameModule(
     );
 
     m_keyBindings.setDefaultKey(
+        MightAndMagic3::KeyAction::TogglePortraitMode,
+        static_cast<int>(SDLK_DELETE)
+    );
+
+    m_keyBindings.setDefaultKey(
         MightAndMagic3::KeyAction::Forward,
         static_cast<int>(SDLK_UP)
     );
@@ -122,6 +127,24 @@ MM3GameModule::MM3GameModule(
         mainGameWindow
     );
 
+    MM3Window characterScreenWindow;
+
+    characterScreenWindow.name =
+        "Character Screen";
+
+    m_windows.push_back(
+        characterScreenWindow
+    );
+
+    MM3Window inventoryWindow;
+
+    inventoryWindow.name =
+        "Inventory";
+
+    m_windows.push_back(
+        inventoryWindow
+    );
+
 
     m_activeWindow =
         0;
@@ -179,6 +202,26 @@ void MM3GameModule::addButtonToActiveWindow(
     const GameButtonRect& rect
 )
 {
+    if (m_portraitMode)
+    {
+        if (m_portraitControls.size() <
+            PortraitControlCount)
+        {
+            m_portraitControls.push_back(
+                rect
+            );
+
+            m_selectedPortrait =
+                static_cast<int>(
+                    m_portraitControls.size()
+                    ) - 1;
+        }
+
+        saveButtons();
+
+        return;
+    }
+
     if (m_activeWindow < 0 ||
         m_activeWindow >=
         static_cast<int>(
@@ -240,8 +283,27 @@ void MM3GameModule::saveButtons() const
                 << '\n';
         }
     }
-}
 
+    file
+        << "portraits"
+        << '\n';
+
+    for (const GameButtonRect& button :
+        m_portraitControls)
+    {
+        file
+            << "portrait "
+            << button.x << ' '
+            << button.y << ' '
+            << button.width << ' '
+            << button.height << ' '
+            << static_cast<int>(button.r) << ' '
+            << static_cast<int>(button.g) << ' '
+            << static_cast<int>(button.b) << ' '
+            << static_cast<int>(button.a) << ' '
+            << '\n';
+    }
+}
 void MM3GameModule::loadButtons()
 {
     std::ifstream file(
@@ -305,7 +367,7 @@ void MM3GameModule::loadButtons()
                 >> g
                 >> b
                 >> a;
-                
+
             button.r =
                 static_cast<uint8_t>(r);
 
@@ -324,6 +386,42 @@ void MM3GameModule::loadButtons()
                 button
             );
         }
+        else if (type == "portrait")
+        {
+            GameButtonRect button;
+
+            int r = 255;
+            int g = 255;
+            int b = 0;
+            int a = 255;
+
+            file
+                >> button.x
+                >> button.y
+                >> button.width
+                >> button.height
+                >> r
+                >> g
+                >> b
+                >> a;
+
+            button.r =
+                static_cast<uint8_t>(r);
+
+            button.g =
+                static_cast<uint8_t>(g);
+
+            button.b =
+                static_cast<uint8_t>(b);
+
+            button.a =
+                static_cast<uint8_t>(a);
+
+            m_portraitControls.push_back(
+                button
+            );
+        }
+        
     }
 }
 
@@ -332,6 +430,20 @@ bool MM3GameModule::takeDosMouseDoubleClick(
     float& y
 )
 {
+    if (m_pendingInventorySlot0Click)
+    {
+        m_pendingInventorySlot0Click =
+            false;
+
+		x = 85.0f 
+            /* X von Item Slot 0 */;
+
+		y = 52.0f 
+            /* Y von Item Slot 0 */;
+
+        return true;
+    }
+
     return false;
 }
 
@@ -364,6 +476,36 @@ bool MM3GameModule::takeDosMouseClick(
 
     m_pendingMouseClick =
         false;
+
+    if (m_portraitMode)
+    {
+        if (m_selectedPortrait < 0 ||
+            m_selectedPortrait >=
+            static_cast<int>(
+                m_portraitControls.size()
+                ) ||
+            !portraitControlAvailable(
+                m_selectedPortrait
+            ))
+        {
+            return false;
+        }
+
+        const GameButtonRect& button =
+            m_portraitControls[
+                m_selectedPortrait
+            ];
+
+        x =
+            button.x +
+            button.width * 0.5f;
+
+        y =
+            button.y +
+            button.height * 0.5f;
+
+        return true;
+    }
 
     if (m_activeWindow < 0 ||
         m_activeWindow >=
@@ -400,7 +542,7 @@ bool MM3GameModule::takeDosMouseClick(
     y =
         button.y +
         button.height * 0.5f +
-        10.0f;
+        16.0f;
 
     return true;
 }
@@ -417,6 +559,33 @@ bool MM3GameModule::takeDosMousePosition(
 
     m_pendingMousePosition =
         false;
+
+    if (m_portraitMode)
+    {
+        if (m_selectedPortrait < 0 ||
+            m_selectedPortrait >=
+            static_cast<int>(
+                m_portraitControls.size()
+                ))
+        {
+            return false;
+        }
+
+        const GameButtonRect& button =
+            m_portraitControls[
+                m_selectedPortrait
+            ];
+
+        x =
+            button.x +
+            button.width * 0.5f;
+
+        y =
+            button.y +
+            button.height * 0.5f;
+
+        return true;
+    }
 
     if (m_activeWindow < 0 ||
         m_activeWindow >=
@@ -624,12 +793,45 @@ void MM3GameModule::selectButtonInDirection(
 
 }
 
+bool MM3GameModule::portraitControlAvailable(
+    int index
+) const
+{
+    if (index < 0 ||
+        index >= PortraitControlCount)
+    {
+        return false;
+    }
+
+    if (index <= 5)
+    {
+        return true;
+    }
+
+    if (index == 6)
+    {
+        return
+            m_stateReader.characterLevel(6) >
+            0;
+    }
+
+    if (index == 7)
+    {
+        return
+            m_stateReader.characterLevel(7) >
+            0;
+    }
+
+    // Index 8 = Einstellungen
+    return true;
+}
+
 bool MM3GameModule::
 blockDirectDosBoxKeyboard() const
 {
     return
         m_buttonMode ||
-        m_activeWindow == 0;
+        m_portraitMode;
 }
 
 void MM3GameModule::updateActiveButton(
@@ -740,12 +942,33 @@ void MM3GameModule::deleteActiveButton()
         else if (matchesScreen(
             MightAndMagic3::
             ScreenSignatures::
+            characterScreen()
+        ))
+        {
+            detectedWindow =
+                4;
+        }
+
+        else if (matchesScreen(
+            MightAndMagic3::
+            ScreenSignatures::
+            inventory()
+        ))
+        {
+            detectedWindow =
+                5;
+        }
+
+        else if (matchesScreen(
+            MightAndMagic3::
+            ScreenSignatures::
             mainGame()
         ))
         {
             detectedWindow =
                 3;
         }
+
         // Index 3 bleibt vorläufig deaktiviert.
 
         const bool windowChanged =
@@ -754,6 +977,13 @@ void MM3GameModule::deleteActiveButton()
 
         m_activeWindow =
             detectedWindow;
+
+        if (windowChanged &&
+            m_activeWindow == 5)
+        {
+            m_pendingInventorySlot0Click =
+                true;
+        }
 
         if (!windowChanged)
         {
@@ -848,8 +1078,31 @@ bool MM3GameModule::gameButtonSelection(
 {
     if (!m_buttonMode)
     {
-        rect = {};
-        return false;
+        if (m_portraitMode)
+        {
+            if (m_selectedPortrait < 0 ||
+                m_selectedPortrait >=
+                static_cast<int>(
+                    m_portraitControls.size()
+                    ))
+            {
+                rect = {};
+                return false;
+            }
+
+            rect =
+                m_portraitControls[
+                    m_selectedPortrait
+                ];
+
+            return true;
+        }
+
+        if (!m_buttonMode)
+        {
+            rect = {};
+            return false;
+        }
     }
 
     if (m_activeWindow < 0 ||
@@ -954,6 +1207,10 @@ void MM3GameModule::keyDown(
                     );
         };
 
+    // -------------------------------------------------
+    // Button Mode ein/aus
+    // -------------------------------------------------
+
     if (matches(
         MightAndMagic3::KeyAction::
         ToggleButtonMode
@@ -961,6 +1218,12 @@ void MM3GameModule::keyDown(
     {
         m_buttonMode =
             !m_buttonMode;
+
+        if (m_buttonMode)
+        {
+            m_portraitMode =
+                false;
+        }
 
         m_selectedButton =
             m_buttonMode
@@ -976,11 +1239,49 @@ void MM3GameModule::keyDown(
         return;
     }
 
+    // -------------------------------------------------
+    // Portrait Mode ein/aus
+    // -------------------------------------------------
+
     if (matches(
         MightAndMagic3::KeyAction::
-        Cancel
+        TogglePortraitMode
     ))
     {
+        m_portraitMode =
+            !m_portraitMode;
+
+        if (m_portraitMode)
+        {
+            m_buttonMode =
+                false;
+
+            if (!m_portraitControls.empty())
+            {
+                m_selectedPortrait =
+                    0;
+
+                m_pendingMousePosition =
+                    true;
+            }
+            else
+            {
+                m_selectedPortrait =
+                    -1;
+            }
+        }
+
+        return;
+    }
+
+    // -------------------------------------------------
+    // Portrait Mode
+    // -------------------------------------------------
+
+    if (m_portraitMode)
+    {
+        // ESC
+
         if (matches(
             MightAndMagic3::KeyAction::
             Cancel
@@ -991,26 +1292,160 @@ void MM3GameModule::keyDown(
 
             return;
         }
-    }
 
-    if (matches(
-        MightAndMagic3::KeyAction::
-        ActivateButton
-    ))
-    {
-        if (m_buttonMode &&
-            m_activeWindow >= 0)
+        // Links
+
+        if (matches(
+            MightAndMagic3::KeyAction::
+            TurnLeft
+        ))
         {
-            activateSelectedButton();
+            int next =
+                m_selectedPortrait - 1;
+
+            while (next >= 0 &&
+                !portraitControlAvailable(
+                    next
+                ))
+            {
+                --next;
+            }
+
+            if (next >= 0)
+            {
+                m_selectedPortrait =
+                    next;
+
+                m_pendingMousePosition =
+                    true;
+            }
 
             return;
         }
 
-        m_pendingDosKey =
-            "ENTER";
+        // Rechts
+
+        if (matches(
+            MightAndMagic3::KeyAction::
+            TurnRight
+        ))
+        {
+            int next =
+                m_selectedPortrait + 1;
+
+            // 0-7 = Portraits
+            // 8 = Einstellungen
+
+            while (next < 8 &&
+                !portraitControlAvailable(
+                    next
+                ))
+            {
+                ++next;
+            }
+
+            if (next < 8)
+            {
+                m_selectedPortrait =
+                    next;
+
+                m_pendingMousePosition =
+                    true;
+            }
+
+            return;
+        }
+
+        // Up -> Einstellungen
+
+        if (matches(
+            MightAndMagic3::KeyAction::
+            Forward
+        ))
+        {
+            if (m_selectedPortrait >= 0 &&
+                m_selectedPortrait < 8 &&
+                m_portraitControls.size() > 8)
+            {
+                m_lastSelectedPortrait =
+                    m_selectedPortrait;
+
+                m_selectedPortrait =
+                    8;
+
+                m_pendingMousePosition =
+                    true;
+            }
+
+            return;
+        }
+
+        // Down -> letztes Portrait
+
+        if (matches(
+            MightAndMagic3::KeyAction::
+            Backward
+        ))
+        {
+            if (m_selectedPortrait == 8)
+            {
+                m_selectedPortrait =
+                    m_lastSelectedPortrait;
+
+                m_pendingMousePosition =
+                    true;
+            }
+
+            return;
+        }
+
+        // Return -> Portrait / Einstellungen klicken
+
+        if (matches(
+            MightAndMagic3::KeyAction::
+            ActivateButton
+        ))
+        {
+            if (m_selectedPortrait >= 0 &&
+                m_selectedPortrait <
+                static_cast<int>(
+                    m_portraitControls.size()
+                    ) &&
+                portraitControlAvailable(
+                    m_selectedPortrait
+                ))
+            {
+                m_pendingMouseClick =
+                    true;
+            }
+
+            return;
+        }
+
+        // Im Portrait Mode keine Bewegung
+        // an DOSBox weitergeben.
 
         return;
     }
+
+    // -------------------------------------------------
+    // ESC funktioniert auch außerhalb der Modi
+    // -------------------------------------------------
+
+    if (matches(
+        MightAndMagic3::KeyAction::
+        Cancel
+    ))
+    {
+        m_pendingDosKey =
+            "ESC";
+
+        return;
+    }
+
+    // -------------------------------------------------
+    // Normaler Button Mode
+    // -------------------------------------------------
 
     if (m_buttonMode &&
         m_activeWindow >= 0)
@@ -1025,6 +1460,20 @@ void MM3GameModule::keyDown(
             return;
         }
 
+        // Return
+
+        if (matches(
+            MightAndMagic3::KeyAction::
+            ActivateButton
+        ))
+        {
+            activateSelectedButton();
+
+            return;
+        }
+
+        // Up
+
         if (matches(
             MightAndMagic3::KeyAction::
             ButtonUp
@@ -1037,6 +1486,8 @@ void MM3GameModule::keyDown(
 
             return;
         }
+
+        // Down
 
         if (matches(
             MightAndMagic3::KeyAction::
@@ -1051,6 +1502,8 @@ void MM3GameModule::keyDown(
             return;
         }
 
+        // Links
+
         if (matches(
             MightAndMagic3::KeyAction::
             ButtonLeft
@@ -1064,6 +1517,8 @@ void MM3GameModule::keyDown(
             return;
         }
 
+        // Rechts
+
         if (matches(
             MightAndMagic3::KeyAction::
             ButtonRight
@@ -1076,6 +1531,24 @@ void MM3GameModule::keyDown(
 
             return;
         }
+
+        // Im Button Mode keine Bewegung
+        // an DOSBox weitergeben.
+
+        return;
+    }
+
+    // -------------------------------------------------
+    // Game Mode
+    // -------------------------------------------------
+
+    if (matches(
+        MightAndMagic3::KeyAction::
+        ActivateButton
+    ))
+    {
+        m_pendingDosKey =
+            "ENTER";
 
         return;
     }
@@ -1124,7 +1597,6 @@ void MM3GameModule::keyDown(
         return;
     }
 }
-
 void MM3GameModule::keyUp(
     SDL_Keycode key
 )

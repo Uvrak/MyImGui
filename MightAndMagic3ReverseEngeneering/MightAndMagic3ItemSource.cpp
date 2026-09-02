@@ -520,7 +520,7 @@ namespace MightAndMagic3
     ) const
     {
         if (characterIndex < 0 ||
-            characterIndex >= 6)
+            characterIndex >= 8)
         {
             return 0;
         }

@@ -80,10 +80,8 @@ namespace DosBoxX
         static int lastDosBoxMouseX = -1;
         static int lastDosBoxMouseY = -1;
 
-        if (false &&
-            mouseInsideImage &&
-            (dosBoxMouseX != lastDosBoxMouseX ||
-                dosBoxMouseY != lastDosBoxMouseY))
+        if (dosBoxMouseX != lastDosBoxMouseX ||
+                dosBoxMouseY != lastDosBoxMouseY)
         {
             std::string command =
                 "MOUSEMOVE:";

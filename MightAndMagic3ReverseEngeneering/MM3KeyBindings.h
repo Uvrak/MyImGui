@@ -9,6 +9,7 @@ namespace MightAndMagic3
     enum class KeyAction
     {
         ToggleButtonMode,
+        TogglePortraitMode,
         Forward,
         Backward,
         TurnLeft,

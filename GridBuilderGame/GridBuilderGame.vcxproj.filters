@@ -23,7 +23,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="später.txt" />
+    <Text Include="Morgen.txt" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MM3GameModule.h">

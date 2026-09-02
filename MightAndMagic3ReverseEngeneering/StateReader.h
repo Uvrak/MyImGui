@@ -16,6 +16,10 @@ namespace MightAndMagic3
             GameState& state
         );
 
+        int characterLevel(
+            int characterIndex
+        ) const;
+
     private:
         DosBoxMemoryTools::MemoryReader&
             m_memoryReader;

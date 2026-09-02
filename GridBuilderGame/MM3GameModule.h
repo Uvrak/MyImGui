@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <array>
 #include <windows.h>
 
 namespace DosBoxX
@@ -79,6 +80,9 @@ public:
         const GameButtonRect& rect
     ) override;
 
+    bool m_pendingInventorySlot0Click =
+        false;
+
     void saveButtons() const;
 
     void loadButtons();
@@ -105,6 +109,14 @@ public:
         float& y
     ) override;
 
+    struct PortraitRect
+    {
+        float x;
+        float y;
+        float width;
+        float height;
+    };
+
 private:
 
     void selectButtonInDirection(
@@ -112,7 +124,24 @@ private:
         int dy
     );
 
+    bool portraitControlAvailable(
+        int index
+    ) const;
+
+    int m_selectedPortrait = 0;
+
     bool m_buttonMode = true;
+
+    bool m_portraitMode = false;
+
+    int m_lastSelectedPortrait = 0;
+
+    std::vector<GameButtonRect>
+        m_portraitControls;
+
+    static constexpr int PortraitCount = 9;
+    static constexpr int PortraitControlCount = 9;
+
 
     MightAndMagic3::StateReader&
         m_stateReader;
@@ -156,6 +185,11 @@ private:
 
     bool m_pendingMousePosition =
         false;
+
+    std::array<
+        PortraitRect,
+        PortraitCount
+    > m_portraits;
 };
 
     
