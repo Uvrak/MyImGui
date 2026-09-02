@@ -1193,8 +1193,8 @@ void DosBoxWindow::draw()
                             *frameHeader,
                             imageSize.x,
                             imageSize.y,
-                            imageMin.x,
-                            imageMin.y
+                            imagePos.x,
+                            imagePos.y
                         );
                     }
                 }
