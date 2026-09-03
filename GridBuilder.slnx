@@ -18,5 +18,5 @@
   <Project Path="ImGui/ImGui.vcxproj" Id="7400f32b-42d9-432d-81d4-e5b8e0fd510d" />
   <Project Path="MightAndMagic3ReverseEngeneering/MightAndMagic3ReverseEngeneering.vcxproj" Id="a2cbbb64-e396-4b8f-b449-6f4bfd5ac124" />
   <Project Path="MyImGui/MyImGui.vcxproj" Id="df47b7a7-9d08-45a7-afe0-485bef09fe61" />
-  <Project Path="MyImGuiTest/MyImGuiTest.vcxproj" Id="4e6e6b43-8718-4f86-8a37-4750650077e8" />
+  <Project Path="MemoryToolsApp/MemoryToolsApp.vcxproj" Id="4e6e6b43-8718-4f86-8a37-4750650077e8" />
 </Solution>

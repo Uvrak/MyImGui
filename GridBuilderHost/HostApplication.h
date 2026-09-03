@@ -1,5 +1,10 @@
 #pragma once
 
+namespace MyImGui
+{
+    class SettingsWindow;
+}
+
 namespace DosBoxX
 {
     class FrameTexture;
@@ -11,6 +16,8 @@ namespace GridBuilderHost
     class DosBoxFramePipeline;
     class HostRenderer;
     class DosBoxWindow;
+    class MainMenu;
+    class HostUi;
 
     class HostApplication
     {
@@ -23,7 +30,7 @@ namespace GridBuilderHost
             HostRenderer& hostRenderer,
             DosBoxX::FrameTexture& frameTexture,
             ImGuiHost& imGuiHost,
-            DosBoxWindow& dosBoxWindow
+            HostUi& hostUi
         );
     };
 }

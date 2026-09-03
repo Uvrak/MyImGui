@@ -153,21 +153,29 @@
     <ClCompile Include="DosBoxFramePipeline.cpp" />
     <ClCompile Include="DosBoxWindow.cpp" />
     <ClCompile Include="HostApplication.cpp" />
+    <ClCompile Include="HostFontSettings.cpp" />
     <ClCompile Include="HostRenderer.cpp" />
+    <ClCompile Include="HostSettings.cpp" />
+    <ClCompile Include="HostUi.cpp" />
     <ClCompile Include="HostWindow.cpp" />
     <ClCompile Include="HostWindowState.cpp" />
     <ClCompile Include="ImGuiHost.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MainMenu.cpp" />
     <ClCompile Include="Process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DosBoxFramePipeline.h" />
     <ClInclude Include="DosBoxWindow.h" />
     <ClInclude Include="HostApplication.h" />
+    <ClInclude Include="HostFontSettings.h" />
     <ClInclude Include="HostRenderer.h" />
+    <ClInclude Include="HostSettings.h" />
+    <ClInclude Include="HostUi.h" />
     <ClInclude Include="HostWindow.h" />
     <ClInclude Include="HostWindowState.h" />
     <ClInclude Include="ImGuiHost.h" />
+    <ClInclude Include="MainMenu.h" />
     <ClInclude Include="Process.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

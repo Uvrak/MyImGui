@@ -54,6 +54,11 @@ namespace GridBuilderHost
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
+
+        ImGui::DockSpaceOverViewport(
+            0,
+            ImGui::GetMainViewport()
+        );
     }
 
     void ImGuiHost::endFrame()

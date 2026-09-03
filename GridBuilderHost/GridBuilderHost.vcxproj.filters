@@ -51,6 +51,18 @@
     <ClCompile Include="DosBoxWindow.cpp">
       <Filter>ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="MainMenu.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="HostUi.cpp">
+      <Filter>Host</Filter>
+    </ClCompile>
+    <ClCompile Include="HostFontSettings.cpp">
+      <Filter>Host</Filter>
+    </ClCompile>
+    <ClCompile Include="HostSettings.cpp">
+      <Filter>Host</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HostWindow.h">
@@ -76,6 +88,18 @@
     </ClInclude>
     <ClInclude Include="DosBoxWindow.h">
       <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="MainMenu.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="HostUi.h">
+      <Filter>Host</Filter>
+    </ClInclude>
+    <ClInclude Include="HostFontSettings.h">
+      <Filter>Host</Filter>
+    </ClInclude>
+    <ClInclude Include="HostSettings.h">
+      <Filter>Host</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

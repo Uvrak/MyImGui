@@ -12,6 +12,11 @@
 #include "ProcessManager.h"
 #include "ImGuiHost.h"
 #include "DosBoxWindow.h"
+#include "MainMenu.h"
+#include "HostUi.h"
+#include "SettingsWindow.h"
+#include "HostFontSettings.h"
+#include "HostSettings.h"
 
 int main()
 {
@@ -19,7 +24,24 @@ int main()
     GridBuilderHost::HostWindow hostWindow;
     GridBuilderHost::HostRenderer hostRenderer;
     GridBuilderHost::HostApplication hostApplication;
+    GridBuilderHost::MainMenu mainMenu;
     GridBuilderHost::DosBoxWindow dosBoxWindow;
+    GridBuilderHost::HostSettings hostSettings;
+    MyImGui::SettingsWindow settingsWindow;
+    settingsWindow.setFontSize(
+        hostSettings.fontSize()
+    );
+    GridBuilderHost::HostFontSettings hostFontSettings(
+        settingsWindow,
+        hostSettings
+    );
+
+    GridBuilderHost::HostUi hostUi(
+        mainMenu,
+        dosBoxWindow,
+        settingsWindow,
+        hostFontSettings
+    );
 
     DosBoxX::Controller dosBoxController;
     DosBoxX::Process dosBoxProcess;
@@ -79,7 +101,7 @@ int main()
         hostRenderer,
         dosBoxFrameTexture,
         imGuiHost,
-        dosBoxWindow
+        hostUi
     );
 
     DosBoxX::ProcessManager::terminateRunningInstances();

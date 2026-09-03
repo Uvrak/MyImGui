@@ -4,6 +4,8 @@
 #include "FrameTexture.h"
 #include "ImGuiHost.h"
 #include "DosBoxWindow.h"
+#include "MainMenu.h"
+#include "HostUi.h"
 
 #include <cstdint>
 
@@ -25,7 +27,7 @@ namespace GridBuilderHost
         HostRenderer& hostRenderer,
         DosBoxX::FrameTexture& frameTexture,
         ImGuiHost& imGuiHost,
-        DosBoxWindow& dosBoxWindow
+        HostUi& hostUi
     )
     {
         bool running =
@@ -62,30 +64,23 @@ namespace GridBuilderHost
                 ImGui_ImplSDL3_ProcessEvent(
                     &event
                 );
-
-                hostRenderer.beginFrame();
-
-                imGuiHost.beginFrame();
-
-                ImGui::DockSpaceOverViewport(
-                    0,
-                    ImGui::GetMainViewport()
-                );
-
-                dosBoxFramePipeline.update();
-
-                dosBoxWindow.draw(
-                    frameTexture,
-                    dosBoxFramePipeline.contentWidth(),
-                    dosBoxFramePipeline.contentHeight()
-                );
-
-                imGuiHost.endFrame();
-
-                hostRenderer.present();
             }
 
             dosBoxFramePipeline.update();
+
+            hostRenderer.beginFrame();
+
+            imGuiHost.beginFrame();
+
+            hostUi.draw(
+                frameTexture,
+                dosBoxFramePipeline.contentWidth(),
+                dosBoxFramePipeline.contentHeight()
+            );
+
+            imGuiHost.endFrame();
+
+            hostRenderer.present();
         }
     }
 }
