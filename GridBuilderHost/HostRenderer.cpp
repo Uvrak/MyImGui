@@ -335,55 +335,12 @@ float4 main(
         );
     }
 
-    void HostRenderer::render(
-        DosBoxX::FrameTexture& frameTexture,
-        uint32_t contentWidth,
-        uint32_t contentHeight
-    )
+    void HostRenderer::beginFrame()
     {
         if (m_context == nullptr ||
-            m_renderTargetView == nullptr ||
-            m_swapChain == nullptr)
+            m_renderTargetView == nullptr)
         {
             return;
-        }
-
-        ID3D11ShaderResourceView* textureView =
-            frameTexture.textureView();
-
-        if (contentWidth > 0 &&
-            contentHeight > 0 &&
-            frameTexture.width() > 0 &&
-            frameTexture.height() > 0)
-        {
-            const float uvData[4] =
-            {
-                static_cast<float>(
-                    contentWidth
-                ) /
-                static_cast<float>(
-                    frameTexture.width()
-                ),
-
-                static_cast<float>(
-                    contentHeight
-                ) /
-                static_cast<float>(
-                    frameTexture.height()
-                ),
-
-                0.0f,
-                0.0f
-            };
-
-            m_context->UpdateSubresource(
-                m_uvBuffer,
-                0,
-                nullptr,
-                uvData,
-                0,
-                0
-            );
         }
 
         const float clearColor[4] =
@@ -400,90 +357,17 @@ float4 main(
             nullptr
         );
 
-        ID3D11Texture2D* backBuffer =
-            nullptr;
-
-        if (SUCCEEDED(
-            m_swapChain->GetBuffer(
-                0,
-                __uuidof(ID3D11Texture2D),
-                reinterpret_cast<void**>(
-                    &backBuffer
-                    )
-            )
-        ))
-        {
-            D3D11_TEXTURE2D_DESC backBufferDesc = {};
-
-            backBuffer->GetDesc(
-                &backBufferDesc
-            );
-
-            const float clientWidth =
-                static_cast<float>(
-                    backBufferDesc.Width
-                    );
-
-            const float clientHeight =
-                static_cast<float>(
-                    backBufferDesc.Height
-                    );
-
-            updateViewport(
-                clientWidth,
-                clientHeight,
-                contentWidth,
-                contentHeight
-            );
-
-            backBuffer->Release();
-        }
-
         m_context->ClearRenderTargetView(
             m_renderTargetView,
             clearColor
         );
+    }
 
-        if (textureView != nullptr)
+    void HostRenderer::present()
+    {
+        if (m_swapChain == nullptr)
         {
-            m_context->IASetPrimitiveTopology(
-                D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST
-            );
-
-            m_context->VSSetShader(
-                m_vertexShader,
-                nullptr,
-                0
-            );
-
-            m_context->PSSetShader(
-                m_pixelShader,
-                nullptr,
-                0
-            );
-
-            m_context->PSSetShaderResources(
-                0,
-                1,
-                &textureView
-            );
-
-            m_context->PSSetSamplers(
-                0,
-                1,
-                &m_sampler
-            );
-
-            m_context->PSSetConstantBuffers(
-                0,
-                1,
-                &m_uvBuffer
-            );
-
-            m_context->Draw(
-                3,
-                0
-            );
+            return;
         }
 
         m_swapChain->Present(

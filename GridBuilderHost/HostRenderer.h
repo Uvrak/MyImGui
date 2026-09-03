@@ -33,11 +33,9 @@ namespace GridBuilderHost
             HWND windowHandle
         );
 
-        void render(
-            DosBoxX::FrameTexture& frameTexture,
-            uint32_t contentWidth,
-            uint32_t contentHeight
-        );
+        void beginFrame();
+
+        void present();
 
         void resize(
             uint32_t width,

@@ -24,6 +24,7 @@
     <ClCompile Include="FrameTexture.cpp" />
     <ClCompile Include="Keyboard.cpp" />
     <ClCompile Include="Mouse.cpp" />
+    <ClCompile Include="ProcessManager.cpp" />
     <ClCompile Include="View.cpp" />
     <ClCompile Include="ExternalWindow.cpp" />
     <ClCompile Include="NamedPipeClient.cpp" />
@@ -34,6 +35,7 @@
     <ClInclude Include="FrameTexture.h" />
     <ClInclude Include="Keyboard.h" />
     <ClInclude Include="Mouse.h" />
+    <ClInclude Include="ProcessManager.h" />
     <ClInclude Include="View.h" />
     <ClInclude Include="ExternalWindow.h" />
     <ClInclude Include="NamedPipeClient.h" />

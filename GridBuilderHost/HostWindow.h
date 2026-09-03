@@ -27,6 +27,8 @@ namespace GridBuilderHost
 
         HWND nativeHandle() const;
 
+        SDL_Window* window() const;
+
     private:
         SDL_Window* m_window =
             nullptr;

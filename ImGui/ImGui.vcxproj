@@ -170,6 +170,7 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx11.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_sdl3.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_sdlrenderer3.cpp" />
     <ClCompile Include="..\ThirdParty\imgui\imgui.cpp" />

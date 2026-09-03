@@ -2,10 +2,15 @@
 #include "DosBoxFramePipeline.h"
 #include "HostRenderer.h"
 #include "FrameTexture.h"
+#include "ImGuiHost.h"
+#include "DosBoxWindow.h"
 
 #include <cstdint>
 
 #include <SDL3/SDL.h>
+#include "imgui.h"
+
+#include "imgui_impl_sdl3.h"
 
 namespace GridBuilderHost
 {
@@ -18,7 +23,9 @@ namespace GridBuilderHost
     void HostApplication::run(
         DosBoxFramePipeline& dosBoxFramePipeline,
         HostRenderer& hostRenderer,
-        DosBoxX::FrameTexture& frameTexture
+        DosBoxX::FrameTexture& frameTexture,
+        ImGuiHost& imGuiHost,
+        DosBoxWindow& dosBoxWindow
     )
     {
         bool running =
@@ -38,6 +45,7 @@ namespace GridBuilderHost
                     running =
                         false;
                 }
+
                 if (event.type ==
                     SDL_EVENT_WINDOW_RESIZED)
                 {
@@ -50,15 +58,34 @@ namespace GridBuilderHost
                             )
                     );
                 }
+
+                ImGui_ImplSDL3_ProcessEvent(
+                    &event
+                );
+
+                hostRenderer.beginFrame();
+
+                imGuiHost.beginFrame();
+
+                ImGui::DockSpaceOverViewport(
+                    0,
+                    ImGui::GetMainViewport()
+                );
+
+                dosBoxFramePipeline.update();
+
+                dosBoxWindow.draw(
+                    frameTexture,
+                    dosBoxFramePipeline.contentWidth(),
+                    dosBoxFramePipeline.contentHeight()
+                );
+
+                imGuiHost.endFrame();
+
+                hostRenderer.present();
             }
 
             dosBoxFramePipeline.update();
-
-            hostRenderer.render(
-                frameTexture,
-                dosBoxFramePipeline.contentWidth(),
-                dosBoxFramePipeline.contentHeight()
-            );
         }
     }
 }

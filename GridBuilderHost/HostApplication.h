@@ -7,8 +7,10 @@ namespace DosBoxX
 
 namespace GridBuilderHost
 {
+    class ImGuiHost;
     class DosBoxFramePipeline;
     class HostRenderer;
+    class DosBoxWindow;
 
     class HostApplication
     {
@@ -19,7 +21,9 @@ namespace GridBuilderHost
         void run(
             DosBoxFramePipeline& dosBoxFramePipeline,
             HostRenderer& hostRenderer,
-            DosBoxX::FrameTexture& frameTexture
+            DosBoxX::FrameTexture& frameTexture,
+            ImGuiHost& imGuiHost,
+            DosBoxWindow& dosBoxWindow
         );
     };
 }

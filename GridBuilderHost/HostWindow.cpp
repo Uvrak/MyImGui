@@ -120,4 +120,8 @@ namespace GridBuilderHost
             )
             );
     }
+    SDL_Window* HostWindow::window() const
+    {
+        return m_window;
+    }
 }

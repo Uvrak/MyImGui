@@ -111,7 +111,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)DosBoxX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ImGui;$(SolutionDir)MyImGui;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)DosBoxX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,22 +145,29 @@
     <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">
       <Project>{c5542076-9232-495f-91c7-92cf22e2f0df}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\MyImGui\MyImGui.vcxproj">
+      <Project>{df47b7a7-9d08-45a7-afe0-485bef09fe61}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DosBoxFramePipeline.cpp" />
+    <ClCompile Include="DosBoxWindow.cpp" />
     <ClCompile Include="HostApplication.cpp" />
     <ClCompile Include="HostRenderer.cpp" />
     <ClCompile Include="HostWindow.cpp" />
     <ClCompile Include="HostWindowState.cpp" />
+    <ClCompile Include="ImGuiHost.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Process.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DosBoxFramePipeline.h" />
+    <ClInclude Include="DosBoxWindow.h" />
     <ClInclude Include="HostApplication.h" />
     <ClInclude Include="HostRenderer.h" />
     <ClInclude Include="HostWindow.h" />
     <ClInclude Include="HostWindowState.h" />
+    <ClInclude Include="ImGuiHost.h" />
     <ClInclude Include="Process.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

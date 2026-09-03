@@ -9,6 +9,9 @@
 #include "FrameTexture.h"
 #include "DosBoxFramePipeline.h"
 #include "Process.h"
+#include "ProcessManager.h"
+#include "ImGuiHost.h"
+#include "DosBoxWindow.h"
 
 int main()
 {
@@ -16,6 +19,7 @@ int main()
     GridBuilderHost::HostWindow hostWindow;
     GridBuilderHost::HostRenderer hostRenderer;
     GridBuilderHost::HostApplication hostApplication;
+    GridBuilderHost::DosBoxWindow dosBoxWindow;
 
     DosBoxX::Controller dosBoxController;
     DosBoxX::Process dosBoxProcess;
@@ -50,6 +54,19 @@ int main()
         dosBoxFrameTexture
     );
 
+    GridBuilderHost::ImGuiHost imGuiHost;
+
+    if (!imGuiHost.initialize(
+        hostWindow.window(),
+        hostRenderer.device(),
+        hostRenderer.context()
+    ))
+    {
+        return 1;
+    }
+
+    DosBoxX::ProcessManager::terminateRunningInstances();
+
     if (!dosBoxProcess.start(
         L"C:\\Projects\\MyImGui\\dosbox-x\\bin\\x64\\Debug SDL2\\dosbox-x.exe"
     ))
@@ -60,8 +77,12 @@ int main()
     hostApplication.run(
         dosBoxFramePipeline,
         hostRenderer,
-        dosBoxFrameTexture
+        dosBoxFrameTexture,
+        imGuiHost,
+        dosBoxWindow
     );
+
+    DosBoxX::ProcessManager::terminateRunningInstances();
 
     hostWindow.saveState(
         hostWindowState

@@ -19,6 +19,9 @@
     <Filter Include="DosBox">
       <UniqueIdentifier>{d049e423-5abb-4a94-8378-e218b8c0a24b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{2f755b52-0809-40a9-b47f-cc3c204bc0dd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -42,6 +45,12 @@
     <ClCompile Include="Process.cpp">
       <Filter>DosBox</Filter>
     </ClCompile>
+    <ClCompile Include="ImGuiHost.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxWindow.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HostWindow.h">
@@ -61,6 +70,12 @@
     </ClInclude>
     <ClInclude Include="Process.h">
       <Filter>DosBox</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiHost.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxWindow.h">
+      <Filter>ImGui</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
