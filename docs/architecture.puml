@@ -4,7 +4,7 @@ skinparam componentStyle rectangle
 
 component "GridBuilderHost\n<<EXE>>\n\nmain()\nImGui / DX11 Host\nverbindet Komponenten" as Host
 
-component "DosBoxX\n<<Library>>\n\nView\nMouse\nKeyboard\nFrameReader\nFrameTexture\nController\nNamedPipe" as DosBoxX
+component "DosBoxX\n<<Library>>\n\nView\nMouse\nKeyboard\nFrameReader\nFrameTexture\nController\nNamedPipeClient" as DosBoxX
 
 component "DosBoxMemoryTools\n<<Library>>\n\nMemoryReader\nMemoryScanner\nTracking\nDisassembly" as MemoryTools
 

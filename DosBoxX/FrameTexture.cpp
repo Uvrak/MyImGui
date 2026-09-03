@@ -103,4 +103,14 @@ namespace DosBoxX
         return m_textureView;
     }
 
+    uint32_t FrameTexture::width() const
+    {
+        return m_width;
+    }
+
+    uint32_t FrameTexture::height() const
+    {
+        return m_height;
+    }
+
 }
