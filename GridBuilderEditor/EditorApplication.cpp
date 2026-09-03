@@ -570,19 +570,20 @@ void EditorApplication::render()
         float mouseClickX = 0.0f;
         float mouseClickY = 0.0f;
 
-        float mousePositionX = 0.0f;
+        /*float mousePositionX = 0.0f;
         float mousePositionY = 0.0f;
 
-        if (gameModule->takeDosMousePosition(
-            mousePositionX,
-            mousePositionY
-        ))
+        if (!dosBoxWindow->inputActive() &&
+            gameModule->takeDosMousePosition(
+                mousePositionX,
+                mousePositionY
+            ))
         {
             dosBoxWindow->sendDosMousePosition(
                 mousePositionX,
                 mousePositionY
             );
-        }
+        }*/
 
         if (gameModule->takeDosMouseClick(
             mouseClickX,

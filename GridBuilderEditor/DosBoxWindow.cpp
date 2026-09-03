@@ -1177,24 +1177,64 @@ void DosBoxWindow::draw()
                         }
                     }
 
-                    const ImVec2 imageMin =
-                        ImGui::GetItemRectMin();
-
-                    const ImVec2 imageMax =
-                        ImGui::GetItemRectMax();
-
-                    const bool dosBoxImageHovered =
-                        ImGui::IsItemHovered();
+                    const ImVec2 imageMax(
+                        imagePos.x + imageSize.x,
+                        imagePos.y + imageSize.y
+                    );
 
                     if (m_inputActive)
+                    {
+                        RECT clipRect{
+                            static_cast<LONG>(
+                                imagePos.x
+                            ),
+                            static_cast<LONG>(
+                                imagePos.y
+                            ),
+                            static_cast<LONG>(
+                                imageMax.x
+                            ),
+                            static_cast<LONG>(
+                                imageMax.y
+                            )
+                        };
+
+                        ClipCursor(
+                            &clipRect
+                        );
+                    }
+                    else
+                    {
+                        ClipCursor(
+                            nullptr
+                        );
+                    }
+
+                    const bool dosBoxImageHovered =
+                        ImGui::IsMouseHoveringRect(
+                            imagePos,
+                            imageMax
+                        );
+
+                    if (m_inputActive)
+                    {
+                        OutputDebugStringA(
+                            dosBoxImageHovered
+                            ? "DOS IMAGE HOVERED = 1\n"
+                            : "DOS IMAGE HOVERED = 0\n"
+                        );
+                    }
+
+                    if (m_inputActive &&
+                        dosBoxImageHovered)
                     {
                         m_mouse.update(
                             m_pipeClient,
                             *frameHeader,
                             imageSize.x,
                             imageSize.y,
-                            imageMin.x,
-                            imageMin.y
+                            imagePos.x,
+                            imagePos.y
                         );
                     }
                 }
