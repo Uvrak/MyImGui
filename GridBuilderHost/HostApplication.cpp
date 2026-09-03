@@ -6,6 +6,9 @@
 #include "DosBoxWindow.h"
 #include "MainMenu.h"
 #include "HostUi.h"
+#include "MM3Launcher.h"
+#include "Keyboard.h"
+#include "NamedPipeClient.h"
 
 #include <cstdint>
 
@@ -27,12 +30,17 @@ namespace GridBuilderHost
         HostRenderer& hostRenderer,
         DosBoxX::FrameTexture& frameTexture,
         ImGuiHost& imGuiHost,
-        HostUi& hostUi
+        HostUi& hostUi,
+        MightAndMagic3::MM3Launcher& mm3Launcher,
+        DosBoxX::Keyboard& dosBoxKeyboard,
+        DosBoxX::NamedPipeClient& dosBoxPipeClient
     )
     {
         bool running =
             true;
 
+        mm3Launcher.start();
+        
         while (running)
         {
             SDL_Event event;
@@ -66,11 +74,18 @@ namespace GridBuilderHost
                 );
             }
 
+            mm3Launcher.update();
+
             dosBoxFramePipeline.update();
 
             hostRenderer.beginFrame();
 
             imGuiHost.beginFrame();
+
+            dosBoxKeyboard.update(
+                dosBoxPipeClient,
+                {}
+            );
 
             hostUi.draw(
                 frameTexture,

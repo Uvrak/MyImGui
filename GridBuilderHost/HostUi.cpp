@@ -53,7 +53,8 @@ namespace GridBuilderHost
             m_dosBoxWindow.draw(
                 frameTexture,
                 contentWidth,
-                contentHeight
+                contentHeight,
+                m_mainMenu.showDosBoxCoordinates()
             );
         }
     }

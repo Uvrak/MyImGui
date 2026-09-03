@@ -16,8 +16,17 @@ namespace GridBuilderHost
             float fontSize
         );
 
+        bool showDosBoxCoordinates() const;
+
+        void setShowDosBoxCoordinates(
+            bool show
+        );
+
     private:
         float m_fontSize =
             18.0f;
+
+        bool m_showDosBoxCoordinates =
+            false;
     };
 }

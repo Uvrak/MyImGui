@@ -15,7 +15,8 @@ namespace GridBuilderHost
         void draw(
             DosBoxX::FrameTexture& frameTexture,
             uint32_t contentWidth,
-            uint32_t contentHeight
+            uint32_t contentHeight,
+            bool showCoordinates
         );
     };
 }

@@ -27,7 +27,8 @@ namespace GridBuilderHost
         }
 
         file >>
-            m_fontSize;
+            m_fontSize >>
+            m_showDosBoxCoordinates;
     }
 
     void HostSettings::save() const
@@ -46,7 +47,9 @@ namespace GridBuilderHost
         }
 
         file <<
-            m_fontSize;
+            m_fontSize <<
+            ' ' <<
+            m_showDosBoxCoordinates;
     }
 
     float HostSettings::fontSize() const
@@ -60,5 +63,19 @@ namespace GridBuilderHost
     {
         m_fontSize =
             fontSize;
+    }
+    
+    bool HostSettings::showDosBoxCoordinates() const
+    {
+        return
+            m_showDosBoxCoordinates;
+    }
+
+    void HostSettings::setShowDosBoxCoordinates(
+        bool show
+    )
+    {
+        m_showDosBoxCoordinates =
+            show;
     }
 }

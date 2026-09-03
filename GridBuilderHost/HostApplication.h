@@ -8,6 +8,13 @@ namespace MyImGui
 namespace DosBoxX
 {
     class FrameTexture;
+    class Keyboard;
+    class NamedPipeClient;
+}
+
+namespace MightAndMagic3
+{
+    class MM3Launcher;
 }
 
 namespace GridBuilderHost
@@ -30,7 +37,10 @@ namespace GridBuilderHost
             HostRenderer& hostRenderer,
             DosBoxX::FrameTexture& frameTexture,
             ImGuiHost& imGuiHost,
-            HostUi& hostUi
+            HostUi& hostUi,
+            MightAndMagic3::MM3Launcher& mm3Launcher,
+            DosBoxX::Keyboard& dosBoxKeyboard,
+            DosBoxX::NamedPipeClient& dosBoxPipeClient
         );
     };
 }

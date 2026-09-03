@@ -17,6 +17,8 @@
 #include "SettingsWindow.h"
 #include "HostFontSettings.h"
 #include "HostSettings.h"
+#include "MM3Launcher.h"
+#include "Keyboard.h"
 
 int main()
 {
@@ -24,9 +26,13 @@ int main()
     GridBuilderHost::HostWindow hostWindow;
     GridBuilderHost::HostRenderer hostRenderer;
     GridBuilderHost::HostApplication hostApplication;
-    GridBuilderHost::MainMenu mainMenu;
-    GridBuilderHost::DosBoxWindow dosBoxWindow;
     GridBuilderHost::HostSettings hostSettings;
+
+    GridBuilderHost::MainMenu mainMenu(
+        hostSettings
+    );
+
+    GridBuilderHost::DosBoxWindow dosBoxWindow;
     MyImGui::SettingsWindow settingsWindow;
     settingsWindow.setFontSize(
         hostSettings.fontSize()
@@ -48,6 +54,13 @@ int main()
 
     DosBoxX::NamedPipeClient dosBoxPipeClient(
         R"(\\.\pipe\GridBuilderDOSBox)"
+    );
+
+    DosBoxX::Keyboard dosBoxKeyboard;
+
+    MightAndMagic3::MM3Launcher mm3Launcher(
+        dosBoxController,
+        dosBoxPipeClient
     );
 
     DosBoxX::FrameReader dosBoxFrameReader;
@@ -97,12 +110,15 @@ int main()
     }
 
     hostApplication.run(
-        dosBoxFramePipeline,
-        hostRenderer,
-        dosBoxFrameTexture,
-        imGuiHost,
-        hostUi
-    );
+    dosBoxFramePipeline,
+    hostRenderer,
+    dosBoxFrameTexture,
+    imGuiHost,
+    hostUi,
+    mm3Launcher,
+    dosBoxKeyboard,
+    dosBoxPipeClient
+);
 
     DosBoxX::ProcessManager::terminateRunningInstances();
 

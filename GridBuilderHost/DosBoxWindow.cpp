@@ -9,12 +9,20 @@ namespace GridBuilderHost
     void DosBoxWindow::draw(
         DosBoxX::FrameTexture& frameTexture,
         uint32_t contentWidth,
-        uint32_t contentHeight
+        uint32_t contentHeight,
+        bool showCoordinates
     )
     {
         ImGui::Begin(
             "DOSBox"
         );
+
+        if (showCoordinates)
+        {
+            ImGui::TextUnformatted(
+                "Coordinates ON"
+            );
+        }
 
         ID3D11ShaderResourceView* textureView =
             frameTexture.textureView();
@@ -52,6 +60,9 @@ namespace GridBuilderHost
                     ) * scale
             );
 
+            const ImVec2 imageMin =
+                ImGui::GetCursorScreenPos();
+
             ImGui::Image(
                 reinterpret_cast<ImTextureID>(
                     textureView
@@ -76,7 +87,63 @@ namespace GridBuilderHost
                         )
                 )
             );
+
+            if (showCoordinates)
+            {
+                const ImVec2 mousePos =
+                    ImGui::GetMousePos();
+
+                const ImVec2 imageMax(
+                    imageMin.x + imageSize.x,
+                    imageMin.y + imageSize.y
+                );
+
+                const bool mouseInsideImage =
+                    mousePos.x >= imageMin.x &&
+                    mousePos.x < imageMax.x &&
+                    mousePos.y >= imageMin.y &&
+                    mousePos.y < imageMax.y;
+
+                if (mouseInsideImage)
+                {
+                    const float localX =
+                        mousePos.x - imageMin.x;
+
+                    const float localY =
+                        mousePos.y - imageMin.y;
+
+                    const int contentX =
+                        static_cast<int>(
+                            localX /
+                            imageSize.x *
+                            static_cast<float>(
+                                contentWidth
+                                )
+                            );
+
+                    const int contentY =
+                        static_cast<int>(
+                            localY /
+                            imageSize.y *
+                            static_cast<float>(
+                                contentHeight
+                                )
+                            );
+
+                    ImGui::BeginTooltip();
+
+                    ImGui::Text(
+                        "X: %d  Y: %d",
+                        contentX,
+                        contentY
+                    );
+
+                    ImGui::EndTooltip();
+                }
+            }
         }
+
+
 
         ImGui::End();
     }
