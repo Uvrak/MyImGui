@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="DosBox">
+      <UniqueIdentifier>{d049e423-5abb-4a94-8378-e218b8c0a24b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ImGui">
+      <UniqueIdentifier>{2f755b52-0809-40a9-b47f-cc3c204bc0dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GridBuilderHost">
+      <UniqueIdentifier>{5bd22ff5-6e4d-4428-acb2-52bd8138de22}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HostWindow.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
+    <ClCompile Include="HostApplication.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
+    <ClCompile Include="HostWindowState.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
+    <ClCompile Include="HostRenderer.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxFramePipeline.cpp">
+      <Filter>DosBox</Filter>
+    </ClCompile>
+    <ClCompile Include="Process.cpp">
+      <Filter>DosBox</Filter>
+    </ClCompile>
+    <ClCompile Include="ImGuiHost.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="DosBoxWindow.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="MainMenu.cpp">
+      <Filter>ImGui</Filter>
+    </ClCompile>
+    <ClCompile Include="HostUi.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
+    <ClCompile Include="HostFontSettings.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
+    <ClCompile Include="HostSettings.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="HostWindow.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="HostApplication.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="HostWindowState.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="HostRenderer.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxFramePipeline.h">
+      <Filter>DosBox</Filter>
+    </ClInclude>
+    <ClInclude Include="Process.h">
+      <Filter>DosBox</Filter>
+    </ClInclude>
+    <ClInclude Include="ImGuiHost.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="DosBoxWindow.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="MainMenu.h">
+      <Filter>ImGui</Filter>
+    </ClInclude>
+    <ClInclude Include="HostUi.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="HostFontSettings.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="HostSettings.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="GameLauncher.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
