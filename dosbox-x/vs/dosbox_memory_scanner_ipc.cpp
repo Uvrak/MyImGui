@@ -1279,9 +1279,36 @@ namespace
 
                 else if(std::strcmp(
                     buffer,
-                    "MEMORYWRITE:GET"
+                    "MEMORYWRITE:COUNT"
                     ) == 0)
                     {
+                        response =
+                            std::to_string(
+                                MemoryReadTracker::
+                                memoryWriteWatchCaptureCount()
+                            );
+}
+
+                else if(std::strncmp(
+                    buffer,
+                    "MEMORYWRITE:GET:",
+                    std::strlen(
+                    "MEMORYWRITE:GET:"
+                    )
+                    ) == 0)
+                    {
+                        const size_t index =
+                            static_cast<size_t>(
+                                std::strtoull(
+                                    buffer +
+                                    std::strlen(
+                                        "MEMORYWRITE:GET:"
+                                    ),
+                                    nullptr,
+                                    10
+                                )
+                                );
+
                         if(!MemoryReadTracker::
                             memoryWriteWatchHit())
                         {
@@ -1292,11 +1319,15 @@ namespace
                         {
                             const auto instruction =
                                 MemoryReadTracker::
-                                memoryWriteWatchCapture();
+                                memoryWriteWatchCapture(
+                                    index
+                                );
 
                             const uint8_t writeValue =
                                 MemoryReadTracker::
-                                memoryWriteWatchValue();
+                                memoryWriteWatchCaptureValue(
+                                    index
+                                );
 
                             std::ostringstream stream;
                             

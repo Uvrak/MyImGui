@@ -212,7 +212,7 @@ namespace DosBoxX
     )
     {
         std::string command =
-            "MOUSEMOVE:" +
+            "MOUSECLICK:" +
             std::to_string(x) +
             ":" +
             std::to_string(y) +
@@ -224,15 +224,6 @@ namespace DosBoxX
         namedPipeClient.send(
             command
         );
-
-        namedPipeClient.send(
-            "MOUSEDOWN:0"
-        );
-
-        m_clickPending = true;
-
-        m_clickStartTime =
-            ImGui::GetTime();
     }
 
     void Mouse::updatePendingClick(

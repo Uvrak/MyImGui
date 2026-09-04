@@ -4,6 +4,8 @@
 #include "DosBoxWindow.h"
 #include "SettingsWindow.h"
 #include "HostFontSettings.h"
+#include "Mouse.h"
+#include "NamedPipeClient.h"
 
 namespace GridBuilderHost
 {
@@ -31,7 +33,9 @@ namespace GridBuilderHost
     void HostUi::draw(
         DosBoxX::FrameTexture& frameTexture,
         uint32_t contentWidth,
-        uint32_t contentHeight
+        uint32_t contentHeight,
+        DosBoxX::Mouse& dosBoxMouse,
+        DosBoxX::NamedPipeClient& dosBoxPipeClient
     )
     {
         m_hostFontSettings.update();
@@ -54,7 +58,9 @@ namespace GridBuilderHost
                 frameTexture,
                 contentWidth,
                 contentHeight,
-                m_mainMenu.showDosBoxCoordinates()
+                m_mainMenu.showDosBoxCoordinates(),
+                dosBoxMouse,
+                dosBoxPipeClient
             );
         }
     }

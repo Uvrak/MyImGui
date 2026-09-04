@@ -8,8 +8,12 @@
 #include "HostUi.h"
 #include "MM3Launcher.h"
 #include "Keyboard.h"
+#include "Mouse.h"
 #include "NamedPipeClient.h"
+#include "Memory.h"
 
+#include <cstdio>
+#include <Windows.h>
 #include <cstdint>
 
 #include <SDL3/SDL.h>
@@ -33,6 +37,8 @@ namespace GridBuilderHost
         HostUi& hostUi,
         MightAndMagic3::MM3Launcher& mm3Launcher,
         DosBoxX::Keyboard& dosBoxKeyboard,
+        DosBoxX::Mouse& dosBoxMouse,
+        DosBoxX::Memory& dosBoxMemory,
         DosBoxX::NamedPipeClient& dosBoxPipeClient
     )
     {
@@ -87,10 +93,65 @@ namespace GridBuilderHost
                 {}
             );
 
+            dosBoxMouse.updatePendingClick(
+                dosBoxPipeClient
+            );
+
+            static uint8_t memoryValue = 0;
+            static bool memoryValueValid = false;
+
+            if (ImGui::IsKeyPressed(
+                ImGuiKey_Space,
+                false
+            ))
+            {
+                memoryValueValid =
+                    dosBoxMemory.readByte(
+                        dosBoxPipeClient,
+                        0x30418,
+                        memoryValue
+                    );
+            }
+
+            if (memoryValueValid)
+            {
+                ImGui::Text(
+                    "0x30418 = %u",
+                    static_cast<unsigned int>(
+                        memoryValue
+                        )
+                );
+            }
+            else
+            {
+                ImGui::Text(
+                    "0x30418 = ---"
+                );
+            }
+
+            if (ImGui::IsKeyPressed(
+                ImGuiKey_DownArrow,
+                false
+            ))
+            {
+                const uint8_t newValue =
+                    (memoryValue == 0)
+                    ? 1
+                    : 0;
+
+                dosBoxMemory.writeByte(
+                    dosBoxPipeClient,
+                    0x30418,
+                    newValue
+                );
+            }
+
             hostUi.draw(
                 frameTexture,
                 dosBoxFramePipeline.contentWidth(),
-                dosBoxFramePipeline.contentHeight()
+                dosBoxFramePipeline.contentHeight(),
+                dosBoxMouse,
+                dosBoxPipeClient
             );
 
             imGuiHost.endFrame();

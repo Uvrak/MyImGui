@@ -1,90 +1,457 @@
-MM3 – Notizen für morgen
-Stand: 01.09.2026
+MM3 Cursor Reverse Engineering – Stand 04.09.2026
 
-Inventory-Steuerung – nächster Schritt
+ZIEL
+DOSBox/MM3-Cursorzustand finden, damit der MM3-Cursor später gezielt deaktiviert werden kann.
 
-Heute NICHT mehr implementiert.
+TRACE COMPARE
+- Trace A und Trace B können geladen und verglichen werden.
+- Nur unterschiedliche Datensätze werden angezeigt.
+- Geänderte Register/Werte werden gelb hervorgehoben.
+- Is Equal-Anzeige vorhanden.
+- Trace A und B werden nebeneinander angezeigt.
 
-Ziel:
-Die Item-Auswahl im Inventory soll mit Up/Down über Mausklicks
-gesteuert werden.
+ERSTER INTERESSANTER TRACE-UNTERSCHIED
+Previous instruction 320:
+    mov bx, [bx-0x5860]
+
+Danach unterscheidet sich BX:
+    Trace A: BX = 0003
+    Trace B: BX = 0000
+
+DS bei der Instruktion:
+    DS = 2053
+
+DOPPELKLICK AUF MEMORY-INSTRUKTION
+Neu implementiert:
+- Instruktionszeile in Compare ist Selectable.
+- Doppelklick berechnet bei DS=2053 die physische Adresse.
+- Berechnung berücksichtigt 16-Bit-Wraparound.
+- Für Instruction 320 ergibt sich in A UND B:
+
+    0x2ACF4
+
+Also:
+    mov bx, [bx-0x5860]
+    liest in beiden Traces aus physisch 0x2ACF4.
 
 Wichtig:
-Das soll sowohl im normalen Game Mode als auch im Button Mode
-funktionieren.
+Frühere Berechnung 0x25DB4 war FALSCH.
+Grund: Instruktion ist [bx-0x5860], nicht +0x5860.
 
-Aktueller Ansatz:
+0x2ACF4 UNTERSUCHUNG
+- Live aktuell Wert 0.
+- MemWr auf 0x2ACF4 untersucht.
+- Im normalen Game stabil beobachteter Writer:
+    0x16205
+- Beispiel Written Value:
+    0x02
+- 0x16205 wird auch ohne Cursoraktion ausgeführt.
+=> 0x16205 ist KEIN eindeutiger Cursorwechsel-Trigger.
+- Frühere andere Writer kamen teilweise aus Loading-Screen-Zuständen.
+=> Loading-Screen-Captures nicht mit Game-Captures vermischen.
 
-- Inventory ist eigenes erkanntes Fenster.
-- Inventory hat Index 5.
-- Beim Eintritt ins Inventory soll Item-Slot 0 automatisch
-  angeklickt werden.
-- Ausgangskoordinate Item-Liste:
-      X = 75
-      Y ungefähr = 52
-- Die genaue Y-Ausgangsposition muss eventuell noch kalibriert werden.
+EXEC UI AUFGERÄUMT
+- Zweites Feld "Execution Target" entfernt.
+- Exec benutzt jetzt das gemeinsame obere Target-Feld.
+- Nur noch ein Target für die Tracker.
 
-Neue gewünschte Navigation:
+MEMWR VERÄNDERUNGSANZEIGE
+Neu eingebaut:
+    uint8_t m_previousMemoryWriteValue
+    bool m_hasPreviousMemoryWriteValue
+    bool m_memoryWriteValueChanged
 
-DOWN:
-    Y += 15
-    anschließend Mausklick auf (75, Y)
+- Neuer Written Value wird mit vorherigem Capture verglichen.
+- Bei Änderung wird "Written Value" gelb angezeigt.
+- Test mit 0x2ACF4:
+    bisher KEINE Veränderungen festgestellt.
 
-UP:
-    Y -= 15
-    anschließend Mausklick auf (75, Y)
+AKTUELLER SCHLUSS
+0x2ACF4 ist weiterhin interessant, weil der ursprüngliche Trace dort
+offenbar einen Wert gelesen hat, der zu BX=0003 bzw. BX=0000 führte.
+Im aktuellen Live-Test konnte dieser Wechsel aber NICHT reproduziert werden.
 
-Damit sollen die Item-Zeilen nacheinander ausgewählt werden.
+Daher NICHT behaupten, dass 0x2ACF4 der Cursorwert ist.
 
-WICHTIG:
-Diese Inventory-Up/Down-Behandlung muss in keyDown() VOR der
-Trennung zwischen Button Mode und Game Mode stattfinden.
-Dadurch funktioniert sie in beiden Modi.
+NÄCHSTES MAL
+1. Wieder bei den ursprünglichen Trace-A/B-Daten anfangen.
+2. Ersten Unterschied bei Instruction 320/321 weiter rückwärts verfolgen.
+3. Prüfen, welcher Zustand VOR Instruction 320 bereits unterschiedlich ist.
+4. 0x2ACF4 nur als Spur behandeln, nicht als bestätigte Cursoradresse.
+5. Eventuell MemWr erweitern, sodass mehrere Writes protokolliert werden,
+   statt nur beim ersten Treffer zu stoppen. Damit könnten kurze 00/03-
+   Änderungen sichtbar werden.
 
-Vorgesehener Member:
+   MM3 Cursor Reverse Engineering – Stand 04.09.2026 Abend
 
-    float m_inventoryItemY = 52.0f;
+ZIEL
+MM3-Cursorzustand finden, damit der MM3-Cursor später gezielt deaktiviert
+werden kann.
 
-Der bereits vorhandene Pending-Mechanismus kann für den Klick
-verwendet werden:
+============================================================
+1. TRACE COMPARE
+============================================================
 
-    m_pendingInventorySlot0Click
+Trace A und Trace B können geladen und verglichen werden.
 
-takeDosMouseClick() soll dann ungefähr:
+Vorhanden:
+- Nur unterschiedliche Datensätze werden angezeigt.
+- Geänderte Register/Werte werden gelb hervorgehoben.
+- Is Equal-Anzeige.
+- Trace A und B nebeneinander.
+- Navigation durch die Trace-Daten.
+- Doppelklick auf Memory-Instruktionen kann physische Adresse bestimmen.
 
-    x = 75.0f;
-    y = m_inventoryItemY;
+WICHTIGER URSPRÜNGLICHER UNTERSCHIED
 
-zurückgeben.
+Instruction 320:
 
-Inventory Screen Signature wurde heute geändert, weil die vorherigen
-Signature-Pixel auf den Buttons lagen und sich durch den Maus-Hover
-änderten.
+    mov bx, [bx-0x5860]
 
-Neue Inventory-Signature:
+Vor der Instruktion:
 
-    (58, 264)  RGB 255,255,255
-    (340,261)  RGB 182,239,239
-    (590,265)  RGB 255,255,255
+    BX = 0x0024
+    DS = 0x2053
 
-Diese Pixel stammen aus den festen Beschriftungen unter den
-Inventory-Buttons.
+Danach:
 
-Problem vorher:
-Beim Navigieren sprang die Auswahl kurz auf den nächsten Button und
-verlor sofort wieder den Fokus. Ursache sehr wahrscheinlich:
-Inventory-Signature wurde durch den Maus-Hover ungültig.
+    Trace A: BX = 0x0003
+    Trace B: BX = 0x0000
 
-Außerdem neu:
-Character Screen wurde als eigenes Fenster/Screen Signature angelegt.
-Inventory ebenfalls als eigenes MM3Window.
+Physische Leseadresse:
 
-MORGEN LANGSAM VORGEHEN:
-1. Erst aktuellen Codezustand prüfen.
-2. Nur m_inventoryItemY hinzufügen.
-3. Build.
-4. Dann DOWN implementieren.
-5. Build + testen.
-6. Erst danach UP implementieren.
-7. Automatischen Slot-0-Klick separat prüfen.
-8. Keine anderen Navigationsteile gleichzeitig umbauen.
+    0x2ACF4
+
+Frühere Berechnung 0x25DB4 war falsch.
+Grund:
+Die Instruktion verwendet [bx-0x5860], nicht +0x5860.
+
+
+============================================================
+2. 0x2ACF4 MEMWR-UNTERSUCHUNG
+============================================================
+
+0x2ACF4 ist weiterhin nur eine SPUR.
+NICHT als Cursoradresse betrachten.
+
+Der neue Multi-MemWr-Logger zeigt, dass 0x2ACF4 ständig beschrieben wird.
+
+Beobachtete Writer:
+
+    0x16205
+    0x16235
+
+Beobachtete Written Values:
+
+    0x00
+    0x01
+    0x02
+    0x03
+    0x04
+
+Typisches wiederkehrendes Muster:
+
+    0x16205 -> 04
+    0x16235 -> 00
+    0x16205 -> 01
+    0x16235 -> 01
+    0x16205 -> 02
+    0x16235 -> 02
+    0x16205 -> 03
+    0x16235 -> 03
+    0x16205 -> 04
+    0x16235 -> 00
+    ...
+
+Cursor sichtbar -> unsichtbar erzeugte dort KEINE erkennbare besondere
+Veränderung.
+
+Schluss:
+0x2ACF4 ist sehr wahrscheinlich kein einfacher Cursor-Boolwert.
+Der Wert sieht eher nach Zähler/Index/State-Cycle aus.
+
+
+============================================================
+3. MEMWR MULTI-CAPTURE
+============================================================
+
+MemWr wurde aus TrackingWindow in eigene Klasse ausgelagert:
+
+    MemoryWriteTracker.h
+    MemoryWriteTracker.cpp
+
+DOSBox-Seite speichert jetzt mehrere Memory-Write-Captures.
+
+Neu vorhanden:
+
+    capturedMemoryWriteInstructions
+
+Capture enthält:
+- RuntimeInstruction
+- individuellen Written Value
+
+IPC erweitert:
+
+    MEMORYWRITE:COUNT
+    MEMORYWRITE:GET:<index>
+
+MemoryScanner erweitert:
+- Capture Count abrufen
+- Capture per Index abrufen
+
+MemoryWriteTracker:
+- Capture Count zählt hoch.
+- Alle Captures können geladen werden.
+- Captured Writes entspricht Capture Count.
+- Writer-Adresse wird pro Eintrag angezeigt.
+- Written Value wird pro Eintrag angezeigt.
+- Wertänderungen gegenüber vorherigem Capture werden gelb markiert.
+
+Die neuesten Einträge sollen oben angezeigt werden / Anzeige entsprechend
+umgekehrt halten.
+
+
+============================================================
+4. GEMEINSAMES TARGET
+============================================================
+
+TrackingWindow besitzt weiterhin das gemeinsame:
+
+    m_targetText
+
+Dieses Target soll langfristig gemeinsam verwendet werden für:
+
+- Trace
+- Trans
+- Exec
+- MemWr
+- Memory Scanner
+- Memory Viewer
+- Disassembly
+- weitere Memory Tools
+
+Target wird über die bestehende Session gespeichert.
+
+Problem gefunden:
+Beim Programmstart wurde das geladene Target durch die automatische
+Trace-Auswahl wieder überschrieben.
+
+Entfernt wurde deshalb das automatische:
+
+    snprintf(
+        m_targetText,
+        ...
+        m_trace[m_selectedTraceIndex].address
+    );
+
+Zusätzlich:
+
+    ~TrackingWindow()
+    {
+        saveSession();
+    }
+
+Damit wird die Session beim sauberen Programmende gespeichert und beim
+Start wieder geladen.
+
+
+============================================================
+5. TRACE-ANALYSE NACH INSTRUCTION 320
+============================================================
+
+Instruction 321:
+
+    mov al, [bx+0x13B]
+
+Dadurch wird der Unterschied aus BX weiterverwendet.
+
+Instruction 322:
+
+    mov ah, 0x00
+
+Instruction 323:
+
+    mov [si], ax
+
+Der unterschiedliche Wert wird also weitergeschrieben.
+
+Wichtig:
+Trotz unterschiedlicher Registerwerte laufen Trace A und Trace B danach
+weiter durch dieselben Instruktionen.
+
+Es wurde bisher KEINE unterschiedliche Branch-Entscheidung gefunden.
+
+
+============================================================
+6. WEITERER UNTERSCHIED BEI INSTRUCTION 369
+============================================================
+
+Vor Instruction 369 sind die relevanten Werte wieder angeglichen.
+
+Instruction 369:
+
+    mov bx, [bx-0x5860]
+
+Danach:
+
+    Trace A: BX = 0x0001
+    Trace B: BX = 0x0002
+
+Instruction 370:
+
+    mov al, [bx+0x13B]
+
+Instruction 371:
+
+    mov ah, 0x00
+
+Danach:
+
+    Trace A: AX = 0x0001
+    Trace B: AX = 0x0002
+
+Instruction 372:
+
+    mov [si], ax
+
+Dabei:
+
+    SI = 0xD6FC
+    DS = 0x2053
+
+Physische Zieladresse:
+
+    0x20530 + 0xD6FC
+    = 0x2DC2C
+
+Dort wird also der Unterschied 1 gegen 2 in einen Speicherbereich
+geschrieben.
+
+
+============================================================
+7. CONTROL FLOW
+============================================================
+
+Instructions 373 bis mindestens 396 untersucht.
+
+Obwohl Registerwerte unterschiedlich bleiben:
+
+    Trace A: BX = 1
+    Trace B: BX = 2
+
+laufen beide Traces weiterhin durch dieselben CS:IP-Adressen.
+
+Auch mehrere:
+
+    cmp
+    jnz
+    jmp
+
+führen in beiden Traces zum gleichen Kontrollfluss.
+
+Bei 388:
+
+    mov ax, si
+
+AX wird in beiden wieder D6FC.
+
+Danach Funktionsende:
+
+    pop di
+    pop si
+    mov sp, bp
+    pop bp
+    ret far
+
+Der BX-Unterschied wird noch mitgeführt, verursacht dort aber keine
+sichtbare unterschiedliche Verzweigung.
+
+
+============================================================
+8. AKTUELLER SCHLUSS
+============================================================
+
+Der Unterschied aus 0x2ACF4 ist real, aber bisher NICHT als
+Cursorentscheidung bestätigt.
+
+Die untersuchte Routine sieht eher danach aus, Daten bzw. einen Buffer
+aufzubauen.
+
+Wichtiger als weitere Einzelregister-Unterschiede ist jetzt:
+
+    Wo laufen Trace A und Trace B erstmals durch unterschiedliche
+    Instruktionsadressen?
+
+Das ist der nächste starke Kandidat für eine tatsächliche
+zustandsabhängige Entscheidung.
+
+
+============================================================
+9. MORGEN – ZUERST REFACTORING
+============================================================
+
+TrackingWindow ist inzwischen zu groß.
+
+Trace-Funktionalität zuerst auslagern in:
+
+    TraceTracking.h
+    TraceTracking.cpp
+
+Ziel:
+TrackingWindow soll hauptsächlich Container für die Tabs bleiben:
+
+    Trace
+    Trans
+    Exec
+    MemWr
+
+TraceTracking soll schrittweise übernehmen:
+
+- Trace Recording
+- Trace-Daten
+- Trace A
+- Trace B
+- Trace Compare
+- Trace Navigation
+- Trace-Dateien
+- Compare-Navigation
+
+
+============================================================
+10. DANACH: NEXT CONTROL FLOW DIFFERENCE
+============================================================
+
+Nach dem Refactoring neue Navigation implementieren:
+
+    Next Control Flow Difference
+
+Sie soll reine Registerunterschiede überspringen und zum nächsten
+Trace-Datensatz springen, bei dem sich die ausgeführte Instruktion
+zwischen A und B unterscheidet.
+
+Grundidee:
+
+    m_traceA[i].address !=
+    m_traceB[i].address
+
+Gegebenenfalls zusätzlich CS:IP vergleichen.
+
+Damit können hunderte Datensätze mit lediglich unterschiedlichen
+Registern übersprungen werden.
+
+ZIEL:
+Erste echte Kontrollfluss-Divergenz zwischen Cursor-sichtbar- und
+Cursor-unsichtbar-Trace finden.
+
+
+============================================================
+11. NICHT VERGESSEN
+============================================================
+
+- 0x2ACF4 NICHT als Cursoradresse bezeichnen.
+- Loading-Screen-Captures nicht mit normalen Game-Captures vermischen.
+- MemWr Multi-Capture funktioniert jetzt.
+- Target-Persistenz funktioniert.
+- Neue Funktionalität möglichst in eigene .h/.cpp-Dateien.
+- Morgen zuerst TraceTracking.h/.cpp auslagern, danach neue
+  Control-Flow-Navigation bauen.

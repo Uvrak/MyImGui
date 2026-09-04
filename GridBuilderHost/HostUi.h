@@ -5,6 +5,8 @@
 namespace DosBoxX
 {
     class FrameTexture;
+    class Mouse;
+    class NamedPipeClient;
 }
 
 namespace MyImGui
@@ -31,7 +33,9 @@ namespace GridBuilderHost
         void draw(
             DosBoxX::FrameTexture& frameTexture,
             uint32_t contentWidth,
-            uint32_t contentHeight
+            uint32_t contentHeight,
+            DosBoxX::Mouse& dosBoxMouse,
+            DosBoxX::NamedPipeClient& dosBoxPipeClient
         );
 
     private:

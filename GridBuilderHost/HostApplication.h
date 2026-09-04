@@ -9,7 +9,9 @@ namespace DosBoxX
 {
     class FrameTexture;
     class Keyboard;
+    class Mouse;
     class NamedPipeClient;
+    class Memory;
 }
 
 namespace MightAndMagic3
@@ -40,6 +42,8 @@ namespace GridBuilderHost
             HostUi& hostUi,
             MightAndMagic3::MM3Launcher& mm3Launcher,
             DosBoxX::Keyboard& dosBoxKeyboard,
+            DosBoxX::Mouse& dosBoxMouse,
+            DosBoxX::Memory& dosBoxMemory,
             DosBoxX::NamedPipeClient& dosBoxPipeClient
         );
     };

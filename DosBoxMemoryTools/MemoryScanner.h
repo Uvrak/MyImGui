@@ -302,7 +302,12 @@ namespace DosBoxMemoryTools
             bool& hit
         );
 
+        bool getMemoryWriteWatchCaptureCount(
+            size_t& count
+        );
+
         bool getMemoryWriteWatchCapture(
+            size_t index,
             RuntimeInstruction& instruction
         );
 

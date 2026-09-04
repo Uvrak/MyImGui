@@ -9,6 +9,7 @@
 #include <cstring>
 #include <windows.h>
 #include <commdlg.h>
+#include <algorithm>
 
 namespace
 {
@@ -47,14 +48,23 @@ namespace DosBoxMemoryTools
             MemoryScanner& scanner,
             const std::string& gameId
         )
-        : m_scanner(
+        :
+        m_scanner(
             scanner
         ),
         m_gameId(
             gameId
+        ),
+        m_memoryWriteTracker(
+            scanner
         )
     {
         loadSession();
+    }
+
+    TrackingWindow::~TrackingWindow()
+    {
+        saveSession();
     }
 
     void TrackingWindow::draw(
@@ -171,7 +181,10 @@ namespace DosBoxMemoryTools
                 break;
 
             case TrackingTab::MemWr:
-                drawMemoryWriteWatch();
+                m_memoryWriteTracker.draw(
+                    m_targetText,
+                    sizeof(m_targetText)
+                );
                 break;
             }
         }
@@ -330,6 +343,56 @@ namespace DosBoxMemoryTools
                 }
             }
 
+            if (m_loadTraceARequested)
+            {
+                m_loadTraceARequested = false;
+
+                char filename[4096] = {};
+
+                OPENFILENAMEA dialog{};
+                dialog.lStructSize =
+                    sizeof(dialog);
+
+                dialog.lpstrFile =
+                    filename;
+
+                dialog.nMaxFile =
+                    sizeof(filename);
+
+                dialog.lpstrFilter =
+                    "Execution Trace (*.trace)\0*.trace\0"
+                    "All Files (*.*)\0*.*\0";
+
+                dialog.nFilterIndex = 1;
+
+                dialog.lpstrDefExt =
+                    "trace";
+
+                dialog.Flags =
+                    OFN_FILEMUSTEXIST |
+                    OFN_PATHMUSTEXIST |
+                    OFN_NOCHANGEDIR;
+
+                if (GetOpenFileNameA(
+                    &dialog
+                ))
+                {
+                    if (loadTraceFromFile(
+                        filename,
+                        m_traceA
+                    ))
+                    {
+                        strncpy_s(
+                            m_traceAFilename,
+                            sizeof(m_traceAFilename),
+                            filename,
+                            _TRUNCATE
+                        );
+
+                        m_compareTraces = false;
+                    }
+                }
+            }
             if (m_loadTraceRequested)
             {
                 m_loadTraceRequested = false;
@@ -365,7 +428,8 @@ namespace DosBoxMemoryTools
                 ))
                 {
                     if (loadTraceFromFile(
-                        filename
+                        filename,
+                        m_trace
                     ))
                     {
                         OutputDebugStringA(
@@ -385,7 +449,61 @@ namespace DosBoxMemoryTools
                         );
                     }
                 }
+
+                
             }
+
+            if (m_loadTraceBRequested)
+            {
+                m_loadTraceBRequested = false;
+
+                char filename[4096] = {};
+
+                OPENFILENAMEA dialog{};
+                dialog.lStructSize =
+                    sizeof(dialog);
+
+                dialog.lpstrFile =
+                    filename;
+
+                dialog.nMaxFile =
+                    sizeof(filename);
+
+                dialog.lpstrFilter =
+                    "Execution Trace (*.trace)\0*.trace\0"
+                    "All Files (*.*)\0*.*\0";
+
+                dialog.nFilterIndex = 1;
+
+                dialog.lpstrDefExt =
+                    "trace";
+
+                dialog.Flags =
+                    OFN_FILEMUSTEXIST |
+                    OFN_PATHMUSTEXIST |
+                    OFN_NOCHANGEDIR;
+
+                if (GetOpenFileNameA(
+                    &dialog
+                ))
+                {
+                    if (loadTraceFromFile(
+                        filename,
+                        m_traceB
+                    ))
+                    {
+                        strncpy_s(
+                            m_traceBFilename,
+                            sizeof(m_traceBFilename),
+                            filename,
+                            _TRUNCATE
+                        );
+
+                        m_compareTraces = false;
+                    }
+                }
+            }
+
         }
     
 
@@ -496,7 +614,8 @@ namespace DosBoxMemoryTools
             ".trace";
 
         loadTraceFromFile(
-            traceFilename
+            traceFilename,
+            m_trace
         );
     }
 
@@ -528,6 +647,11 @@ namespace DosBoxMemoryTools
             sizeof(m_targetText)
         );
 
+        if (ImGui::IsItemDeactivatedAfterEdit())
+        {
+            saveSession();
+        }
+
         ImGui::SameLine();
 
         if (ImGui::Button("Load"))
@@ -540,6 +664,137 @@ namespace DosBoxMemoryTools
         if (ImGui::Button("Save"))
         {
             m_saveTraceRequested = true;
+        }
+
+        if (m_activeTab ==
+            TrackingTab::Trace)
+        {
+            ImGui::SameLine();
+
+            if (ImGui::Button(
+                "Load A"
+            ))
+            {
+                m_loadTraceARequested =
+                    true;
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button(
+                "Load B"
+            ))
+            {
+                m_loadTraceBRequested =
+                    true;
+            }
+
+            ImGui::SameLine();
+
+            const bool canCompare =
+                !m_traceA.empty() &&
+                !m_traceB.empty();
+
+            bool tracesEqual = false;
+
+            if (!m_traceA.empty() &&
+                m_traceA.size() == m_traceB.size())
+            {
+                tracesEqual = true;
+
+                for (size_t i = 0;
+                    i < m_traceA.size();
+                    ++i)
+                {
+                    if (compareTraceInstructions(
+                        m_traceA[i],
+                        m_traceB[i]
+                    ).any())
+                    {
+                        tracesEqual = false;
+                        break;
+                    }
+                }
+
+            }
+            if (!canCompare)
+            {
+                ImGui::BeginDisabled();
+            }
+
+            if (ImGui::Button(
+                "Compare"
+            ))
+            {
+                m_compareTraces =
+                    true;
+
+                m_selectedTraceIndex =
+                    static_cast<size_t>(-1);
+
+                for (size_t i = 0;
+                    i < m_traceA.size() &&
+                    i < m_traceB.size();
+                    ++i)
+                {
+                    if (compareTraceInstructions(
+                        m_traceA[i],
+                        m_traceB[i]
+                    ).any())
+                    {
+                        m_selectedTraceIndex = i;
+
+                        m_scrollToSelectedTrace =
+                            true;
+
+                        break;
+                    }
+                }
+            }
+
+            if (!canCompare)
+            {
+                ImGui::EndDisabled();
+            }
+
+            ImGui::SameLine();
+
+            if (!m_traceA.empty() &&
+                !m_traceB.empty())
+            {
+                ImGui::Text(
+                    "Is Equal: %s",
+                    tracesEqual
+                    ? "Yes"
+                    : "No"
+                );
+
+                ImGui::SameLine();
+
+                ImGui::Text(
+                    "A: %zu  B: %zu",
+                    m_traceA.size(),
+                    m_traceB.size()
+                );
+            }
+        }
+
+        if (m_activeTab ==
+            TrackingTab::Trace)
+        {
+            ImGui::Text(
+                "A: %s",
+                m_traceAFilename[0] != '\0'
+                ? m_traceAFilename
+                : "<not loaded>"
+            );
+
+            ImGui::Text(
+                "B: %s",
+                m_traceBFilename[0] != '\0'
+                ? m_traceBFilename
+                : "<not loaded>"
+            );
         }
 
         ImGui::SameLine();
@@ -559,13 +814,6 @@ namespace DosBoxMemoryTools
 
                 m_scrollToSelectedTrace =
                     true;
-
-                std::snprintf(
-                    m_targetText,
-                    sizeof(m_targetText),
-                    "0x%zX",
-                    m_trace[m_selectedTraceIndex].address
-                );
             }
 
             const bool hasSelection =
@@ -837,6 +1085,12 @@ namespace DosBoxMemoryTools
 
     void TrackingWindow::drawTrace()
     {
+        if (m_compareTraces)
+        {
+            drawTraceComparison();
+            return;
+        }
+
         ZydisDecoder decoder;
         ZydisFormatter formatter;
 
@@ -926,14 +1180,35 @@ namespace DosBoxMemoryTools
             );
         }
 
+        const std::vector<RuntimeInstruction>& displayedTrace =
+            m_compareTraces
+            ? m_traceA
+            : m_trace;
+
         for (size_t i = 0;
-            i < m_trace.size();
+            i < displayedTrace.size();
             ++i)
         {
             const RuntimeInstruction&
                 instruction =
-                m_trace[i];
+                displayedTrace[i];
 
+            const bool hasComparison =
+                m_compareTraces &&
+                i < m_traceA.size() &&
+                i < m_traceB.size();
+
+            TraceInstructionDifference
+                difference;
+
+            if (hasComparison)
+            {
+                difference =
+                    compareTraceInstructions(
+                        m_traceA[i],
+                        m_traceB[i]
+                    );
+            }
             char instructionText[256] =
                 "<decode failed>";
 
@@ -997,6 +1272,20 @@ namespace DosBoxMemoryTools
                 static_cast<int>(i)
             );
 
+            if (hasComparison &&
+                difference.any())
+            {
+                ImGui::PushStyleColor(
+                    ImGuiCol_Text,
+                    ImVec4(
+                        1.0f,
+                        1.0f,
+                        0.0f,
+                        1.0f
+                    )
+                );
+            }
+
             if (ImGui::Selectable(
                 addressText,
                 i == m_selectedTraceIndex,
@@ -1017,6 +1306,12 @@ namespace DosBoxMemoryTools
                     "0x%zX",
                     instruction.address
                 );
+            }
+
+            if (hasComparison &&
+                difference.any())
+            {
+                ImGui::PopStyleColor();
             }
 
             ImGui::PopID();
@@ -1095,20 +1390,68 @@ namespace DosBoxMemoryTools
                 );
             }
 
-            ImGui::Text(
-                "AX=%04X BX=%04X CX=%04X DX=%04X",
-                static_cast<unsigned int>(
-                    instruction.registers.ax
-                    ),
-                static_cast<unsigned int>(
-                    instruction.registers.bx
-                    ),
-                static_cast<unsigned int>(
-                    instruction.registers.cx
-                    ),
-                static_cast<unsigned int>(
-                    instruction.registers.dx
-                    )
+            auto drawRegister =
+                [&](const char* name,
+                    uint16_t value,
+                    bool changed)
+                {
+                    if (hasComparison &&
+                        changed)
+                    {
+                        ImGui::PushStyleColor(
+                            ImGuiCol_Text,
+                            ImVec4(
+                                1.0f,
+                                1.0f,
+                                0.0f,
+                                1.0f
+                            )
+                        );
+                    }
+
+                    ImGui::Text(
+                        "%s=%04X",
+                        name,
+                        static_cast<unsigned int>(
+                            value
+                            )
+                    );
+
+                    if (hasComparison &&
+                        changed)
+                    {
+                        ImGui::PopStyleColor();
+                    }
+                };
+
+            drawRegister(
+                "AX",
+                instruction.registers.ax,
+                difference.ax
+            );
+
+            ImGui::SameLine();
+
+            drawRegister(
+                "BX",
+                instruction.registers.bx,
+                difference.bx
+            );
+
+            ImGui::SameLine();
+
+            drawRegister(
+                "CX",
+                instruction.registers.cx,
+                difference.cx
+            );
+
+            ImGui::SameLine();
+
+            drawRegister(
+                "DX",
+                instruction.registers.dx,
+                difference.dx
             );
 
             ImGui::Text(
@@ -1542,21 +1885,7 @@ namespace DosBoxMemoryTools
 
     void TrackingWindow::drawExecutionCapture()
     {
-        ImGui::SetNextItemWidth(
-            140.0f
-        );
-
-        ImGui::InputText(
-            "Execution Target",
-            m_executionTargetText,
-            sizeof(m_executionTargetText)
-        );
-
-        ImGui::TextUnformatted(
-            "Capture"
-        );
-
-        if (m_executionRecordButton.draw())
+         if (m_executionRecordButton.draw())
         {
             if (m_executionRecordButton.recording())
             {
@@ -1564,12 +1893,12 @@ namespace DosBoxMemoryTools
 
                 const unsigned long long targetAddress =
                     std::strtoull(
-                        m_executionTargetText,
+                        m_targetText,
                         &end,
                         0
                     );
 
-                if (end != m_executionTargetText &&
+                if (end != m_targetText &&
                     *end == '\0')
                 {
                     if (m_scanner.setExecutionCaptureTarget(
@@ -1742,235 +2071,421 @@ namespace DosBoxMemoryTools
         }
     }
 
-    void TrackingWindow::drawMemoryWriteWatch()
+    void TrackingWindow::drawTraceComparison()
     {
-        if (m_memoryWriteRecordButton.draw())
-        {
-            if (m_memoryWriteRecordButton.recording())
-            {
-                char* end = nullptr;
+        const size_t count =
+            (std::min)(
+                m_traceA.size(),
+                m_traceB.size()
+            );
 
-                const unsigned long long targetAddress =
-                    std::strtoull(
-                        m_targetText,
-                        &end,
+        for (size_t i = 0;
+            i < count;
+            ++i)
+        {
+            const TraceInstructionDifference
+                difference =
+                compareTraceInstructions(
+                    m_traceA[i],
+                    m_traceB[i]
+                );
+
+            if (!difference.any())
+            {
+                continue;
+            }
+
+            const bool previousIsDifferent =
+                i > 0 &&
+                compareTraceInstructions(
+                    m_traceA[i - 1],
+                    m_traceB[i - 1]
+                ).any();
+
+            if (i > 0 &&
+                !previousIsDifferent)
+            {
+                ImGui::TextDisabled(
+                    "Previous instruction %zu",
+                    i
+                );
+
+                ImGui::PushID(
+                    static_cast<int>(i - 1)
+                );
+
+                if (ImGui::BeginTable(
+                    "PreviousTraceComparisonTable",
+                    2,
+                    ImGuiTableFlags_BordersInnerV |
+                    ImGuiTableFlags_RowBg
+                ))
+                {
+                    ImGui::TableSetupColumn(
+                        "Trace A"
+                    );
+
+                    ImGui::TableSetupColumn(
+                        "Trace B"
+                    );
+
+                    ImGui::TableHeadersRow();
+
+                    ImGui::TableNextRow();
+
+                    ImGui::TableSetColumnIndex(
                         0
                     );
 
-                if (end != m_targetText &&
-                    *end == '\0')
+                    drawTraceComparisonInstruction(
+                        m_traceA[i - 1],
+                        compareTraceInstructions(
+                            m_traceA[i - 1],
+                            m_traceB[i - 1]
+                        ),
+                        false
+                    );
 
-                if (end != m_targetText &&
-                    *end == '\0')
-                {
-                    if (m_scanner.setMemoryWriteWatchTarget(
-                        static_cast<size_t>(
-                            targetAddress
-                            )
-                    ))
-                    {
-                        m_memoryWriteCaptureHit =
-                            false;
-                    }
+                    ImGui::TableSetColumnIndex(
+                        1
+                    );
+
+                    drawTraceComparisonInstruction(
+                        m_traceB[i - 1],
+                        compareTraceInstructions(
+                            m_traceA[i - 1],
+                            m_traceB[i - 1]
+                        ),
+                        true
+                    );
+
+                    ImGui::EndTable();
                 }
+
+                ImGui::PopID();
             }
-            else
-            {
-                m_scanner.clearMemoryWriteWatch();
-            }
-        }
 
-        bool memoryWriteHit = false;
+            ImGui::Separator();
 
-        if (m_scanner.getMemoryWriteWatchHit(
-            memoryWriteHit
-        ))
-        {
-            if (memoryWriteHit &&
-                m_memoryWriteRecordButton.recording())
-            {
-                RuntimeInstruction instruction;
-
-                if (m_scanner.getMemoryWriteWatchCapture(
-                    instruction
-                ))
-                {
-                    m_memoryWriteCapture =
-                        instruction;
-
-                    m_memoryWriteCaptureHit =
-                        true;
-
-                    m_memoryWriteRecordButton.stop();
-                }
-            }
-        }
-
-        if (m_scanner.getMemoryWriteWatchHit(
-            memoryWriteHit
-        ))
-        {
             ImGui::Text(
-                "State: %s",
-                memoryWriteHit
-                ? "HIT"
-                : m_memoryWriteRecordButton.recording()
-                ? "ARMED / NO HIT"
-                : "IDLE"
+                "Difference at instruction %zu",
+                i + 1
             );
+
+            ImGui::PushID(
+                static_cast<int>(i)
+            );
+
+            if (ImGui::BeginTable(
+                "TraceComparisonTable",
+                2,
+                ImGuiTableFlags_BordersInnerV |
+                ImGuiTableFlags_RowBg
+            ))
+            {
+                ImGui::TableSetupColumn(
+                    "Trace A"
+                );
+
+                ImGui::TableSetupColumn(
+                    "Trace B"
+                );
+
+                ImGui::TableHeadersRow();
+
+                ImGui::TableNextRow();
+
+                ImGui::TableSetColumnIndex(
+                    0
+                );
+
+                drawTraceComparisonInstruction(
+                    m_traceA[i],
+                    difference,
+                    false
+                );
+
+                ImGui::TableSetColumnIndex(
+                    1
+                );
+
+                drawTraceComparisonInstruction(
+                    m_traceB[i],
+                    difference,
+                    true
+                );
+
+                ImGui::EndTable();
+
+                ImGui::PopID();
+            }
+        }
+    }
+
+    void TrackingWindow::drawTraceComparisonInstruction(
+        const RuntimeInstruction& instruction,
+        const TraceInstructionDifference& difference,
+        bool highlightChanges
+    )
+    {
+        char instructionText[256] =
+            "<decode failed>";
+
+        ZydisDecoder decoder;
+        ZydisFormatter formatter;
+
+        const bool zydisReady =
+            ZYAN_SUCCESS(
+                ZydisDecoderInit(
+                    &decoder,
+                    ZYDIS_MACHINE_MODE_LEGACY_16,
+                    ZYDIS_STACK_WIDTH_16
+                )
+            ) &&
+            ZYAN_SUCCESS(
+                ZydisFormatterInit(
+                    &formatter,
+                    ZYDIS_FORMATTER_STYLE_INTEL
+                )
+            );
+
+        ZydisDecodedInstruction
+            decodedInstruction;
+
+        ZydisDecodedOperand operands[
+            ZYDIS_MAX_OPERAND_COUNT
+        ];
+
+        bool decoded = false;
+
+        if (zydisReady &&
+            ZYAN_SUCCESS(
+                ZydisDecoderDecodeFull(
+                    &decoder,
+                    instruction.bytes.data(),
+                    instruction.bytes.size(),
+                    &decodedInstruction,
+                    operands
+                )
+            ))
+        {
+            decoded =
+                ZYAN_SUCCESS(
+                    ZydisFormatterFormatInstruction(
+                        &formatter,
+                        &decodedInstruction,
+                        operands,
+                        decodedInstruction.
+                        operand_count_visible,
+                        instructionText,
+                        sizeof(instructionText),
+                        static_cast<ZyanU64>(
+                            instruction.address
+                            ),
+                        nullptr
+                    )
+                );
+        }
+
+        ImGui::Text(
+            "0x%zX  CS:IP %04X:%04X",
+            instruction.address,
+            static_cast<unsigned int>(
+                instruction.cs
+                ),
+            static_cast<unsigned int>(
+                instruction.ip
+                )
+        );
+
+        if (decoded)
+        {
+            ImGui::PushID(
+                &instruction
+            );
+
+            ImGui::Selectable(
+                instructionText,
+                false,
+                ImGuiSelectableFlags_AllowDoubleClick
+            );
+
+            if (ImGui::IsItemHovered() &&
+    ImGui::IsMouseDoubleClicked(
+        ImGuiMouseButton_Left
+    ))
+{
+    size_t physicalAddress = 0;
+
+    if (tryGetPhysicalMemoryAddress(
+        instruction,
+        physicalAddress
+    ))
+    {
+        std::snprintf(
+            m_targetText,
+            sizeof(m_targetText),
+            "0x%zX",
+            physicalAddress
+        );
+    }
+}
+
+            ImGui::PopID();
+
         }
         else
         {
             ImGui::TextDisabled(
-                "State unavailable."
+                "<decode failed>"
             );
         }
 
-        ImGui::Text(
-            "Scanner status: %s",
-            m_scanner.status().c_str()
-        );
-
-        if (m_memoryWriteCaptureHit)
-        {
-            ImGui::Separator();
-
-            char addressText[64];
-
-            std::snprintf(
-                addressText,
-                sizeof(addressText),
-                "Address: 0x%zX",
-                m_memoryWriteCapture.address
-            );
-
-            ImGui::Selectable(
-                addressText,
-                false,
-                ImGuiSelectableFlags_AllowDoubleClick,
-                ImVec2(
-                    ImGui::CalcTextSize(
-                        addressText
-                    ).x,
-                    0.0f
-                )
-            );
-
-            if (ImGui::IsItemHovered() &&
-                ImGui::IsMouseDoubleClicked(
-                    ImGuiMouseButton_Left
-                ))
+        auto drawRegister =
+            [&](const char* name,
+                uint16_t value,
+                bool changed)
             {
-                std::snprintf(
-                    m_targetText,
-                    sizeof(m_targetText),
-                    "0x%zX",
-                    m_memoryWriteCapture.address
-                );
-            }
+                if (highlightChanges &&
+                    changed)
+                {
+                    ImGui::PushStyleColor(
+                        ImGuiCol_Text,
+                        ImVec4(
+                            1.0f,
+                            1.0f,
+                            0.0f,
+                            1.0f
+                        )
+                    );
+                }
 
-            ImGui::Text(
-                "CS:IP %04X:%04X",
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.cs
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.ip
-                    )
-            );
-
-            ImGui::Text(
-                "AX=%04X BX=%04X CX=%04X DX=%04X",
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.ax
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.bx
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.cx
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.dx
-                    )
-            );
-
-            ImGui::Text(
-                "SI=%04X DI=%04X BP=%04X SP=%04X",
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.si
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.di
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.bp
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.sp
-                    )
-            );
-
-            ImGui::Text(
-                "DS=%04X ES=%04X SS=%04X",
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.ds
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.es
-                    ),
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.registers.ss
-                    )
-            );
-
-            ImGui::Text(
-                "Written Value: 0x%02X",
-                static_cast<unsigned int>(
-                    m_memoryWriteCapture.writeValue
-                    )
-            );
-
-            ImGui::Separator();
-
-            ImGui::TextUnformatted(
-                "Stack at SS:SP:"
-            );
-
-            for (size_t i = 0;
-                i < m_memoryWriteCapture.stackBytes.size();
-                i += 8)
-            {
                 ImGui::Text(
-                    "+%02zX: %02X %02X %02X %02X %02X %02X %02X %02X",
-                    i,
+                    "%s=%04X",
+                    name,
                     static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 0]
-                        ),
-                    static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 1]
-                        ),
-                    static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 2]
-                        ),
-                    static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 3]
-                        ),
-                    static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 4]
-                        ),
-                    static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 5]
-                        ),
-                    static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 6]
-                        ),
-                    static_cast<unsigned int>(
-                        m_memoryWriteCapture.stackBytes[i + 7]
+                        value
                         )
                 );
-            }
-        }
+
+                if (highlightChanges &&
+                    changed)
+                {
+                    ImGui::PopStyleColor();
+                }
+            };
+
+        drawRegister(
+            "AX",
+            instruction.registers.ax,
+            difference.ax
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "BX",
+            instruction.registers.bx,
+            difference.bx
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "CX",
+            instruction.registers.cx,
+            difference.cx
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "DX",
+            instruction.registers.dx,
+            difference.dx
+        );
+
+        drawRegister(
+            "AX",
+            instruction.registers.ax,
+            difference.ax
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "BX",
+            instruction.registers.bx,
+            difference.bx
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "CX",
+            instruction.registers.cx,
+            difference.cx
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "DX",
+            instruction.registers.dx,
+            difference.dx
+        );
+
+        drawRegister(
+            "SI",
+            instruction.registers.si,
+            difference.si
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "DI",
+            instruction.registers.di,
+            difference.di
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "BP",
+            instruction.registers.bp,
+            difference.bp
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "SP",
+            instruction.registers.sp,
+            difference.sp
+        );
+
+        drawRegister(
+            "DS",
+            instruction.registers.ds,
+            difference.ds
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "ES",
+            instruction.registers.es,
+            difference.es
+        );
+
+        ImGui::SameLine();
+
+        drawRegister(
+            "SS",
+            instruction.registers.ss,
+            difference.ss
+        );
     }
 
     void TrackingWindow::loadTrace()
@@ -2066,7 +2581,8 @@ namespace DosBoxMemoryTools
     }
 
     bool TrackingWindow::loadTraceFromFile(
-        const std::string& filename
+        const std::string& filename,
+        std::vector<RuntimeInstruction>& trace
     )
     {
         std::ifstream file(
@@ -2156,12 +2672,121 @@ namespace DosBoxMemoryTools
             );
         }
 
-        m_trace =
+        trace =
             std::move(
                 loadedTrace
             );
 
         return true;
+    }
+    
+    bool TrackingWindow::tryGetPhysicalMemoryAddress(
+        const RuntimeInstruction& instruction,
+        size_t& physicalAddress
+    ) const
+    {
+        physicalAddress = 0;
+
+        if (instruction.registers.ds !=
+            0x2053)
+        {
+            return false;
+        }
+
+        ZydisDecoder decoder;
+
+        if (!ZYAN_SUCCESS(
+            ZydisDecoderInit(
+                &decoder,
+                ZYDIS_MACHINE_MODE_LEGACY_16,
+                ZYDIS_STACK_WIDTH_16
+            )
+        ))
+        {
+            return false;
+        }
+
+        ZydisDecodedInstruction
+            decodedInstruction;
+
+        ZydisDecodedOperand operands[
+            ZYDIS_MAX_OPERAND_COUNT
+        ];
+
+        if (!ZYAN_SUCCESS(
+            ZydisDecoderDecodeFull(
+                &decoder,
+                instruction.bytes.data(),
+                instruction.bytes.size(),
+                &decodedInstruction,
+                operands
+            )
+        ))
+        {
+            return false;
+        }
+
+        for (uint8_t operandIndex = 0;
+            operandIndex <
+            decodedInstruction.operand_count_visible;
+            ++operandIndex)
+        {
+            const ZydisDecodedOperand&
+                operand =
+                operands[operandIndex];
+
+            if (operand.type !=
+                ZYDIS_OPERAND_TYPE_MEMORY)
+            {
+                continue;
+            }
+
+            uint16_t offset = 0;
+
+            switch (operand.mem.base)
+            {
+            case ZYDIS_REGISTER_BX:
+                offset =
+                    instruction.registers.bx;
+                break;
+
+            case ZYDIS_REGISTER_SI:
+                offset =
+                    instruction.registers.si;
+                break;
+
+            case ZYDIS_REGISTER_DI:
+                offset =
+                    instruction.registers.di;
+                break;
+
+            case ZYDIS_REGISTER_BP:
+                offset =
+                    instruction.registers.bp;
+                break;
+
+            default:
+                continue;
+            }
+
+            offset =
+                static_cast<uint16_t>(
+                    offset +
+                    static_cast<uint16_t>(
+                        operand.mem.disp.value
+                        )
+                    );
+
+            physicalAddress =
+                (static_cast<size_t>(
+                    instruction.registers.ds
+                    ) << 4) +
+                offset;
+
+            return true;
+        }
+
+        return false;
     }
 }
 

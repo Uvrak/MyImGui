@@ -501,6 +501,41 @@ void GRIDBUILDER_IPC_ProcessCommands()
             continue;
         }
 
+        const char* memoryWriteBytePrefix =
+            "MEMORYWRITEBYTE:";
+
+        if(std::strncmp(
+            text,
+            memoryWriteBytePrefix,
+            std::strlen(memoryWriteBytePrefix)
+        ) == 0)
+        {
+            unsigned int address = 0;
+            unsigned int value = 0;
+
+            if(std::sscanf(
+                text + std::strlen(memoryWriteBytePrefix),
+                "%u:%u",
+                &address,
+                &value
+            ) == 2)
+            {
+                if(value <= 0xFF)
+                {
+                    mem_writeb(
+                        static_cast<PhysPt>(
+                            address
+                            ),
+                        static_cast<Bit8u>(
+                            value
+                            )
+                    );
+                }
+            }
+
+            continue;
+        }
+
         const char* mouseSetPosPrefix =
             "MOUSESETPOS:";
 
@@ -1171,6 +1206,53 @@ static void GRIDBUILDER_IPC_Thread()
                     &bytesWritten,
                     nullptr
                 );
+
+                continue;
+            }
+
+            const char* memoryReadBytePrefix =
+                "MEMORYREADBYTE:";
+
+            if(std::strncmp(
+                buffer,
+                memoryReadBytePrefix,
+                std::strlen(memoryReadBytePrefix)
+            ) == 0)
+            {
+                unsigned int address = 0;
+
+                if(std::sscanf(
+                    buffer + std::strlen(memoryReadBytePrefix),
+                    "%u",
+                    &address
+                ) == 1)
+                {
+                    const Bit8u value =
+                        mem_readb(
+                            static_cast<PhysPt>(
+                                address
+                                )
+                        );
+
+                    const std::string response =
+                        std::to_string(
+                            static_cast<unsigned int>(
+                                value
+                                )
+                        );
+
+                    DWORD bytesWritten = 0;
+
+                    WriteFile(
+                        pipe,
+                        response.data(),
+                        static_cast<DWORD>(
+                            response.size()
+                            ),
+                        &bytesWritten,
+                        nullptr
+                    );
+                }
 
                 continue;
             }

@@ -5,6 +5,8 @@
 namespace DosBoxX
 {
     class FrameTexture;
+    class Mouse;
+    class NamedPipeClient;
 }
 
 namespace GridBuilderHost
@@ -16,7 +18,9 @@ namespace GridBuilderHost
             DosBoxX::FrameTexture& frameTexture,
             uint32_t contentWidth,
             uint32_t contentHeight,
-            bool showCoordinates
+            bool showCoordinates,
+            DosBoxX::Mouse& dosBoxMouse,
+            DosBoxX::NamedPipeClient& dosBoxPipeClient
         );
     };
 }

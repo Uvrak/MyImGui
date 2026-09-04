@@ -19,6 +19,8 @@
 #include "HostSettings.h"
 #include "MM3Launcher.h"
 #include "Keyboard.h"
+#include "Mouse.h"
+#include "Memory.h"
 
 int main()
 {
@@ -57,6 +59,9 @@ int main()
     );
 
     DosBoxX::Keyboard dosBoxKeyboard;
+    DosBoxX::Mouse dosBoxMouse;
+
+    DosBoxX::Memory dosBoxMemory;
 
     MightAndMagic3::MM3Launcher mm3Launcher(
         dosBoxController,
@@ -110,15 +115,17 @@ int main()
     }
 
     hostApplication.run(
-    dosBoxFramePipeline,
-    hostRenderer,
-    dosBoxFrameTexture,
-    imGuiHost,
-    hostUi,
-    mm3Launcher,
-    dosBoxKeyboard,
-    dosBoxPipeClient
-);
+        dosBoxFramePipeline,
+        hostRenderer,
+        dosBoxFrameTexture,
+        imGuiHost,
+        hostUi,
+        mm3Launcher,
+        dosBoxKeyboard,
+        dosBoxMouse,
+        dosBoxMemory,
+        dosBoxPipeClient
+    );
 
     DosBoxX::ProcessManager::terminateRunningInstances();
 

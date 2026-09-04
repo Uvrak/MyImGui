@@ -6,6 +6,8 @@
 
 #include "MemoryScanner.h"
 #include "RecordButton.h"
+#include "TraceComparison.h"
+#include "MemoryWriteTracker.h"
 
 namespace DosBoxMemoryTools
 {
@@ -16,6 +18,8 @@ namespace DosBoxMemoryTools
             MemoryScanner& scanner,
             const std::string& gameId
         );
+
+        ~TrackingWindow();
 
         void draw(
             bool* isOpen
@@ -37,7 +41,13 @@ namespace DosBoxMemoryTools
         void drawTransitions();
         void captureTransitions();
         void drawExecutionCapture();
-        void drawMemoryWriteWatch();
+        void drawTraceComparison();
+
+        void drawTraceComparisonInstruction(
+            const RuntimeInstruction& instruction,
+            const TraceInstructionDifference& difference,
+            bool highlightChanges
+        );
 
         void loadTrace();
 
@@ -46,7 +56,8 @@ namespace DosBoxMemoryTools
         ) const;
 
         bool loadTraceFromFile(
-            const std::string& filename
+            const std::string& filename,
+            std::vector<RuntimeInstruction>& trace
         );
 
         MemoryScanner&
@@ -57,6 +68,20 @@ namespace DosBoxMemoryTools
 
         std::vector<RuntimeInstruction>
             m_trace;
+
+        std::vector<RuntimeInstruction>
+            m_traceA;
+
+        std::vector<RuntimeInstruction>
+            m_traceB;
+
+        char m_traceAFilename[4096] = {};
+        char m_traceBFilename[4096] = {};
+
+        bool m_loadTraceARequested = false;
+        bool m_loadTraceBRequested = false;
+
+        bool m_compareTraces = false;
 
         MyImGui::RecordButton
             m_recordButton;
@@ -73,6 +98,8 @@ namespace DosBoxMemoryTools
 
         bool m_saveTraceRequested = false;
         bool m_loadTraceRequested = false;
+
+        bool m_loadCompareTraceRequested = false;
 
         int m_previousRegisterIndex = 5;
 
@@ -124,15 +151,6 @@ namespace DosBoxMemoryTools
         MyImGui::RecordButton
             m_executionRecordButton;
 
-        bool m_memoryWriteCaptureHit =
-            false;
-
-        RuntimeInstruction
-            m_memoryWriteCapture{};
-
-        MyImGui::RecordButton
-            m_memoryWriteRecordButton;
-
         enum class TrackingTab
         {
             Trace,
@@ -143,6 +161,15 @@ namespace DosBoxMemoryTools
 
         TrackingTab m_activeTab =
             TrackingTab::Trace;
-   
+
+        bool tryGetPhysicalMemoryAddress(
+            const RuntimeInstruction& instruction,
+            size_t& physicalAddress
+        ) const;
+        
+        MemoryWriteTracker
+            m_memoryWriteTracker;
+
+        void selectNextControlFlowDifference();
     };
 }

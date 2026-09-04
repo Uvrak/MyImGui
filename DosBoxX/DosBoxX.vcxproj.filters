@@ -28,6 +28,9 @@
     <Filter Include="Window">
       <UniqueIdentifier>{80187cae-f9b0-4685-ae88-66d732eaa3f8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Memory">
+      <UniqueIdentifier>{df69379d-aa69-4ee1-a27b-617513f2e010}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Controller.cpp">
@@ -57,6 +60,9 @@
     <ClCompile Include="ProcessManager.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Memory.cpp">
+      <Filter>Memory</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Controller.h">
@@ -85,6 +91,9 @@
     </ClInclude>
     <ClInclude Include="ProcessManager.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Memory.h">
+      <Filter>Memory</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

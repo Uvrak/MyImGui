@@ -1,5 +1,6 @@
 #include "DosBoxWindow.h"
-
+#include "Mouse.h"
+#include "NamedPipeClient.h"
 #include "FrameTexture.h"
 
 #include "imgui.h"
@@ -10,7 +11,9 @@ namespace GridBuilderHost
         DosBoxX::FrameTexture& frameTexture,
         uint32_t contentWidth,
         uint32_t contentHeight,
-        bool showCoordinates
+        bool showCoordinates,
+        DosBoxX::Mouse& dosBoxMouse,
+        DosBoxX::NamedPipeClient& dosBoxPipeClient
     )
     {
         ImGui::Begin(
@@ -88,59 +91,76 @@ namespace GridBuilderHost
                 )
             );
 
-            if (showCoordinates)
-            {
-                const ImVec2 mousePos =
-                    ImGui::GetMousePos();
+            const ImVec2 mousePos =
+    ImGui::GetMousePos();
 
-                const ImVec2 imageMax(
-                    imageMin.x + imageSize.x,
-                    imageMin.y + imageSize.y
-                );
+const ImVec2 imageMax(
+    imageMin.x + imageSize.x,
+    imageMin.y + imageSize.y
+);
 
-                const bool mouseInsideImage =
-                    mousePos.x >= imageMin.x &&
-                    mousePos.x < imageMax.x &&
-                    mousePos.y >= imageMin.y &&
-                    mousePos.y < imageMax.y;
+const bool mouseInsideImage =
+    mousePos.x >= imageMin.x &&
+    mousePos.x < imageMax.x &&
+    mousePos.y >= imageMin.y &&
+    mousePos.y < imageMax.y;
 
-                if (mouseInsideImage)
-                {
-                    const float localX =
-                        mousePos.x - imageMin.x;
+if (mouseInsideImage)
+{
+    const float localX =
+        mousePos.x - imageMin.x;
 
-                    const float localY =
-                        mousePos.y - imageMin.y;
+    const float localY =
+        mousePos.y - imageMin.y;
 
-                    const int contentX =
-                        static_cast<int>(
-                            localX /
-                            imageSize.x *
-                            static_cast<float>(
-                                contentWidth
-                                )
-                            );
+    const int contentX =
+        static_cast<int>(
+            localX /
+            imageSize.x *
+            static_cast<float>(
+                contentWidth
+            )
+        );
 
-                    const int contentY =
-                        static_cast<int>(
-                            localY /
-                            imageSize.y *
-                            static_cast<float>(
-                                contentHeight
-                                )
-                            );
+    const int contentY =
+        static_cast<int>(
+            localY /
+            imageSize.y *
+            static_cast<float>(
+                contentHeight
+            )
+        );
 
-                    ImGui::BeginTooltip();
+    if (showCoordinates)
+    {
+        ImGui::BeginTooltip();
 
-                    ImGui::Text(
-                        "X: %d  Y: %d",
-                        contentX,
-                        contentY
-                    );
+        ImGui::Text(
+            "X: %d  Y: %d",
+            contentX,
+            contentY
+        );
 
-                    ImGui::EndTooltip();
-                }
-            }
+        ImGui::EndTooltip();
+    }
+
+    if (ImGui::IsMouseClicked(
+        ImGuiMouseButton_Left
+    ))
+    {
+        dosBoxMouse.click(
+            dosBoxPipeClient,
+            contentX,
+            contentY,
+            static_cast<int>(
+                contentWidth
+            ),
+            static_cast<int>(
+                contentHeight
+            )
+        );
+    }
+}
         }
 
 
