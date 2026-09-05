@@ -25,6 +25,9 @@ namespace DosBoxX
 
         ID3D11ShaderResourceView* textureView() const;
 
+        uint32_t width() const;
+        uint32_t height() const;
+
     private:
         ID3D11Device* m_device = nullptr;
         ID3D11DeviceContext* m_context = nullptr;

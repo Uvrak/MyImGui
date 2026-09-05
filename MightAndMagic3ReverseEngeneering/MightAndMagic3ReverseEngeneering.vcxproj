@@ -26,11 +26,13 @@
     <ClInclude Include="MightAndMagic3Inventory.h" />
     <ClInclude Include="MightAndMagic3ItemSource.h" />
     <ClInclude Include="MM3KeyBindings.h" />
+    <ClInclude Include="MM3Launcher.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="ScreenSignatures.h" />
     <ClInclude Include="StateReader.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="MM3Launcher.cpp" />
     <ClCompile Include="ScreenSignatures.cpp" />
     <ClCompile Include="ItemExplorerWindow.cpp" />
     <ClCompile Include="MightAndMagic3ItemSource.cpp" />
@@ -144,7 +146,7 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)GridBuilderEditor;$(SolutionDir)GridBuilderGame;$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)DosBoxX;$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)GridBuilderEditor;$(SolutionDir)GridBuilderGame;$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)ThirdParty\imgui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>

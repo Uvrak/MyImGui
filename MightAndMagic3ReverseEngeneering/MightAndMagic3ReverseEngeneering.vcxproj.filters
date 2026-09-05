@@ -5,69 +5,78 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Source Files\Game">
+    <Filter Include="Game">
       <UniqueIdentifier>{51369327-89bf-40df-b854-466427517565}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Items">
+    <Filter Include="Input">
+      <UniqueIdentifier>{78e1cfea-58d2-4d78-86e6-c33adf7f6611}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Items">
       <UniqueIdentifier>{31a37333-4fda-4053-849b-f0816d381db8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Windows">
+    <Filter Include="Windows">
       <UniqueIdentifier>{41b44395-2049-4e98-8721-1e460ebc3643}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\Input">
-      <UniqueIdentifier>{78e1cfea-58d2-4d78-86e6-c33adf7f6611}</UniqueIdentifier>
+    <Filter Include="Launch">
+      <UniqueIdentifier>{1b224250-4540-4e76-85c3-c65c9f2e0070}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Item.h">
-      <Filter>Source Files\Items</Filter>
+      <Filter>Items</Filter>
     </ClInclude>
     <ClInclude Include="ItemSource.h">
-      <Filter>Source Files\Items</Filter>
+      <Filter>Items</Filter>
     </ClInclude>
     <ClInclude Include="MightAndMagic3ItemSource.h">
-      <Filter>Source Files\Items</Filter>
+      <Filter>Items</Filter>
     </ClInclude>
     <ClInclude Include="MightAndMagic3Inventory.h">
-      <Filter>Source Files\Items</Filter>
+      <Filter>Items</Filter>
     </ClInclude>
     <ClInclude Include="ItemExplorerWindow.h">
-      <Filter>Source Files\Windows</Filter>
+      <Filter>Windows</Filter>
     </ClInclude>
     <ClInclude Include="GameState.h">
-      <Filter>Source Files\Game</Filter>
+      <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="StateReader.h">
-      <Filter>Source Files\Game</Filter>
+      <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="Position.h">
-      <Filter>Source Files\Game</Filter>
+      <Filter>Game</Filter>
     </ClInclude>
     <ClInclude Include="MM3KeyBindings.h">
-      <Filter>Source Files\Input</Filter>
+      <Filter>Input</Filter>
     </ClInclude>
     <ClInclude Include="ScreenSignatures.h">
-      <Filter>Source Files\Game</Filter>
+      <Filter>Game</Filter>
+    </ClInclude>
+    <ClInclude Include="MM3Launcher.h">
+      <Filter>Launch</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ItemExplorerWindow.cpp">
-      <Filter>Source Files\Windows</Filter>
+      <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="MightAndMagic3ItemSource.cpp">
-      <Filter>Source Files\Items</Filter>
+      <Filter>Items</Filter>
     </ClCompile>
     <ClCompile Include="Position.cpp">
-      <Filter>Source Files\Game</Filter>
+      <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="StateReader.cpp">
-      <Filter>Source Files\Game</Filter>
+      <Filter>Game</Filter>
     </ClCompile>
     <ClCompile Include="MM3KeyBindings.cpp">
-      <Filter>Source Files\Input</Filter>
+      <Filter>Input</Filter>
     </ClCompile>
     <ClCompile Include="ScreenSignatures.cpp">
-      <Filter>Source Files\Game</Filter>
+      <Filter>Game</Filter>
+    </ClCompile>
+    <ClCompile Include="MM3Launcher.cpp">
+      <Filter>Launch</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

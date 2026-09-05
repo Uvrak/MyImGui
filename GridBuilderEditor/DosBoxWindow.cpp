@@ -260,11 +260,7 @@ void DosBoxWindow::draw()
             ImGuiFocusedFlags_RootAndChildWindows
         );
 
-    if (switchViewPressed &&
-        (
-            !m_inputActive ||
-            dosBoxWindowFocused
-            ))
+    if (switchViewPressed)
     {
         if (m_inputActive)
         {
@@ -1181,39 +1177,26 @@ void DosBoxWindow::draw()
                         }
                     }
 
-                    const ImVec2 imageMin =
-                        ImGui::GetItemRectMin();
-
-                    const ImVec2 imageMax =
-                        ImGui::GetItemRectMax();
+                    const ImVec2 imageMax(
+                        imagePos.x + imageSize.x,
+                        imagePos.y + imageSize.y
+                    );
 
                     if (m_inputActive)
                     {
-                        POINT topLeft{
-                            static_cast<LONG>(imageMin.x),
-                            static_cast<LONG>(imageMin.y)
-                        };
-
-                        POINT bottomRight{
-                            static_cast<LONG>(imageMax.x),
-                            static_cast<LONG>(imageMax.y)
-                        };
-
-                        ClientToScreen(
-                            m_parentHwnd,
-                            &topLeft
-                        );
-
-                        ClientToScreen(
-                            m_parentHwnd,
-                            &bottomRight
-                        );
-
                         RECT clipRect{
-                            topLeft.x,
-                            topLeft.y,
-                            bottomRight.x,
-                            bottomRight.y
+                            static_cast<LONG>(
+                                imagePos.x
+                            ),
+                            static_cast<LONG>(
+                                imagePos.y
+                            ),
+                            static_cast<LONG>(
+                                imageMax.x
+                            ),
+                            static_cast<LONG>(
+                                imageMax.y
+                            )
                         };
 
                         ClipCursor(
@@ -1228,7 +1211,19 @@ void DosBoxWindow::draw()
                     }
 
                     const bool dosBoxImageHovered =
-                        ImGui::IsItemHovered();
+                        ImGui::IsMouseHoveringRect(
+                            imagePos,
+                            imageMax
+                        );
+
+                    if (m_inputActive)
+                    {
+                        OutputDebugStringA(
+                            dosBoxImageHovered
+                            ? "DOS IMAGE HOVERED = 1\n"
+                            : "DOS IMAGE HOVERED = 0\n"
+                        );
+                    }
 
                     if (m_inputActive &&
                         dosBoxImageHovered)

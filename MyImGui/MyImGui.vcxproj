@@ -160,19 +160,18 @@
     <ClInclude Include="FlowLayout.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ItemSource.h" />
-    <ClInclude Include="MainMenu.h" />
     <ClInclude Include="MyImGui.h" />
     <ClInclude Include="MyImGuiSettings.h" />
     <ClInclude Include="MyImGuiSettingsWindow.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="RecordButton.h" />
+    <ClInclude Include="SettingsWindow.h" />
     <ClInclude Include="WindowCapture.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DragDropRecoder.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
-    <ClCompile Include="MainMenu.cpp" />
     <ClCompile Include="MyImGui.cpp" />
     <ClCompile Include="MyImGuiSettings.cpp" />
     <ClCompile Include="MyImGuiSettingsWindow.cpp" />
@@ -183,6 +182,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="RecordButton.cpp" />
+    <ClCompile Include="SettingsWindow.cpp" />
     <ClCompile Include="WindowCapture.cpp" />
   </ItemGroup>
   <ItemGroup>

@@ -3464,7 +3464,42 @@ namespace DosBoxMemoryTools
         return true;
     }
 
+    bool MemoryScanner::
+        getMemoryWriteWatchCaptureCount(
+            size_t& count
+        )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "MEMORYWRITE:COUNT",
+            response
+        ))
+        {
+            return false;
+        }
+
+        try
+        {
+            count =
+                static_cast<size_t>(
+                    std::stoull(
+                        response
+                    )
+                    );
+        }
+        catch (...)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    
+
     bool MemoryScanner::getMemoryWriteWatchCapture(
+        size_t index,
         RuntimeInstruction& instruction
     )
     {
@@ -3473,7 +3508,10 @@ namespace DosBoxMemoryTools
         std::string response;
 
         if (!m_pipeClient.request(
-            "MEMORYWRITE:GET",
+            "MEMORYWRITE:GET:" +
+            std::to_string(
+                index
+            ),
             response
         ))
         {

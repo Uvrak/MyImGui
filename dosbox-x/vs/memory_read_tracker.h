@@ -150,6 +150,16 @@ namespace MemoryReadTracker
     RuntimeInstruction
         memoryWriteWatchCapture();
 
+    size_t memoryWriteWatchCaptureCount();
+
+    RuntimeInstruction memoryWriteWatchCapture(
+        size_t index
+    );
+
+    uint8_t memoryWriteWatchCaptureValue(
+        size_t index
+    );
+
     uint8_t memoryWriteWatchValue();
 
     void clearMemoryWriteWatch();

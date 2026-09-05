@@ -25,14 +25,11 @@
     <Filter Include="ItemExplorer">
       <UniqueIdentifier>{0b99abfc-60cb-42c8-81cc-2cfdbf89f6ac}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Games">
-      <UniqueIdentifier>{88a4d003-0533-4872-8b54-870646681703}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Games\docs">
-      <UniqueIdentifier>{298750f3-cbd0-411d-90a5-bd944776a1ad}</UniqueIdentifier>
-    </Filter>
     <Filter Include="RecordButton">
       <UniqueIdentifier>{b85af1da-6cc0-421e-9f61-6eb5977df2fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Settings">
+      <UniqueIdentifier>{91873cb9-80b4-4e9d-859a-120ca99e9bda}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -57,9 +54,6 @@
     <ClInclude Include="WindowCapture.h">
       <Filter>Windows</Filter>
     </ClInclude>
-    <ClInclude Include="MainMenu.h">
-      <Filter>Layout</Filter>
-    </ClInclude>
     <ClInclude Include="MyImGuiSettings.h">
       <Filter>UiSettings</Filter>
     </ClInclude>
@@ -71,6 +65,9 @@
     </ClInclude>
     <ClInclude Include="ItemSource.h">
       <Filter>Wigets</Filter>
+    </ClInclude>
+    <ClInclude Include="SettingsWindow.h">
+      <Filter>Settings</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -92,9 +89,6 @@
     <ClCompile Include="WindowCapture.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
-    <ClCompile Include="MainMenu.cpp">
-      <Filter>Layout</Filter>
-    </ClCompile>
     <ClCompile Include="MyImGuiSettings.cpp">
       <Filter>UiSettings</Filter>
     </ClCompile>
@@ -103,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="RecordButton.cpp">
       <Filter>RecordButton</Filter>
+    </ClCompile>
+    <ClCompile Include="SettingsWindow.cpp">
+      <Filter>Settings</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

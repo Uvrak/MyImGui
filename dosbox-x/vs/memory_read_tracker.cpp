@@ -65,6 +65,17 @@ namespace
     MemoryReadTracker::RuntimeInstruction
         capturedExecutionInstruction;
 
+    struct MemoryWriteCapture
+    {
+        MemoryReadTracker::RuntimeInstruction
+            instruction;
+
+        uint8_t writeValue = 0;
+    };
+
+    std::deque<MemoryWriteCapture>
+        capturedMemoryWriteInstructions;
+
     LinearPt
         currentStackAddress = 0;
 
@@ -1020,6 +1031,8 @@ void MemoryReadTracker::setMemoryWriteWatchTarget(
 
     capturedMemoryWriteValue =
         0;
+
+    capturedMemoryWriteInstructions.clear();
 }
 
 LinearPt MemoryReadTracker::memoryWriteWatchTarget()
@@ -1044,6 +1057,57 @@ MemoryReadTracker::memoryWriteWatchCapture()
     );
 
     return capturedMemoryWriteInstruction;
+}
+
+size_t MemoryReadTracker::memoryWriteWatchCaptureCount()
+{
+    {
+        std::lock_guard<std::mutex> lock(
+            readAddressesMutex
+        );
+
+        return capturedMemoryWriteInstructions.size();
+    }
+}
+
+MemoryReadTracker::RuntimeInstruction
+MemoryReadTracker::memoryWriteWatchCapture(
+    size_t index
+)
+{
+    std::lock_guard<std::mutex> lock(
+        readAddressesMutex
+    );
+
+    if(index >=
+        capturedMemoryWriteInstructions.size())
+    {
+        return RuntimeInstruction{};
+    }
+
+    return capturedMemoryWriteInstructions[
+        index
+    ].instruction;
+}
+
+uint8_t MemoryReadTracker::
+memoryWriteWatchCaptureValue(
+    size_t index
+)
+{
+    std::lock_guard<std::mutex> lock(
+        readAddressesMutex
+    );
+
+    if(index >=
+        capturedMemoryWriteInstructions.size())
+    {
+        return 0;
+    }
+
+    return capturedMemoryWriteInstructions[
+        index
+    ].writeValue;
 }
 
 uint8_t MemoryReadTracker::
@@ -1071,6 +1135,9 @@ void MemoryReadTracker::clearMemoryWriteWatch()
 
     capturedMemoryWriteValue =
         0;
+
+    capturedMemoryWriteInstructions.clear();
+
 }
 
 void MemoryReadTracker::recordMemoryWrite(
@@ -1111,11 +1178,6 @@ void MemoryReadTracker::recordMemoryWrite(
         readAddressesMutex
     );
 
-    if(hasMemoryWriteWatchHit)
-    {
-        return;
-    }
-
     capturedMemoryWriteValue =
         value;
 
@@ -1132,6 +1194,13 @@ void MemoryReadTracker::recordMemoryWrite(
                 static_cast<LinearPt>(i)
             );
     }
+
+    capturedMemoryWriteInstructions.push_back(
+        MemoryWriteCapture{
+            capturedMemoryWriteInstruction,
+            value
+        }
+    );
 
     hasMemoryWriteWatchHit =
         true;
