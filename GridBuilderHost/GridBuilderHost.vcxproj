@@ -170,6 +170,7 @@
   <ItemGroup>
     <ClInclude Include="DosBoxFramePipeline.h" />
     <ClInclude Include="DosBoxWindow.h" />
+    <ClInclude Include="GameLauncher.h" />
     <ClInclude Include="HostApplication.h" />
     <ClInclude Include="HostFontSettings.h" />
     <ClInclude Include="HostRenderer.h" />

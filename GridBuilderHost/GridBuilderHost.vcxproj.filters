@@ -13,14 +13,14 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Host">
-      <UniqueIdentifier>{5bd22ff5-6e4d-4428-acb2-52bd8138de22}</UniqueIdentifier>
-    </Filter>
     <Filter Include="DosBox">
       <UniqueIdentifier>{d049e423-5abb-4a94-8378-e218b8c0a24b}</UniqueIdentifier>
     </Filter>
     <Filter Include="ImGui">
       <UniqueIdentifier>{2f755b52-0809-40a9-b47f-cc3c204bc0dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GridBuilderHost">
+      <UniqueIdentifier>{5bd22ff5-6e4d-4428-acb2-52bd8138de22}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -28,16 +28,16 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="HostWindow.cpp">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClCompile>
     <ClCompile Include="HostApplication.cpp">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClCompile>
     <ClCompile Include="HostWindowState.cpp">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClCompile>
     <ClCompile Include="HostRenderer.cpp">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClCompile>
     <ClCompile Include="DosBoxFramePipeline.cpp">
       <Filter>DosBox</Filter>
@@ -55,27 +55,27 @@
       <Filter>ImGui</Filter>
     </ClCompile>
     <ClCompile Include="HostUi.cpp">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClCompile>
     <ClCompile Include="HostFontSettings.cpp">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClCompile>
     <ClCompile Include="HostSettings.cpp">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HostWindow.h">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClInclude>
     <ClInclude Include="HostApplication.h">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClInclude>
     <ClInclude Include="HostWindowState.h">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClInclude>
     <ClInclude Include="HostRenderer.h">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClInclude>
     <ClInclude Include="DosBoxFramePipeline.h">
       <Filter>DosBox</Filter>
@@ -93,13 +93,16 @@
       <Filter>ImGui</Filter>
     </ClInclude>
     <ClInclude Include="HostUi.h">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClInclude>
     <ClInclude Include="HostFontSettings.h">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
     </ClInclude>
     <ClInclude Include="HostSettings.h">
-      <Filter>Host</Filter>
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="GameLauncher.h">
+      <Filter>GridBuilderHost</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
