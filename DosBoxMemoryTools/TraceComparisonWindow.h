@@ -5,6 +5,9 @@
 #include <cstring>
 
 #include "TraceComparison.h"
+#include "TraceComparisonToolbar.h"
+#include "TraceListView.h"
+#include "TraceDetailView.h"
 
 namespace DosBoxMemoryTools
 {
@@ -13,9 +16,9 @@ namespace DosBoxMemoryTools
 	public:
 		using PhysicalAddrResolver = std::function<bool(const RuntimeInstruction&, size_t&)>;
 
-		TraceComparisonWindow() = default;
+		TraceComparisonWindow();
 
-		void draw(
+	void draw(
 			const std::vector<RuntimeInstruction>& traceA,
 			const std::vector<RuntimeInstruction>& traceB,
 			char* targetText,
@@ -23,12 +26,19 @@ namespace DosBoxMemoryTools
 			PhysicalAddrResolver tryGetPhysicalMemoryAddress
 		);
 
+	// New: allow external callers (TrackingWindow) to request enabling side-by-side view
+	void setSideBySide(bool v) { m_sideBySide = v; m_toolbar.setSideBySideState(v); }
+
+	// Query side-by-side state
+	bool sideBySide() const { return m_sideBySide; }
+
 		static bool loadTraceFromFile(const std::string& filename, std::vector<RuntimeInstruction>& trace);
 		static bool saveTraceToFile(const std::string& filename, const std::vector<RuntimeInstruction>& trace);
 
 		// Accessors for traces and filenames to allow gradual migration
 		const std::vector<RuntimeInstruction>& traceA() const { return m_traceA; }
 		const std::vector<RuntimeInstruction>& traceB() const { return m_traceB; }
+		bool hasLoadedTraceA() const { return m_hasLoadedTraceA; }
 
 		const char* traceAFilename() const { return m_traceAFilename[0] ? m_traceAFilename : ""; }
 		const char* traceBFilename() const { return m_traceBFilename[0] ? m_traceBFilename : ""; }
@@ -40,6 +50,8 @@ namespace DosBoxMemoryTools
 		void setTraceBFilename(const char* fn) { if (fn) strncpy_s(m_traceBFilename, sizeof(m_traceBFilename), fn, _TRUNCATE); }
 
 	private:
+		bool m_hasLoadedTraceA = false;
+		std::string m_persistenceErrors[2];
 		std::vector<RuntimeInstruction> m_traceA;
 		std::vector<RuntimeInstruction> m_traceB;
 
@@ -49,9 +61,16 @@ namespace DosBoxMemoryTools
 		size_t m_selectedTraceIndex = static_cast<size_t>(-1);
 		bool m_scrollToSelectedTrace = false;
 
+		bool m_sideBySide = true;
+
+		// UI components
+		TraceComparisonToolbar m_toolbar;
+		TraceListView m_listView;
+		TraceDetailView m_detailView;
+
 	public:
 		size_t selectedTraceIndex() const { return m_selectedTraceIndex; }
-		void setSelectedTraceIndex(size_t v) { m_selectedTraceIndex = v; }
+	void setSelectedTraceIndex(size_t v) { m_selectedTraceIndex = v; m_listView.setSelectedIndex(v); m_listView.requestScrollToSelected(); }
 		void setScrollToSelectedTrace(bool v) { m_scrollToSelectedTrace = v; }
 		bool takeScrollToSelectedTrace() { bool v = m_scrollToSelectedTrace; m_scrollToSelectedTrace = false; return v; }
 	public:
@@ -59,5 +78,8 @@ namespace DosBoxMemoryTools
 		bool openAndLoadTrace(bool forA);
 		// Open file dialog and save A or B
 		bool openAndSaveTrace(bool forA);
+
+		// Draw only the toolbar (for embedding in other windows)
+		void drawToolbar();
 	};
 }

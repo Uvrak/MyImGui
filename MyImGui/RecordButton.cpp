@@ -71,11 +71,14 @@ namespace MyImGui
             style.FramePadding.y * 2.0f
         );
 
+        // Ensure each RecordButton instance gets a unique ImGui id to avoid collisions
+        ImGui::PushID((void*)this);
         const bool clicked =
             ImGui::Button(
                 "##RecordButton",
                 buttonSize
             );
+        ImGui::PopID();
 
         const ImVec2 buttonMin =
             ImGui::GetItemRectMin();

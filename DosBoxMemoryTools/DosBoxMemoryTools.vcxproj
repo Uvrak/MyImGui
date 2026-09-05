@@ -28,10 +28,16 @@
     <ClCompile Include="MemorySnapshot.cpp" />
     <ClCompile Include="MemoryTools.cpp" />
     <ClCompile Include="MemoryViewerWindow.cpp" />
+    <ClCompile Include="tests\RecordButtonFloatingWindowTest.cpp" />
     <ClCompile Include="TraceComparison.cpp" />
-    <ClCompile Include="TraceComparisonWindow.cpp" />
+    <ClCompile Include="TraceComparisonPersistence.cpp" />
+    <ClCompile Include="TraceComparisonToolbar.cpp" />
+    <ClCompile Include="TraceComparisonWindow.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="TraceDetailView.cpp" />
+    <ClCompile Include="TraceListView.cpp" />
     <ClCompile Include="TraceTracking.cpp" />
-    <ClCompile Include="TraceWindow.cpp" />
     <ClCompile Include="TrackingWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -45,9 +51,12 @@
     <ClInclude Include="MemoryViewerWindow.h" />
     <ClInclude Include="MemoryWriteTracker.h" />
     <ClInclude Include="TraceComparison.h" />
+    <ClInclude Include="TraceComparisonPersistence.h" />
+    <ClInclude Include="TraceComparisonToolbar.h" />
     <ClInclude Include="TraceComparisonWindow.h" />
+    <ClInclude Include="TraceDetailView.h" />
+    <ClInclude Include="TraceListView.h" />
     <ClInclude Include="TraceTracking.h" />
-    <ClInclude Include="TraceWindow.h" />
     <ClInclude Include="TrackingWindow.h" />
   </ItemGroup>
   <ItemGroup>
@@ -60,6 +69,9 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="2026-08-29.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scripts\bootstrap_vcpkg_and_gtest.ps1" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>

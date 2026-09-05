@@ -203,6 +203,21 @@ namespace DosBoxMemoryTools
             {
             case TrackingTab::Trace:
                 m_traceTracking.draw();
+
+                {
+                    const auto& liveTrace =
+                        m_traceTracking.m_trace;
+
+                    if (!m_traceComparisonWindow.hasLoadedTraceA() &&
+                        !liveTrace.empty() &&
+                        m_traceComparisonWindow.traceA().size() !=
+                        liveTrace.size())
+                    {
+                        m_traceComparisonWindow.setTraceA(
+                            liveTrace
+                        );
+                    }
+                }
                 break;
 
             case TrackingTab::Trans:
@@ -276,23 +291,17 @@ namespace DosBoxMemoryTools
                     true;
             }
 
+            // Draw Side-by-side checkbox next to Load B in the top navigation
             ImGui::SameLine();
-
-            if (ImGui::Button(
-                "Save A"
-            ))
             {
-                m_saveTraceARequested = true;
+                bool side = m_traceComparisonWindow.sideBySide();
+                if (ImGui::Checkbox("Side-by-side##TraceNav", &side))
+                {
+                    m_traceComparisonWindow.setSideBySide(side);
+                }
             }
 
-            ImGui::SameLine();
-
-            if (ImGui::Button(
-                "Save B"
-            ))
-            {
-                m_saveTraceBRequested = true;
-            }
+            // (Save buttons removed; saving is available in the recorder toolbar)
 
 
             ImGui::SameLine();
@@ -328,6 +337,10 @@ namespace DosBoxMemoryTools
                 ImGui::BeginDisabled();
             }
 
+            // Diagnostic: show counts of loaded traces next to Compare
+            ImGui::SameLine();
+            ImGui::Text("sizes: A=%zu B=%zu", m_traceComparisonWindow.traceA().size(), m_traceComparisonWindow.traceB().size());
+
             if (ImGui::Button(
                 "Compare"
             ))
@@ -349,6 +362,13 @@ namespace DosBoxMemoryTools
                         m_traceComparisonWindow.setSelectedTraceIndex(i);
 
                         m_traceComparisonWindow.setScrollToSelectedTrace(true);
+
+                        // ensure side-by-side view is enabled when user clicks Compare
+                        m_traceComparisonWindow.setSideBySide(true);
+
+                        // immediate debug feedback in UI to help diagnose why Compare may appear to do nothing
+                        ImGui::SameLine();
+                        ImGui::Text("Compare clicked: sel=%zu sideBySide=on A=%zu B=%zu", i, m_traceComparisonWindow.traceA().size(), m_traceComparisonWindow.traceB().size());
 
                         break;
                     }
@@ -1097,6 +1117,9 @@ namespace DosBoxMemoryTools
         }
 
         ImGui::Separator();
+
+        // Draw the trace comparison toolbar at top of the trace tab
+        m_traceComparisonWindow.drawToolbar();
 
         ImGui::TextUnformatted(
             "Stack at SS:SP:"

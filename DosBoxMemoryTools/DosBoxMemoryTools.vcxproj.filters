@@ -66,13 +66,13 @@
     <ClCompile Include="MemoryReadTrackerWindow.cpp">
       <Filter>Tracking</Filter>
     </ClCompile>
-    <ClCompile Include="TraceWindow.cpp">
-      <Filter>Tracking</Filter>
-    </ClCompile>
     <ClCompile Include="TrackingWindow.cpp">
       <Filter>Tracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceComparison.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceComparisonPersistence.cpp">
       <Filter>Trace</Filter>
     </ClCompile>
     <ClCompile Include="MemoryWriteTracker.cpp">
@@ -83,6 +83,18 @@
     </ClCompile>
     <ClCompile Include="TraceComparisonWindow.cpp">
       <Filter>Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceComparisonToolbar.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceDetailView.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceListView.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="tests\RecordButtonFloatingWindowTest.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -110,13 +122,13 @@
     <ClInclude Include="MemoryReadTrackerWindow.h">
       <Filter>Tracking</Filter>
     </ClInclude>
-    <ClInclude Include="TraceWindow.h">
-      <Filter>Tracking</Filter>
-    </ClInclude>
     <ClInclude Include="TrackingWindow.h">
       <Filter>Tracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceComparison.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceComparisonPersistence.h">
       <Filter>Trace</Filter>
     </ClInclude>
     <ClInclude Include="MemoryWriteTracker.h">
@@ -128,10 +140,22 @@
     <ClInclude Include="TraceComparisonWindow.h">
       <Filter>Trace</Filter>
     </ClInclude>
+    <ClInclude Include="TraceListView.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceDetailView.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceComparisonToolbar.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="2026-08-29.txt">
       <Filter>MightAndMagic3\docs</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="scripts\bootstrap_vcpkg_and_gtest.ps1" />
   </ItemGroup>
 </Project>

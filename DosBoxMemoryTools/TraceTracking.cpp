@@ -144,6 +144,13 @@ namespace DosBoxMemoryTools
                 );
             }
         }
+
+        // Place a small Save button next to the Record button to save the current trace (left/main)
+        ImGui::SameLine();
+        if (ImGui::Button("save"))
+        {
+            m_saveTraceRequested = true;
+        }
     }
     
     void TraceTracking::drawTrace()
@@ -239,6 +246,14 @@ namespace DosBoxMemoryTools
                 "Not found"
             );
         }
+
+        // Keep the recorder and navigation above the scrolling trace rows.
+        ImGui::BeginChild(
+            "TraceRecords",
+            ImVec2(0.0f, 0.0f),
+            false,
+            ImGuiWindowFlags_HorizontalScrollbar
+        );
 
         for (size_t i = 0;
             i < m_trace.size();
@@ -454,6 +469,7 @@ namespace DosBoxMemoryTools
                     )
             );
         }
+        ImGui::EndChild();
     }
     
     bool TraceTracking::loadTraceFromFile(

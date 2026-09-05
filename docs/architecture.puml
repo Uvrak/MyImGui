@@ -2,9 +2,12 @@
 
 skinparam componentStyle rectangle
 
+
 component "GridBuilderHost\n<<EXE>>\n\nmain()\nImGui / DX11 Host\nverbindet Komponenten" as Host
 
 component "DosBoxX\n<<Library>>\n\nView\nMouse\nKeyboard\nFrameReader\nFrameTexture\nController\nNamedPipeClient" as DosBoxX
+
+component "dosbox-x\n<<EXE / Process>>" as DosBoxProcess
 
 component "DosBoxMemoryTools\n<<Library>>\n\nMemoryReader\nMemoryScanner\nTracking\nDisassembly" as MemoryTools
 
@@ -12,7 +15,9 @@ component "MightAndMagic3ReverseEngineering\n<<Library>>\n\nMM3GameModule\nState
 
 component "GridBuilderEditor\n<<Library>>\n\nWorldView\nMap / Chunk / Cell\nEditor Tools\nSerializer\nPixel Editor Integration" as Editor
 
-Host --> DosBoxX : benutzt
+HoHost --> DosBoxX : Controller / NamedPipeClient / FrameReader / FrameTexturest --> DosBoxX : Controller / FrameReader / FrameTexture
+DosBoxX --> DosBoxProcess : startet / steuert / liest Frames
+
 Host --> MemoryTools : benutzt
 
 @enduml

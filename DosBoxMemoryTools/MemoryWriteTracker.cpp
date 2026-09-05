@@ -55,6 +55,14 @@ namespace DosBoxMemoryTools
             }
         }
 
+        // Keep the record button above the scrolling captures and details.
+        ImGui::BeginChild(
+            "MemoryWriteRecords",
+            ImVec2(0.0f, 0.0f),
+            false,
+            ImGuiWindowFlags_HorizontalScrollbar
+        );
+
         bool memoryWriteHit =
             false;
 
@@ -210,6 +218,7 @@ namespace DosBoxMemoryTools
 
         if (!m_captureHit)
         {
+            ImGui::EndChild();
             return;
         }
 
@@ -368,5 +377,6 @@ namespace DosBoxMemoryTools
                     )
             );
         }
+        ImGui::EndChild();
     }
 }
