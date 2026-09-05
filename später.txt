@@ -1,0 +1,24 @@
+Weiter mit TraceTracking-Refactor:
+
+- Normaler Trace wurde weitgehend aus TrackingWindow nach TraceTracking ausgelagert.
+- TrackingWindow::drawTrace(), loadTrace() und saveTraceToFile() wurden entfernt.
+- m_trace, m_recordButton und m_traceWasArmedOrActive wurden aus TrackingWindow entfernt.
+- Trace-Navigation für den normalen Trace wurde aus TrackingWindow entfernt.
+- drawTransitions() benutzt jetzt korrekt m_selectedHistoryInstruction statt m_selectedTraceIndex.
+- m_selectedTraceIndex und m_scrollToSelectedTrace bleiben vorerst, weil sie noch zur A/B-Trace-Comparison gehören.
+- m_compareTraces wurde entfernt, weil es nach Entfernung von drawTrace() nur noch gesetzt, aber nicht mehr gelesen wurde.
+- m_traceA / m_traceB und die Comparison-Funktionen bleiben erhalten.
+- Build ist aktuell sauber.
+
+NÄCHSTER SCHRITT:
+In TrackingWindow.cpp nach
+
+    drawTraceComparison(
+
+suchen und die Treffer ansehen.
+
+Ziel danach:
+Die komplette A/B-Vergleichsfunktionalität schrittweise aus TrackingWindow in eine eigene TraceComparisonWindow.h/.cpp auslagern.
+
+Wichtig:
+Nur kleine Schritte und nach jedem Schritt bauen.

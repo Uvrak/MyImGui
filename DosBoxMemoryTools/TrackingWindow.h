@@ -8,6 +8,8 @@
 #include "RecordButton.h"
 #include "TraceComparison.h"
 #include "MemoryWriteTracker.h"
+#include "TraceTracking.h"
+#include "TraceComparisonWindow.h"
 
 namespace DosBoxMemoryTools
 {
@@ -26,7 +28,6 @@ namespace DosBoxMemoryTools
         );
 
         void saveSession() const;
-        void loadSession();
 
 
         void setGameId(
@@ -36,8 +37,6 @@ namespace DosBoxMemoryTools
     private:
         void drawNavigation();
         void drawRecorder();
-
-        void drawTrace();
         void drawTransitions();
         void captureTransitions();
         void drawExecutionCapture();
@@ -49,16 +48,7 @@ namespace DosBoxMemoryTools
             bool highlightChanges
         );
 
-        void loadTrace();
-
-        void saveTraceToFile(
-            const std::string& filename
-        ) const;
-
-        bool loadTraceFromFile(
-            const std::string& filename,
-            std::vector<RuntimeInstruction>& trace
-        );
+        // Trace load/save moved to TraceComparisonWindow
 
         MemoryScanner&
             m_scanner;
@@ -66,38 +56,16 @@ namespace DosBoxMemoryTools
         std::string
             m_gameId;
 
-        std::vector<RuntimeInstruction>
-            m_trace;
-
-        std::vector<RuntimeInstruction>
-            m_traceA;
-
-        std::vector<RuntimeInstruction>
-            m_traceB;
-
-        char m_traceAFilename[4096] = {};
-        char m_traceBFilename[4096] = {};
 
         bool m_loadTraceARequested = false;
         bool m_loadTraceBRequested = false;
-
-        bool m_compareTraces = false;
-
-        MyImGui::RecordButton
-            m_recordButton;
+        bool m_saveTraceARequested = false;
+        bool m_saveTraceBRequested = false;
 
         char m_targetText[32] =
             "0x31C33";
 
-        size_t m_selectedTraceIndex =
-            static_cast<size_t>(-1);
-
-        bool m_traceWasArmedOrActive = false;
-
-        bool m_scrollToSelectedTrace = false;
-
-        bool m_saveTraceRequested = false;
-        bool m_loadTraceRequested = false;
+        // selection moved to TraceComparisonWindow
 
         bool m_loadCompareTraceRequested = false;
 
@@ -171,5 +139,11 @@ namespace DosBoxMemoryTools
             m_memoryWriteTracker;
 
         void selectNextControlFlowDifference();
+
+        TraceTracking
+            m_traceTracking;
+
+        TraceComparisonWindow
+            m_traceComparisonWindow;
     };
 }

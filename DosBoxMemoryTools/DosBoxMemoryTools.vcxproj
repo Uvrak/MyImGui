@@ -29,6 +29,8 @@
     <ClCompile Include="MemoryTools.cpp" />
     <ClCompile Include="MemoryViewerWindow.cpp" />
     <ClCompile Include="TraceComparison.cpp" />
+    <ClCompile Include="TraceComparisonWindow.cpp" />
+    <ClCompile Include="TraceTracking.cpp" />
     <ClCompile Include="TraceWindow.cpp" />
     <ClCompile Include="TrackingWindow.cpp" />
   </ItemGroup>
@@ -43,6 +45,8 @@
     <ClInclude Include="MemoryViewerWindow.h" />
     <ClInclude Include="MemoryWriteTracker.h" />
     <ClInclude Include="TraceComparison.h" />
+    <ClInclude Include="TraceComparisonWindow.h" />
+    <ClInclude Include="TraceTracking.h" />
     <ClInclude Include="TraceWindow.h" />
     <ClInclude Include="TrackingWindow.h" />
   </ItemGroup>

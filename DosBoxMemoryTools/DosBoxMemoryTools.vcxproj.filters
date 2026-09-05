@@ -78,6 +78,12 @@
     <ClCompile Include="MemoryWriteTracker.cpp">
       <Filter>Tracking</Filter>
     </ClCompile>
+    <ClCompile Include="TraceTracking.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceComparisonWindow.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -115,6 +121,12 @@
     </ClInclude>
     <ClInclude Include="MemoryWriteTracker.h">
       <Filter>Tracking</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceTracking.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceComparisonWindow.h">
+      <Filter>Trace</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

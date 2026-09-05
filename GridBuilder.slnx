@@ -3,6 +3,9 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="später.txt" />
+  </Folder>
   <Project Path="dosbox-x/vs/dosbox-x.vcxproj" Id="8a52284e-5115-453e-ad4b-87b8fcdb1244">
     <BuildType Solution="Debug|x64" Project="Debug SDL2" />
   </Project>
