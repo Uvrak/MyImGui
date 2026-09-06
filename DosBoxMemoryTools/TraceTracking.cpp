@@ -250,7 +250,7 @@ namespace DosBoxMemoryTools
         // Keep the recorder and navigation above the scrolling trace rows.
         ImGui::BeginChild(
             "TraceRecords",
-            ImVec2(0.0f, 0.0f),
+            ImVec2(0.0f, 400.0f),
             false,
             ImGuiWindowFlags_HorizontalScrollbar
         );
@@ -396,7 +396,10 @@ namespace DosBoxMemoryTools
                         )
                 );
 
-                ImGui::SameLine();
+                if (byteIndex + 1 < byteCount)
+                {
+                    ImGui::SameLine();
+                }
             }
 
             ImGui::Text(
@@ -409,7 +412,7 @@ namespace DosBoxMemoryTools
                     )
             );
 
-            ImGui::SameLine();
+			ImGui::SameLine();
 
             if (decoded)
             {

@@ -8,6 +8,8 @@
 #include "TraceComparisonToolbar.h"
 #include "TraceListView.h"
 #include "TraceDetailView.h"
+#include "TraceRecordView.h"
+#include "TraceComparisonFilter.h"
 
 namespace DosBoxMemoryTools
 {
@@ -81,5 +83,13 @@ namespace DosBoxMemoryTools
 
 		// Draw only the toolbar (for embedding in other windows)
 		void drawToolbar();
+
+		TraceRecordView m_recordView;
+
+		void selectFirstDifference();
+
+		size_t findDifferenceStart(
+			size_t index
+		) const;
 	};
 }

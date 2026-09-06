@@ -362,3 +362,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 vcpkg/
+.aider*
+/ipc_key_debug.txt
+/MemoryToolsApp/imgui.ini

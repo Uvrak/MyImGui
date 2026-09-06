@@ -217,6 +217,7 @@ namespace DosBoxMemoryTools
                             liveTrace
                         );
                     }
+                    drawTraceComparison();
                 }
                 break;
 
@@ -304,120 +305,7 @@ namespace DosBoxMemoryTools
             // (Save buttons removed; saving is available in the recorder toolbar)
 
 
-            ImGui::SameLine();
-
-            const bool canCompare =
-                !m_traceComparisonWindow.traceA().empty() &&
-                !m_traceComparisonWindow.traceB().empty();
-
-            bool tracesEqual = false;
-
-            if (!m_traceComparisonWindow.traceA().empty() &&
-                m_traceComparisonWindow.traceA().size() == m_traceComparisonWindow.traceB().size())
-            {
-                tracesEqual = true;
-
-                for (size_t i = 0;
-                    i < m_traceComparisonWindow.traceA().size();
-                    ++i)
-                {
-                    if (compareTraceInstructions(
-                        m_traceComparisonWindow.traceA()[i],
-                        m_traceComparisonWindow.traceB()[i]
-                    ).any())
-                    {
-                        tracesEqual = false;
-                        break;
-                    }
-                }
-
-            }
-            if (!canCompare)
-            {
-                ImGui::BeginDisabled();
-            }
-
-            // Diagnostic: show counts of loaded traces next to Compare
-            ImGui::SameLine();
-            ImGui::Text("sizes: A=%zu B=%zu", m_traceComparisonWindow.traceA().size(), m_traceComparisonWindow.traceB().size());
-
-            if (ImGui::Button(
-                "Compare"
-            ))
-            {
-                m_traceComparisonWindow.setSelectedTraceIndex(
-                    static_cast<size_t>(-1)
-                );
-
-                for (size_t i = 0;
-                    i < m_traceComparisonWindow.traceA().size() &&
-                    i < m_traceComparisonWindow.traceB().size();
-                    ++i)
-                {
-                    if (compareTraceInstructions(
-                        m_traceComparisonWindow.traceA()[i],
-                        m_traceComparisonWindow.traceB()[i]
-                    ).any())
-                    {
-                        m_traceComparisonWindow.setSelectedTraceIndex(i);
-
-                        m_traceComparisonWindow.setScrollToSelectedTrace(true);
-
-                        // ensure side-by-side view is enabled when user clicks Compare
-                        m_traceComparisonWindow.setSideBySide(true);
-
-                        // immediate debug feedback in UI to help diagnose why Compare may appear to do nothing
-                        ImGui::SameLine();
-                        ImGui::Text("Compare clicked: sel=%zu sideBySide=on A=%zu B=%zu", i, m_traceComparisonWindow.traceA().size(), m_traceComparisonWindow.traceB().size());
-
-                        break;
-                    }
-                }
-            }
-
-            if (!canCompare)
-            {
-                ImGui::EndDisabled();
-            }
-
-            ImGui::SameLine();
-
-            if (!m_traceComparisonWindow.traceA().empty() &&
-                !m_traceComparisonWindow.traceB().empty())
-            {
-                ImGui::Text(
-                    "Is Equal: %s",
-                    tracesEqual
-                    ? "Yes"
-                    : "No"
-                );
-
-                ImGui::SameLine();
-
-                ImGui::Text(
-                    "A: %zu  B: %zu",
-                    m_traceComparisonWindow.traceA().size(),
-                    m_traceComparisonWindow.traceB().size()
-                );
-            }
-        }
-
-        if (m_activeTab ==
-            TrackingTab::Trace)
-        {
-            ImGui::Text(
-                "A: %s",
-                m_traceComparisonWindow.traceAFilename()[0] != '\0'
-                ? m_traceComparisonWindow.traceAFilename()
-                : "<not loaded>"
-            );
-
-            ImGui::Text(
-                "B: %s",
-                m_traceComparisonWindow.traceBFilename()[0] != '\0'
-                ? m_traceComparisonWindow.traceBFilename()
-                : "<not loaded>"
-            );
+            
         }
 
         ImGui::SameLine();
@@ -888,7 +776,7 @@ namespace DosBoxMemoryTools
                         );
                     }
 
-                    ImGui::SameLine();
+                    ImGui::NewLine();
 
                     ImGui::Text(
                         "CS:IP %04X:%04X",
@@ -900,7 +788,7 @@ namespace DosBoxMemoryTools
                             )
                     );
 
-                    ImGui::SameLine();
+                    ImGui::NewLine();
 
                     if (decoded)
                     {

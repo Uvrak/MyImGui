@@ -5,10 +5,7 @@ namespace DosBoxMemoryTools
 {
 	void TraceComparisonToolbar::draw()
 	{
-		if (ImGui::SmallButton("Load A") && m_loadA) m_loadA();
-		ImGui::SameLine();
-	if (ImGui::SmallButton("Load B") && m_loadB) m_loadB();
-	ImGui::SameLine();
+	
 	// Draw Side-by-side checkbox next to Load B when toolbar is used embedded
 	ImGui::SetNextItemWidth(120.0f);
 	bool side = m_sideBySide;

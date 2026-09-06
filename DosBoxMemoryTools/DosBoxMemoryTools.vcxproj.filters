@@ -96,6 +96,12 @@
     <ClCompile Include="tests\RecordButtonFloatingWindowTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TraceRecordView.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
+    <ClCompile Include="TraceComparisonFilter.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -147,6 +153,12 @@
       <Filter>Trace</Filter>
     </ClInclude>
     <ClInclude Include="TraceComparisonToolbar.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceRecordView.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceComparisonFilter.h">
       <Filter>Trace</Filter>
     </ClInclude>
   </ItemGroup>
