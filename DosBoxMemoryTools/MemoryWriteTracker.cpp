@@ -47,6 +47,14 @@ namespace DosBoxMemoryTools
                         m_captureHit =
                             false;
                     }
+                    else
+                    {
+                        m_recordButton.stop();
+                    }
+                }
+                else
+                {
+                    m_recordButton.stop();
                 }
             }
             else
@@ -57,11 +65,14 @@ namespace DosBoxMemoryTools
 
         // Keep the record button above the scrolling captures and details.
         ImGui::BeginChild(
+
+        // Keep the record button above the scrolling captures and details.
+        ImGui::BeginChild(
             "MemoryWriteRecords",
             ImVec2(0.0f, 0.0f),
             false,
             ImGuiWindowFlags_HorizontalScrollbar
-        );
+        ));
 
         bool memoryWriteHit =
             false;
@@ -154,16 +165,6 @@ namespace DosBoxMemoryTools
                     }
                 }
                 RuntimeInstruction instruction{};
-
-                RuntimeInstruction previousInstruction{};
-
-                if (captureCount > 1)
-                {
-                    m_scanner.getMemoryWriteWatchCapture(
-                        captureCount - 2,
-                        previousInstruction
-                    );
-                }
 
                 if (captureCount > 0 &&
                     m_scanner.getMemoryWriteWatchCapture(

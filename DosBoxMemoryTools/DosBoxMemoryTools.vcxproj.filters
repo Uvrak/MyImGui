@@ -102,6 +102,15 @@
     <ClCompile Include="TraceComparisonFilter.cpp">
       <Filter>Trace</Filter>
     </ClCompile>
+    <ClCompile Include="TransitionTracking.cpp">
+      <Filter>Tracking</Filter>
+    </ClCompile>
+    <ClCompile Include="ExecutionTracking.h">
+      <Filter>Tracking</Filter>
+    </ClCompile>
+    <ClCompile Include="ExecutionTracking.cpp">
+      <Filter>Tracking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -160,6 +169,9 @@
     </ClInclude>
     <ClInclude Include="TraceComparisonFilter.h">
       <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TransitionTracking.h">
+      <Filter>Tracking</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

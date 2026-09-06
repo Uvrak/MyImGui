@@ -8,8 +8,6 @@
 
 namespace DosBoxMemoryTools
 {
-    class MemoryScanner;
-
     class TraceTracking
     {
     public:
@@ -22,33 +20,38 @@ namespace DosBoxMemoryTools
 
         void draw();
 
-        void loadTrace();
-
         void setGameId(
             const std::string& gameId
         );
 
-        std::vector<RuntimeInstruction>
-            m_trace;
+        void saveSession() const;
+
+        const std::vector<RuntimeInstruction>&
+            trace() const;
+
+    private:
+        void drawNavigation();
 
         void drawRecorder();
 
         void drawTrace();
 
-        bool loadTraceFromFile(const std::string& filename, std::vector<RuntimeInstruction>& trace);
+        void loadTrace();
+
+        bool loadTraceFromFile(
+            const std::string& filename,
+            std::vector<RuntimeInstruction>& trace
+        );
 
         void saveTraceToFile(
             const std::string& filename
         ) const;
 
-        void saveSession() const;
-
-    private:
-        void drawNavigation();
-
         void handleLoadTraceRequest();
 
         void handleSaveTraceRequest();
+
+        void loadSession();
 
         MemoryScanner&
             m_scanner;
@@ -62,6 +65,9 @@ namespace DosBoxMemoryTools
         char m_targetText[32] =
             "0x31C33";
 
+        std::vector<RuntimeInstruction>
+            m_trace;
+
         bool m_traceWasArmedOrActive =
             false;
 
@@ -73,8 +79,6 @@ namespace DosBoxMemoryTools
 
         bool m_loadTraceRequested =
             false;
-
-        void loadSession();
 
         bool m_saveTraceRequested =
             false;

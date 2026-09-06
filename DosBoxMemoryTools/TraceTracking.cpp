@@ -810,6 +810,12 @@ namespace DosBoxMemoryTools
         );
     }
 
+    const std::vector<RuntimeInstruction>&
+        TraceTracking::trace() const
+    {
+        return m_trace;
+    }
+
     void TraceTracking::loadSession()
     {
         if (m_gameId.empty())

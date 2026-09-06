@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 #include "MemoryScanner.h"
 #include "RecordButton.h"

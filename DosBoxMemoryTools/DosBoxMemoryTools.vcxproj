@@ -20,6 +20,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DisassemblyWindow.cpp" />
+    <ClCompile Include="ExecutionTracking.cpp" />
+    <ClCompile Include="ExecutionTracking.h" />
     <ClCompile Include="MemoryWriteTracker.cpp" />
     <ClCompile Include="Reader.cpp" />
     <ClCompile Include="MemoryReadTrackerWindow.cpp" />
@@ -41,6 +43,7 @@
     <ClCompile Include="TraceRecordView.cpp" />
     <ClCompile Include="TraceTracking.cpp" />
     <ClCompile Include="TrackingWindow.cpp" />
+    <ClCompile Include="TransitionTracking.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DisassemblyWindow.h" />
@@ -62,6 +65,7 @@
     <ClInclude Include="TraceRecordView.h" />
     <ClInclude Include="TraceTracking.h" />
     <ClInclude Include="TrackingWindow.h" />
+    <ClInclude Include="TransitionTracking.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">

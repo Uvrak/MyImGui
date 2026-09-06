@@ -1,95 +1,243 @@
 #pragma once
 
-#include <vector>
-#include <functional>
+#include <cstddef>
 #include <cstring>
+#include <functional>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "TraceComparison.h"
-#include "TraceComparisonToolbar.h"
-#include "TraceListView.h"
-#include "TraceDetailView.h"
-#include "TraceRecordView.h"
 #include "TraceComparisonFilter.h"
+#include "TraceComparisonToolbar.h"
+#include "TraceDetailView.h"
+#include "TraceListView.h"
+#include "TraceRecordView.h"
 
 namespace DosBoxMemoryTools
 {
-	class TraceComparisonWindow
-	{
-	public:
-		using PhysicalAddrResolver = std::function<bool(const RuntimeInstruction&, size_t&)>;
+    class TraceComparisonWindow
+    {
+    public:
+        using PhysicalAddrResolver =
+            std::function<
+            bool(
+                const RuntimeInstruction&,
+                size_t&
+                )
+            >;
 
-		TraceComparisonWindow();
+        TraceComparisonWindow();
 
-	void draw(
-			const std::vector<RuntimeInstruction>& traceA,
-			const std::vector<RuntimeInstruction>& traceB,
-			char* targetText,
-			size_t targetTextSize,
-			PhysicalAddrResolver tryGetPhysicalMemoryAddress
-		);
+        void draw();
 
-	// New: allow external callers (TrackingWindow) to request enabling side-by-side view
-	void setSideBySide(bool v) { m_sideBySide = v; m_toolbar.setSideBySideState(v); }
+        void drawToolbar();
 
-	// Query side-by-side state
-	bool sideBySide() const { return m_sideBySide; }
+        bool openAndLoadTrace(
+            bool forA
+        );
 
-		static bool loadTraceFromFile(const std::string& filename, std::vector<RuntimeInstruction>& trace);
-		static bool saveTraceToFile(const std::string& filename, const std::vector<RuntimeInstruction>& trace);
+        bool openAndSaveTrace(
+            bool forA
+        );
 
-		// Accessors for traces and filenames to allow gradual migration
-		const std::vector<RuntimeInstruction>& traceA() const { return m_traceA; }
-		const std::vector<RuntimeInstruction>& traceB() const { return m_traceB; }
-		bool hasLoadedTraceA() const { return m_hasLoadedTraceA; }
+        static bool loadTraceFromFile(
+            const std::string& filename,
+            std::vector<RuntimeInstruction>& trace
+        );
 
-		const char* traceAFilename() const { return m_traceAFilename[0] ? m_traceAFilename : ""; }
-		const char* traceBFilename() const { return m_traceBFilename[0] ? m_traceBFilename : ""; }
+        static bool saveTraceToFile(
+            const std::string& filename,
+            const std::vector<RuntimeInstruction>& trace
+        );
 
-		void setTraceA(std::vector<RuntimeInstruction> t) { m_traceA = std::move(t); }
-		void setTraceB(std::vector<RuntimeInstruction> t) { m_traceB = std::move(t); }
+        void setSideBySide(
+            bool value
+        )
+        {
+            m_sideBySide = value;
 
-		void setTraceAFilename(const char* fn) { if (fn) strncpy_s(m_traceAFilename, sizeof(m_traceAFilename), fn, _TRUNCATE); }
-		void setTraceBFilename(const char* fn) { if (fn) strncpy_s(m_traceBFilename, sizeof(m_traceBFilename), fn, _TRUNCATE); }
+            m_toolbar.setSideBySideState(
+                value
+            );
+        }
 
-	private:
-		bool m_hasLoadedTraceA = false;
-		std::string m_persistenceErrors[2];
-		std::vector<RuntimeInstruction> m_traceA;
-		std::vector<RuntimeInstruction> m_traceB;
+        bool sideBySide() const
+        {
+            return m_sideBySide;
+        }
 
-		char m_traceAFilename[4096] = {};
-		char m_traceBFilename[4096] = {};
-		// Selected instruction index for A/B comparison and scroll flag
-		size_t m_selectedTraceIndex = static_cast<size_t>(-1);
-		bool m_scrollToSelectedTrace = false;
+        const std::vector<RuntimeInstruction>& traceA() const
+        {
+            return m_traceA;
+        }
 
-		bool m_sideBySide = true;
+        const std::vector<RuntimeInstruction>& traceB() const
+        {
+            return m_traceB;
+        }
 
-		// UI components
-		TraceComparisonToolbar m_toolbar;
-		TraceListView m_listView;
-		TraceDetailView m_detailView;
+        void setTraceA(
+            std::vector<RuntimeInstruction> trace
+        )
+        {
+            m_traceA =
+                std::move(
+                    trace
+                );
+        }
 
-	public:
-		size_t selectedTraceIndex() const { return m_selectedTraceIndex; }
-	void setSelectedTraceIndex(size_t v) { m_selectedTraceIndex = v; m_listView.setSelectedIndex(v); m_listView.requestScrollToSelected(); }
-		void setScrollToSelectedTrace(bool v) { m_scrollToSelectedTrace = v; }
-		bool takeScrollToSelectedTrace() { bool v = m_scrollToSelectedTrace; m_scrollToSelectedTrace = false; return v; }
-	public:
-		// Open file dialog and load into A or B
-		bool openAndLoadTrace(bool forA);
-		// Open file dialog and save A or B
-		bool openAndSaveTrace(bool forA);
+        void setTraceB(
+            std::vector<RuntimeInstruction> trace
+        )
+        {
+            m_traceB =
+                std::move(
+                    trace
+                );
+        }
 
-		// Draw only the toolbar (for embedding in other windows)
-		void drawToolbar();
+        bool hasLoadedTraceA() const
+        {
+            return m_hasLoadedTraceA;
+        }
 
-		TraceRecordView m_recordView;
+        const char* traceAFilename() const
+        {
+            return m_traceAFilename[0]
+                ? m_traceAFilename
+                : "";
+        }
 
-		void selectFirstDifference();
+        const char* traceBFilename() const
+        {
+            return m_traceBFilename[0]
+                ? m_traceBFilename
+                : "";
+        }
 
-		size_t findDifferenceStart(
-			size_t index
-		) const;
-	};
+        void setTraceAFilename(
+            const char* filename
+        )
+        {
+            if (filename)
+            {
+                strncpy_s(
+                    m_traceAFilename,
+                    sizeof(m_traceAFilename),
+                    filename,
+                    _TRUNCATE
+                );
+            }
+        }
+
+        void setTraceBFilename(
+            const char* filename
+        )
+        {
+            if (filename)
+            {
+                strncpy_s(
+                    m_traceBFilename,
+                    sizeof(m_traceBFilename),
+                    filename,
+                    _TRUNCATE
+                );
+            }
+        }
+
+        size_t selectedTraceIndex() const
+        {
+            return m_selectedTraceIndex;
+        }
+
+        void setSelectedTraceIndex(
+            size_t index
+        )
+        {
+            m_selectedTraceIndex =
+                index;
+
+            m_listView.setSelectedIndex(
+                index
+            );
+
+            m_listView.requestScrollToSelected();
+        }
+
+        void setScrollToSelectedTrace(
+            bool value
+        )
+        {
+            m_scrollToSelectedTrace =
+                value;
+        }
+
+        bool takeScrollToSelectedTrace()
+        {
+            const bool value =
+                m_scrollToSelectedTrace;
+
+            m_scrollToSelectedTrace =
+                false;
+
+            return value;
+        }
+
+    private:
+        void drawTraceSide(
+            const char* childId,
+            const std::vector<RuntimeInstruction>& trace,
+            const std::vector<TraceComparisonDisplayEntry>& displayEntries,
+            bool scrollToSelected
+        );
+
+        void handleKeyboardNavigation();
+
+        void selectPreviousDifference();
+        void selectNextDifference();
+
+        void selectFirstDifference();
+
+        size_t findDifferenceStart(
+            size_t index
+        ) const;
+
+        bool m_hasLoadedTraceA =
+            false;
+
+        std::string m_persistenceErrors[2];
+
+        std::vector<RuntimeInstruction>
+            m_traceA;
+
+        std::vector<RuntimeInstruction>
+            m_traceB;
+
+        char m_traceAFilename[4096] = {};
+        char m_traceBFilename[4096] = {};
+
+        size_t m_selectedTraceIndex =
+            static_cast<size_t>(
+                -1
+                );
+
+        bool m_scrollToSelectedTrace =
+            false;
+
+        bool m_sideBySide =
+            true;
+
+        TraceComparisonToolbar
+            m_toolbar;
+
+        TraceListView
+            m_listView;
+
+        TraceDetailView
+            m_detailView;
+
+        TraceRecordView
+            m_recordView;
+    };
 }

@@ -46,12 +46,7 @@ TraceComparisonWindow::TraceComparisonWindow()
 	}
 }
 
-void TraceComparisonWindow::draw(
-	const std::vector<RuntimeInstruction>& /*traceAParam*/,
-	const std::vector<RuntimeInstruction>& /*traceBParam*/,
-	char* /*targetText*/,
-	size_t /*targetTextSize*/,
-	PhysicalAddrResolver /*tryGetPhysicalMemoryAddress*/)
+void TraceComparisonWindow::draw()
 {
 	// Toolbar component
 	// show filenames and counts; display each trace filepath on its own line
@@ -95,85 +90,7 @@ void TraceComparisonWindow::draw(
 	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F))
 		focusFilterRequested = true;
 
-	// Navigate diffs with F8 (Shift+F8 = prev)
-	if (!ImGui::IsAnyItemActive() && ImGui::IsKeyPressed(ImGuiKey_F8))
-	{
-		if (io.KeyShift)
-		{
-			// Prev Diff
-			const size_t cnt = (std::min)(m_traceA.size(), m_traceB.size());
-			if (cnt > 0)
-			{
-				size_t idx = (selectedTraceIndex() == static_cast<size_t>(-1)) ? cnt : selectedTraceIndex();
-				while (idx > 0)
-				{
-					--idx;
-					if (compareTraceInstructions(m_traceA[idx], m_traceB[idx]).any())
-					{
-						setSelectedTraceIndex(idx);
-						setScrollToSelectedTrace(true);
-						break;
-					}
-				}
-			}
-		}
-		else
-		{
-			// Next Diff
-			const size_t cnt = (std::min)(m_traceA.size(), m_traceB.size());
-			if (cnt > 0)
-			{
-				size_t start = (selectedTraceIndex() == static_cast<size_t>(-1)) ? 0 : (selectedTraceIndex() + 1);
-				for (size_t idx = start; idx < cnt; ++idx)
-				{
-					if (compareTraceInstructions(m_traceA[idx], m_traceB[idx]).any())
-					{
-						setSelectedTraceIndex(idx);
-						setScrollToSelectedTrace(true);
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	// Save shortcut: Ctrl+S (Shift+Ctrl+S -> save B)
-	if (!ImGui::IsAnyItemActive() && io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S))
-	{
-		if (io.KeyShift)
-			openAndSaveTrace(false);
-		else
-			openAndSaveTrace(true);
-	}
-
-	// Up/Down navigation in the list
-	if (!ImGui::IsAnyItemActive())
-	{
-		if (ImGui::IsKeyPressed(ImGuiKey_UpArrow))
-		{
-			const size_t cnt = (std::min)(m_traceA.size(), m_traceB.size());
-			if (cnt > 0)
-			{
-				if (selectedTraceIndex() == static_cast<size_t>(-1))
-					setSelectedTraceIndex(cnt - 1);
-				else if (selectedTraceIndex() > 0)
-					setSelectedTraceIndex(selectedTraceIndex() - 1);
-				setScrollToSelectedTrace(true);
-			}
-		}
-		else if (ImGui::IsKeyPressed(ImGuiKey_DownArrow))
-		{
-			const size_t cnt = (std::min)(m_traceA.size(), m_traceB.size());
-			if (cnt > 0)
-			{
-				if (selectedTraceIndex() == static_cast<size_t>(-1))
-					setSelectedTraceIndex(0);
-				else if (selectedTraceIndex() + 1 < cnt)
-					setSelectedTraceIndex(selectedTraceIndex() + 1);
-				setScrollToSelectedTrace(true);
-			}
-		}
-	}
+	handleKeyboardNavigation();	
 
 	static char filter[256] = {};
 	if (focusFilterRequested)
@@ -213,117 +130,21 @@ void TraceComparisonWindow::draw(
 		// render A and B lists side-by-side
 		ImGui::Columns(2, "side_by_side", true);
 
-		// Left: A list
-		// Left: A list
-		ImGui::BeginChild(
+		drawTraceSide(
 			"ListA",
-			ImVec2(0, 0),
-			false
+			m_traceA,
+			displayEntries,
+			scrollToSelected
 		);
-
-		for (const auto& entry :
-			displayEntries)
-		{
-			if (entry.collapsedCount > 0)
-			{
-				ImGui::Separator();
-
-				ImGui::TextDisabled(
-					"... %zu identical records ...",
-					entry.collapsedCount
-				);
-
-				continue;
-			}
-
-			const size_t i =
-				entry.traceIndex;
-
-			const bool isSelected =
-				i == selectedTraceIndex();
-
-			const TraceInstructionDifference difference =
-				compareTraceInstructions(
-					m_traceA[i],
-					m_traceB[i]
-				);
-
-			ImGui::Separator();
-
-			m_recordView.draw(
-				i,
-				m_traceA[i],
-				difference,
-				isSelected
-			);
-
-			if (scrollToSelected &&
-				isSelected)
-			{
-				ImGui::SetScrollHereY(
-					0.5f
-				);
-			}
-		}
-
-		ImGui::EndChild();
 
 		ImGui::NextColumn();
 
-		// Right: B detail / list
-		// Right: B detail / list
-		ImGui::BeginChild(
+		drawTraceSide(
 			"ListB",
-			ImVec2(0, 0),
-			false
+			m_traceB,
+			displayEntries,
+			scrollToSelected
 		);
-
-		for (const auto& entry :
-			displayEntries)
-		{
-			if (entry.collapsedCount > 0)
-			{
-				ImGui::Separator();
-
-				ImGui::TextDisabled(
-					"... %zu identical records ...",
-					entry.collapsedCount
-				);
-
-				continue;
-			}
-
-			const size_t i =
-				entry.traceIndex;
-
-			const bool isSelected =
-				i == selectedTraceIndex();
-
-			const TraceInstructionDifference difference =
-				compareTraceInstructions(
-					m_traceA[i],
-					m_traceB[i]
-				);
-
-			ImGui::Separator();
-
-			m_recordView.draw(
-				i,
-				m_traceB[i],
-				difference,
-				isSelected
-			);
-
-			if (scrollToSelected &&
-				isSelected)
-			{
-				ImGui::SetScrollHereY(
-					0.5f
-				);
-			}
-		}
-
-		ImGui::EndChild();
 
 		ImGui::Columns(1);
 	}
@@ -523,158 +344,364 @@ size_t TraceComparisonWindow::findDifferenceStart(
 	return index;
 }
 
-
-void TraceComparisonWindow::drawToolbar()
+void TraceComparisonWindow::drawTraceSide(
+	const char* childId,
+	const std::vector<RuntimeInstruction>& trace,
+	const std::vector<TraceComparisonDisplayEntry>& displayEntries,
+	bool scrollToSelected
+)
 {
-	// wire toolbar callbacks to existing actions
-	m_toolbar.setSaveA([this]() { openAndSaveTrace(true); });
-	m_toolbar.setPrevDiff([this]() {
-		const size_t count =
-			(std::min)(
-				m_traceA.size(),
-				m_traceB.size()
-				);
+	ImGui::BeginChild(
+		childId,
+		ImVec2(0, 0),
+		false
+	);
 
+	for (const auto& entry :
+		displayEntries)
+	{
+		if (entry.collapsedCount > 0)
+		{
+			ImGui::Separator();
+
+			ImGui::TextDisabled(
+				"... %zu identical records ...",
+				entry.collapsedCount
+			);
+
+			continue;
+		}
+
+		const size_t index =
+			entry.traceIndex;
+
+		const bool isSelected =
+			index ==
+			selectedTraceIndex();
+
+		const TraceInstructionDifference difference =
+			compareTraceInstructions(
+				m_traceA[index],
+				m_traceB[index]
+			);
+
+		ImGui::Separator();
+
+		m_recordView.draw(
+			index,
+			trace[index],
+			difference,
+			isSelected
+		);
+
+		if (scrollToSelected &&
+			isSelected)
+		{
+			ImGui::SetScrollHereY(
+				0.5f
+			);
+		}
+	}
+
+	ImGui::EndChild();
+}
+
+void TraceComparisonWindow::handleKeyboardNavigation()
+{
+	if (ImGui::IsAnyItemActive())
+	{
+		return;
+	}
+
+	ImGuiIO& io =
+		ImGui::GetIO();
+
+	const size_t count =
+		(std::min)(
+			m_traceA.size(),
+			m_traceB.size()
+			);
+
+	if (ImGui::IsKeyPressed(
+		ImGuiKey_F8
+	))
+	{
+		if (io.KeyShift)
+		{
+			selectPreviousDifference();
+		}
+		else
+		{
+			selectNextDifference();
+		}
+	}
+
+	if (io.KeyCtrl &&
+		ImGui::IsKeyPressed(
+			ImGuiKey_S
+		))
+	{
+		openAndSaveTrace(
+			!io.KeyShift
+		);
+	}
+
+	if (ImGui::IsKeyPressed(
+		ImGuiKey_UpArrow
+	))
+	{
 		if (count == 0)
 		{
 			return;
 		}
 
-		size_t selected =
-			selectedTraceIndex();
-
-		if (selected == static_cast<size_t>(-1) ||
-			selected >= count)
+		if (selectedTraceIndex() ==
+			static_cast<size_t>(-1))
 		{
-			selected =
-				count - 1;
+			setSelectedTraceIndex(
+				count - 1
+			);
+		}
+		else if (selectedTraceIndex() > 0)
+		{
+			setSelectedTraceIndex(
+				selectedTraceIndex() - 1
+			);
 		}
 
-		// Sind wir innerhalb eines Unterschiedsblocks?
+		setScrollToSelectedTrace(
+			true
+		);
+	}
+	else if (ImGui::IsKeyPressed(
+		ImGuiKey_DownArrow
+	))
+	{
+		if (count == 0)
+		{
+			return;
+		}
+
+		if (selectedTraceIndex() ==
+			static_cast<size_t>(-1))
+		{
+			setSelectedTraceIndex(
+				0
+			);
+		}
+		else if (selectedTraceIndex() + 1 <
+			count)
+		{
+			setSelectedTraceIndex(
+				selectedTraceIndex() + 1
+			);
+		}
+
+		setScrollToSelectedTrace(
+			true
+		);
+	}
+}
+
+void TraceComparisonWindow::selectPreviousDifference()
+{
+	const size_t count =
+		(std::min)(
+			m_traceA.size(),
+			m_traceB.size()
+			);
+
+	if (count == 0)
+	{
+		return;
+	}
+
+	size_t selected =
+		selectedTraceIndex();
+
+	if (selected ==
+		static_cast<size_t>(-1) ||
+		selected >= count)
+	{
+		selected =
+			count - 1;
+	}
+
+	if (compareTraceInstructions(
+		m_traceA[selected],
+		m_traceB[selected]
+	).any())
+	{
+		const size_t blockStart =
+			findDifferenceStart(
+				selected
+			);
+
+		if (blockStart < selected)
+		{
+			setSelectedTraceIndex(
+				blockStart
+			);
+
+			setScrollToSelectedTrace(
+				true
+			);
+
+			return;
+		}
+	}
+
+	size_t index =
+		selected;
+
+	while (index > 0)
+	{
+		--index;
+
 		if (compareTraceInstructions(
-			m_traceA[selected],
-			m_traceB[selected]
+			m_traceA[index],
+			m_traceB[index]
 		).any())
 		{
 			const size_t blockStart =
 				findDifferenceStart(
-					selected
+					index
 				);
 
-			// Noch nicht am Anfang:
-			// zuerst zum Beginn dieses Blocks springen.
-			if (blockStart < selected)
-			{
-				setSelectedTraceIndex(
-					blockStart
-				);
+			setSelectedTraceIndex(
+				blockStart
+			);
 
-				setScrollToSelectedTrace(
-					true
-				);
+			setScrollToSelectedTrace(
+				true
+			);
 
-				return;
-			}
+			return;
 		}
+	}
+}
 
-		// Wir stehen bereits am Blockanfang.
-		// Jetzt rückwärts den vorherigen Unterschied suchen.
-		size_t index =
-			selected;
+void TraceComparisonWindow::selectNextDifference()
+{
+	const size_t count =
+		(std::min)(
+			m_traceA.size(),
+			m_traceB.size()
+			);
 
-		while (index > 0)
+	if (count == 0)
+	{
+		return;
+	}
+
+	size_t selected =
+		selectedTraceIndex();
+
+	if (selected ==
+		static_cast<size_t>(-1) ||
+		selected >= count)
+	{
+		selected =
+			0;
+	}
+
+	size_t index =
+		selected + 1;
+
+	while (index < count)
+	{
+		if (compareTraceInstructions(
+			m_traceA[index],
+			m_traceB[index]
+		).any())
 		{
-			--index;
+			const size_t blockStart =
+				findDifferenceStart(
+					index
+				);
 
-			if (compareTraceInstructions(
-				m_traceA[index],
-				m_traceB[index]
-			).any())
+			if (blockStart <= selected)
 			{
-				const size_t blockStart =
-					findDifferenceStart(
-						index
-					);
-
-				setSelectedTraceIndex(
-					blockStart
-				);
-
-				setScrollToSelectedTrace(
-					true
-				);
-
-				return;
+				++index;
+				continue;
 			}
-		}
-		});
-	m_toolbar.setNextDiff([this]() {
-		const size_t count =
-			(std::min)(
-				m_traceA.size(),
-				m_traceB.size()
-				);
 
-		if (count == 0)
-		{
+			setSelectedTraceIndex(
+				blockStart
+			);
+
+			setScrollToSelectedTrace(
+				true
+			);
+
 			return;
 		}
 
-		size_t selected =
-			selectedTraceIndex();
+		++index;
+	}
+}
 
-		if (selected == static_cast<size_t>(-1) ||
-			selected >= count)
+void TraceComparisonWindow::drawToolbar()
+{
+	m_toolbar.setSaveA(
+		[this]()
 		{
-			selected =
-				0;
+			openAndSaveTrace(
+				true
+			);
 		}
+	);
 
-		size_t index =
-			selected + 1;
-
-		while (index < count)
+	m_toolbar.setPrevDiff(
+		[this]()
 		{
-			if (compareTraceInstructions(
-				m_traceA[index],
-				m_traceB[index]
-			).any())
-			{
-				const size_t blockStart =
-					findDifferenceStart(
-						index
-					);
-
-				// Wenn wir noch im selben Unterschiedsblock gelandet sind,
-				// überspringen wir diesen vollständig.
-				if (blockStart <= selected)
-				{
-					++index;
-					continue;
-				}
-
-				setSelectedTraceIndex(
-					blockStart
-				);
-
-				setScrollToSelectedTrace(
-					true
-				);
-
-				return;
-			}
-
-			++index;
+			selectPreviousDifference();
 		}
-		});
-	m_toolbar.setFocusFilter([&]() { ImGui::SetKeyboardFocusHere(); });
-	// ensure toolbar reflects current state
-	m_toolbar.setSideBySideState(m_sideBySide);
-	m_toolbar.setOnToggleSideBySide([&](bool v) { m_sideBySide = v; });
+	);
+
+	m_toolbar.setNextDiff(
+		[this]()
+		{
+			selectNextDifference();
+		}
+	);
+
+	m_toolbar.setFocusFilter(
+		[&]()
+		{
+			ImGui::SetKeyboardFocusHere();
+		}
+	);
+
+	m_toolbar.setSideBySideState(
+		m_sideBySide
+	);
+
+	m_toolbar.setOnToggleSideBySide(
+		[&](bool value)
+		{
+			m_sideBySide =
+				value;
+		}
+	);
+
 	m_toolbar.draw();
-	for (size_t slot = 0; slot < 2; ++slot)
+
+	for (size_t slot = 0;
+		slot < 2;
+		++slot)
+	{
 		if (!m_persistenceErrors[slot].empty())
-			ImGui::TextWrapped("%s: %s", slot == 0 ? "A" : "B", m_persistenceErrors[slot].c_str());
+		{
+			ImGui::TextWrapped(
+				"%s: %s",
+				slot == 0
+				? "A"
+				: "B",
+				m_persistenceErrors[slot].c_str()
+			);
+		}
+	}
 }
 
 bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::vector<RuntimeInstruction>& trace)
