@@ -22,6 +22,17 @@ namespace DosBoxMemoryTools
         size_t targetTextSize
     )
     {
+        ImGui::SetNextItemWidth(
+            140.0f
+        );
+
+        ImGui::InputText(
+            "Target##MemoryWrite",
+            targetText,
+            targetTextSize
+        );
+
+        ImGui::SameLine();
         if (m_recordButton.draw())
         {
             if (m_recordButton.recording())
@@ -65,14 +76,11 @@ namespace DosBoxMemoryTools
 
         // Keep the record button above the scrolling captures and details.
         ImGui::BeginChild(
-
-        // Keep the record button above the scrolling captures and details.
-        ImGui::BeginChild(
             "MemoryWriteRecords",
             ImVec2(0.0f, 0.0f),
             false,
             ImGuiWindowFlags_HorizontalScrollbar
-        ));
+        );
 
         bool memoryWriteHit =
             false;

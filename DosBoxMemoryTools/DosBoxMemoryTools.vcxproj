@@ -31,6 +31,7 @@
     <ClCompile Include="MemoryTools.cpp" />
     <ClCompile Include="MemoryViewerWindow.cpp" />
     <ClCompile Include="tests\RecordButtonFloatingWindowTest.cpp" />
+    <ClCompile Include="TraceAlignment.cpp" />
     <ClCompile Include="TraceComparison.cpp" />
     <ClCompile Include="TraceComparisonFilter.cpp" />
     <ClCompile Include="TraceComparisonPersistence.cpp" />
@@ -39,6 +40,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="TraceDetailView.cpp" />
+    <ClCompile Include="TraceDifferenceBaseline.cpp" />
     <ClCompile Include="TraceListView.cpp" />
     <ClCompile Include="TraceRecordView.cpp" />
     <ClCompile Include="TraceTracking.cpp" />
@@ -55,12 +57,14 @@
     <ClInclude Include="MemoryTools.h" />
     <ClInclude Include="MemoryViewerWindow.h" />
     <ClInclude Include="MemoryWriteTracker.h" />
+    <ClInclude Include="TraceAlignment.h" />
     <ClInclude Include="TraceComparisonFilter.h" />
     <ClInclude Include="TraceComparison.h" />
     <ClInclude Include="TraceComparisonPersistence.h" />
     <ClInclude Include="TraceComparisonToolbar.h" />
     <ClInclude Include="TraceComparisonWindow.h" />
     <ClInclude Include="TraceDetailView.h" />
+    <ClInclude Include="TraceDifferenceBaseline.h" />
     <ClInclude Include="TraceListView.h" />
     <ClInclude Include="TraceRecordView.h" />
     <ClInclude Include="TraceTracking.h" />

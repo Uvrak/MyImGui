@@ -123,24 +123,36 @@ namespace DosBoxMemoryTools
             switch (m_activeTab)
             {
             case TrackingTab::Trace:
+            {
                 m_traceTracking.draw();
 
+                if (m_traceTracking.takeCompletedTrace())
                 {
-                    const auto& liveTrace =
+                    const auto& trace =
                         m_traceTracking.trace();
 
-                    if (!m_traceComparisonWindow.hasLoadedTraceA() &&
-                        !liveTrace.empty() &&
-                        m_traceComparisonWindow.traceA().size() !=
-                        liveTrace.size())
+                    if (m_traceTracking.targetDatasetA())
                     {
                         m_traceComparisonWindow.setTraceA(
-                            liveTrace
+                            trace
                         );
                     }
-                    m_traceComparisonWindow.draw();
+                    else
+                    {
+                        m_traceComparisonWindow.setTraceB(
+                            trace
+                        );
+                    }
                 }
+
+                m_traceComparisonWindow.setSelectedDatasetA(
+                    m_traceTracking.targetDatasetA()
+                );
+
+                m_traceComparisonWindow.draw();
+
                 break;
+            }
 
             case TrackingTab::Trans:
                 m_transitionTracking.draw(

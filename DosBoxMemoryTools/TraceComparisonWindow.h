@@ -10,9 +10,8 @@
 #include "TraceComparison.h"
 #include "TraceComparisonFilter.h"
 #include "TraceComparisonToolbar.h"
-#include "TraceDetailView.h"
-#include "TraceListView.h"
 #include "TraceRecordView.h"
+#include "TraceDifferenceBaseline.h"
 
 namespace DosBoxMemoryTools
 {
@@ -50,22 +49,6 @@ namespace DosBoxMemoryTools
             const std::string& filename,
             const std::vector<RuntimeInstruction>& trace
         );
-
-        void setSideBySide(
-            bool value
-        )
-        {
-            m_sideBySide = value;
-
-            m_toolbar.setSideBySideState(
-                value
-            );
-        }
-
-        bool sideBySide() const
-        {
-            return m_sideBySide;
-        }
 
         const std::vector<RuntimeInstruction>& traceA() const
         {
@@ -158,11 +141,8 @@ namespace DosBoxMemoryTools
             m_selectedTraceIndex =
                 index;
 
-            m_listView.setSelectedIndex(
-                index
-            );
-
-            m_listView.requestScrollToSelected();
+            m_scrollToSelectedTrace =
+                true;
         }
 
         void setScrollToSelectedTrace(
@@ -184,11 +164,16 @@ namespace DosBoxMemoryTools
             return value;
         }
 
+        void setSelectedDatasetA(
+            bool selectedA
+        );
+
     private:
         void drawTraceSide(
             const char* childId,
             const std::vector<RuntimeInstruction>& trace,
             const std::vector<TraceComparisonDisplayEntry>& displayEntries,
+            bool sideA,
             bool scrollToSelected
         );
 
@@ -225,19 +210,26 @@ namespace DosBoxMemoryTools
         bool m_scrollToSelectedTrace =
             false;
 
-        bool m_sideBySide =
-            true;
-
         TraceComparisonToolbar
             m_toolbar;
 
-        TraceListView
-            m_listView;
-
-        TraceDetailView
-            m_detailView;
-
         TraceRecordView
             m_recordView;
+
+        bool m_selectedDatasetA =
+            true;
+
+        bool m_collapseIdentical =
+            true;
+
+        TraceDifferenceBaseline m_differenceBaseline;
+
+        bool m_ignoreDifferenceBaseline =
+            false;
+
+        TraceInstructionDifference compareInstructions(
+            const RuntimeInstruction& instructionA,
+            const RuntimeInstruction& instructionB
+        ) const;
     };
 }

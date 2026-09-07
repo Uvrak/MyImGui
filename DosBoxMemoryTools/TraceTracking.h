@@ -29,27 +29,18 @@ namespace DosBoxMemoryTools
         const std::vector<RuntimeInstruction>&
             trace() const;
 
+        bool targetDatasetA() const;
+
+        bool takeCompletedTrace();
+
     private:
         void drawNavigation();
 
         void drawRecorder();
 
-        void drawTrace();
+        void updateCapture();
 
         void loadTrace();
-
-        bool loadTraceFromFile(
-            const std::string& filename,
-            std::vector<RuntimeInstruction>& trace
-        );
-
-        void saveTraceToFile(
-            const std::string& filename
-        ) const;
-
-        void handleLoadTraceRequest();
-
-        void handleSaveTraceRequest();
 
         void loadSession();
 
@@ -71,16 +62,16 @@ namespace DosBoxMemoryTools
         bool m_traceWasArmedOrActive =
             false;
 
-        size_t m_selectedTraceIndex =
-            static_cast<size_t>(-1);
+        enum class TargetDataset
+        {
+            A,
+            B
+        };
 
-        bool m_scrollToSelectedTrace =
-            false;
+        TargetDataset m_targetDataset =
+            TargetDataset::A;
 
-        bool m_loadTraceRequested =
-            false;
-
-        bool m_saveTraceRequested =
+        bool m_traceCompleted =
             false;
     };
 }
