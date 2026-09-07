@@ -40,6 +40,9 @@ namespace MemoryReadTracker
 
         std::array<uint8_t, 32>
             stackBytes{};
+
+        LinearPt writeAddress =
+            0;
     };
 
     void record(
@@ -89,7 +92,8 @@ namespace MemoryReadTracker
         uint16_t cs,
         uint16_t ip,
         const RegisterSnapshot& registers,
-        LinearPt stackAddress
+        LinearPt stackAddress,
+        const std::array<uint8_t, 16>& instructionBytes
     );
 
     void recordInstruction(
@@ -170,4 +174,14 @@ namespace MemoryReadTracker
         LinearPt address,
         uint8_t value
     );
+
+    void setReadTraceInstructionCount(
+        size_t count
+    );
+
+    void setExternalMemoryWrite(
+        bool external
+    );
+
+    bool externalMemoryWrite();
 }

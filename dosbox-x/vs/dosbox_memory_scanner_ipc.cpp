@@ -134,6 +134,10 @@ namespace
                     ) == 2 &&
                         value <= 255)
                     {
+                        MemoryReadTracker::setExternalMemoryWrite(
+                            true
+                        );
+
                         phys_writeb(
                             static_cast<PhysPt>(
                                 address
@@ -141,6 +145,10 @@ namespace
                             static_cast<uint8_t>(
                                 value
                                 )
+                        );
+
+                        MemoryReadTracker::setExternalMemoryWrite(
+                            false
                         );
 
                         response = "OK";
@@ -945,6 +953,43 @@ namespace
                             ? "1"
                             : "0";
 }
+
+                else if(std::strncmp(
+                    buffer,
+                    "READTRACE:LIMIT:",
+                    std::strlen(
+                    "READTRACE:LIMIT:"
+                    )
+                    ) == 0)
+                    {
+                        size_t count = 0;
+
+                        const char* parameter =
+                            buffer +
+                            std::strlen(
+                                "READTRACE:LIMIT:"
+                            );
+
+                        if(std::sscanf(
+                            parameter,
+                            "%zu",
+                            &count
+                        ) != 1)
+                        {
+                            response =
+                                "ERROR";
+                        }
+                        else
+                        {
+                            MemoryReadTracker::
+                                setReadTraceInstructionCount(
+                                    count
+                                );
+
+                            response =
+                                "OK";
+                        }
+                        }
 
                 else if(std::strcmp(
                     buffer,

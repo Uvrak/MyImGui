@@ -531,6 +531,27 @@ namespace DosBoxMemoryTools
         return true;
     }
 
+    bool MemoryScanner::setReadTraceInstructionLimit(
+        size_t count
+    )
+    {
+        std::string response;
+
+        if (!m_pipeClient.request(
+            "READTRACE:LIMIT:" +
+            std::to_string(
+                count
+            ),
+            response
+        ))
+        {
+            return false;
+        }
+
+        return response ==
+            "OK";
+    }
+
     const std::vector<
         MemoryCandidate
     >& MemoryScanner::
@@ -640,6 +661,9 @@ namespace DosBoxMemoryTools
 
             return false;
         }
+
+        m_lastMemoryWriteTarget =
+            address;
 
         m_status =
             "Memory value written.";
@@ -857,6 +881,32 @@ namespace DosBoxMemoryTools
 
             return false;
         }
+
+        return true;
+    }
+
+    void MemoryScanner::setMemoryWriteMarker(
+        size_t index
+    )
+    {
+        m_memoryWriteMarker =
+            index;
+
+        m_memoryWriteMarkerValid =
+            true;
+    }
+
+    bool MemoryScanner::getMemoryWriteMarker(
+        size_t& index
+    ) const
+    {
+        if (!m_memoryWriteMarkerValid)
+        {
+            return false;
+        }
+
+        index =
+            m_memoryWriteMarker;
 
         return true;
     }
@@ -3389,6 +3439,9 @@ namespace DosBoxMemoryTools
             return false;
         }
 
+        m_memoryWriteMarkerValid =
+            false;
+
         m_status =
             "Memory write target set.";
 
@@ -3469,6 +3522,7 @@ namespace DosBoxMemoryTools
             size_t& count
         )
     {
+
         std::string response;
 
         if (!m_pipeClient.request(
@@ -3764,6 +3818,9 @@ namespace DosBoxMemoryTools
 
             instruction =
                 result;
+
+            m_lastMemoryWriteInstruction =
+                result.address;
         }
         catch (...)
         {

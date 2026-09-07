@@ -34,9 +34,10 @@ namespace DosBoxMemoryTools
         drawNavigation();
         drawRecorder();
         updateCapture();
+        continueLoadTrace();
     }
 
-    void TraceTracking::loadTrace()
+    void TraceTracking::beginLoadTrace()
     {
         size_t count = 0;
 
@@ -53,24 +54,14 @@ namespace DosBoxMemoryTools
             count
         );
 
-        for (size_t i = 0;
-            i < count;
-            ++i)
-        {
-            RuntimeInstruction instruction;
+        m_traceLoadCount =
+            count;
 
-            if (!m_scanner.getReadTraceInstruction(
-                i,
-                instruction
-            ))
-            {
-                break;
-            }
+        m_traceLoadIndex =
+            0;
 
-            m_trace.push_back(
-                instruction
-            );
-        }
+        m_traceLoadPending =
+            true;
     }
 
     void TraceTracking::setGameId(
@@ -91,10 +82,69 @@ namespace DosBoxMemoryTools
         loadSession();
     }
 
+    void TraceTracking::continueLoadTrace()
+    {
+        if (!m_traceLoadPending)
+        {
+            return;
+        }
+
+        constexpr size_t batchSize =
+            64;
+
+        size_t loadedThisFrame =
+            0;
+
+        while (m_traceLoadIndex < m_traceLoadCount &&
+            loadedThisFrame < batchSize)
+        {
+            RuntimeInstruction instruction;
+
+            if (!m_scanner.getReadTraceInstruction(
+                m_traceLoadIndex,
+                instruction
+            ))
+            {
+                m_traceLoadPending =
+                    false;
+
+                return;
+            }
+
+            m_trace.push_back(
+                instruction
+            );
+
+            ++m_traceLoadIndex;
+            ++loadedThisFrame;
+        }
+
+        if (m_traceLoadIndex >=
+            m_traceLoadCount)
+        {
+            m_traceLoadPending =
+                false;
+
+            m_traceCompleted =
+                true;
+
+            m_recordButton.stop();
+        }
+    }
+
     void TraceTracking::drawRecorder()
     {
         const bool recordChanged =
             m_recordButton.draw();
+
+        ImGui::SameLine();
+
+        ImGui::Text(
+            "recording=%s",
+            m_recordButton.recording()
+            ? "true"
+            : "false"
+        );
 
         ImGui::SameLine();
 
@@ -126,6 +176,77 @@ namespace DosBoxMemoryTools
                 TargetDataset::B;
         }
 
+        ImGui::SameLine();
+
+        const char* traceLimitItems[] =
+        {
+            "1000",
+            "5000",
+            "10000",
+            "25000",
+            "50000",
+            "100000"
+        };
+
+        int traceLimitIndex =
+            0;
+
+        switch (m_traceInstructionLimit)
+        {
+        case 5000:
+            traceLimitIndex = 1;
+            break;
+
+        case 10000:
+            traceLimitIndex = 2;
+            break;
+
+        case 25000:
+            traceLimitIndex = 3;
+            break;
+
+        case 50000:
+            traceLimitIndex = 4;
+            break;
+
+        case 100000:
+            traceLimitIndex = 5;
+            break;
+        }
+
+        ImGui::SetNextItemWidth(
+            120.0f
+        );
+
+        if (ImGui::Combo(
+            "Trace Limit",
+            &traceLimitIndex,
+            traceLimitItems,
+            IM_ARRAYSIZE(
+                traceLimitItems
+            )
+        ))
+        {
+            const size_t traceLimits[] =
+            {
+                1000,
+                5000,
+                10000,
+                25000,
+                50000,
+                100000
+            };
+
+            m_traceInstructionLimit =
+                traceLimits[
+                    traceLimitIndex
+                ];
+
+            m_scanner.setReadTraceInstructionLimit(
+                m_traceInstructionLimit
+            );
+        }
+    
         if (!recordChanged)
         {
             return;
@@ -150,6 +271,10 @@ namespace DosBoxMemoryTools
                 m_traceWasArmedOrActive =
                     false;
 
+                m_scanner.setReadTraceInstructionLimit(
+                    m_traceInstructionLimit
+                );
+
                 m_scanner.setReadTraceTarget(
                     static_cast<size_t>(
                         targetAddress
@@ -167,10 +292,17 @@ namespace DosBoxMemoryTools
                 0
             );
         }
+
+
     }
 
     void TraceTracking::updateCapture()
     {
+        if (!m_recordButton.recording())
+        {
+            return;
+        }
+
         bool traceActive =
             false;
 
@@ -206,30 +338,7 @@ namespace DosBoxMemoryTools
             return;
         }
 
-        loadTrace();
-
-        m_traceCompleted =
-            true;
-
-        m_recordButton.stop();
-
-        m_traceWasArmedOrActive =
-            false;
-
-        if (!m_trace.empty())
-        {
-            const RuntimeInstruction& lastInstruction =
-                m_trace.back();
-
-            std::snprintf(
-                m_targetText,
-                sizeof(m_targetText),
-                "0x%zX",
-                lastInstruction.address
-            );
-        }
-
-        m_recordButton.stop();
+        beginLoadTrace();
 
         m_traceWasArmedOrActive =
             false;

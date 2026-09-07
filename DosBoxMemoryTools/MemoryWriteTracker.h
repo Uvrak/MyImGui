@@ -16,14 +16,14 @@ namespace DosBoxMemoryTools
             MemoryScanner& scanner
         );
 
-        void draw(
-            char* targetText,
-            size_t targetTextSize
-        );
+        void draw();
 
     private:
         MemoryScanner&
             m_scanner;
+
+        char m_targetText[32] =
+            "0x30418";
 
         bool m_captureHit =
             false;

@@ -162,16 +162,11 @@ namespace DosBoxMemoryTools
                 break;
 
             case TrackingTab::Exec:
-                m_executionTracking.draw(
-                    m_targetText
-                );
+                m_executionTracking.draw();
                 break;
 
             case TrackingTab::MemWr:
-                m_memoryWriteTracker.draw(
-                    m_targetText,
-                    sizeof(m_targetText)
-                );
+                m_memoryWriteTracker.draw();
                 break;
             }
         }

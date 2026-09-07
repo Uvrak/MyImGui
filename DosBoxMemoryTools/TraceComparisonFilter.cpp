@@ -38,26 +38,76 @@ namespace DosBoxMemoryTools
             entry.synchronized =
                 alignment.synchronized;
 
-            if (!alignment.synchronized)
-            {
-                const size_t countA =
-                    alignment.endIndexA -
-                    alignment.indexA;
+            entries.push_back(
+                entry
+            );
+        }
 
-                const size_t countB =
-                    alignment.endIndexB -
-                    alignment.indexB;
+        size_t nextIndexA = 0;
+        size_t nextIndexB = 0;
 
-                entry.collapsedCount =
-                    (std::max)(
-                        countA,
-                        countB
-                        );
-            }
+        if (!alignments.empty())
+        {
+            const TraceAlignment& lastAlignment =
+                alignments.back();
+
+            nextIndexA =
+                lastAlignment.endIndexA;
+
+            nextIndexB =
+                lastAlignment.endIndexB;
+        }
+
+        while (nextIndexA < traceA.size())
+        {
+            TraceComparisonDisplayEntry entry{};
+
+            entry.indexA =
+                nextIndexA;
+
+            entry.indexB =
+                nextIndexB;
+
+            entry.hasA =
+                true;
+
+            entry.hasB =
+                false;
+
+            entry.synchronized =
+                false;
 
             entries.push_back(
                 entry
             );
+
+            ++nextIndexA;
+        }
+
+        while (nextIndexB < traceB.size())
+        {
+            TraceComparisonDisplayEntry entry{};
+
+            entry.indexA =
+                nextIndexA;
+
+            entry.indexB =
+                nextIndexB;
+
+            entry.hasA =
+                false;
+
+            entry.hasB =
+                true;
+
+            entry.synchronized =
+                false;
+
+            entries.push_back(
+                entry
+            );
+
+            ++nextIndexB;
         }
 
         return entries;

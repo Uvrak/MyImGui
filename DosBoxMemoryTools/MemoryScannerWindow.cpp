@@ -1620,6 +1620,11 @@ namespace DosBoxMemoryTools
                 m_showWriteValuePopup = false;
             }
 
+            ImGui::SetNextWindowPos(
+                ImGui::GetMousePos(),
+                ImGuiCond_Appearing
+            );
+
             if (ImGui::BeginPopupModal(
                 "Write Memory Value",
                 nullptr,
@@ -1646,6 +1651,17 @@ namespace DosBoxMemoryTools
                     "Write"
                 ))
                 {
+                    size_t captureCount = 0;
+
+                    if (m_scanner.getMemoryWriteWatchCaptureCount(
+                        captureCount
+                    ))
+                    {
+                        m_scanner.setMemoryWriteMarker(
+                            captureCount
+                        );
+                    }
+
                     if (m_scanner.writeValue(
                         m_writeAddress,
                         static_cast<uint8_t>(

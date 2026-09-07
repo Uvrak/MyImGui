@@ -102,6 +102,10 @@ namespace DosBoxMemoryTools
             uint8_t& value
         ) const;
 
+        bool setReadTraceInstructionLimit(
+            size_t count
+        );
+
         const std::vector<
             MemoryCandidate
         >& candidates() const;
@@ -145,6 +149,14 @@ namespace DosBoxMemoryTools
         bool setReadTrackingTransitionTarget(
             size_t address
         );
+
+        void setMemoryWriteMarker(
+            size_t index
+        );
+
+        bool getMemoryWriteMarker(
+            size_t& index
+        ) const;
 
         bool setExecutionCaptureTarget(
             size_t address
@@ -311,6 +323,16 @@ namespace DosBoxMemoryTools
             RuntimeInstruction& instruction
         );
 
+        size_t lastMemoryWriteTarget() const
+        {
+            return m_lastMemoryWriteTarget;
+        }
+
+        size_t lastMemoryWriteInstruction() const
+        {
+            return m_lastMemoryWriteInstruction;
+        }
+
     private:
         bool requestSnapshot();
 
@@ -359,5 +381,11 @@ namespace DosBoxMemoryTools
         std::string
             m_lastTransitionContextResponse;
         
+        size_t m_memoryWriteMarker = 0;
+
+        bool m_memoryWriteMarkerValid = false;
+
+        size_t m_lastMemoryWriteTarget = 0;
+        size_t m_lastMemoryWriteInstruction = 0;
 };
 }

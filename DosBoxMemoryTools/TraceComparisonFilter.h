@@ -12,6 +12,9 @@ namespace DosBoxMemoryTools
         size_t indexA = 0;
         size_t indexB = 0;
 
+        bool hasA = true;
+        bool hasB = true;
+
         size_t collapsedCount = 0;
 
         bool synchronized = true;

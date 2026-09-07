@@ -1,6 +1,7 @@
 #include "TraceComparisonWindow.h"
 #include "TraceComparisonPersistence.h"
 #include "TraceAlignment.h"
+#include "TraceDifferenceNavigation.h"
 
 #include "imgui.h"
 
@@ -224,34 +225,50 @@ void TraceComparisonWindow::draw()
 
 void TraceComparisonWindow::selectFirstDifference()
 {
-	const size_t count =
-		(std::min)(
-			m_traceA.size(),
-			m_traceB.size()
-			);
-
-	for (size_t i = count;
-		i > 0;
-		--i)
+	if (m_traceA.empty() ||
+		m_traceB.empty())
 	{
-		const size_t index =
-			i - 1;
+		return;
+	}
 
-		const TraceInstructionDifference difference =
-			compareInstructions(
-				m_traceA[index],
-				m_traceB[index]
+	const std::vector<TraceAlignment> alignments =
+		TraceAligner::align(
+			m_traceA,
+			m_traceB
+		);
+
+	for (const TraceAlignment& alignment :
+		alignments)
+	{
+		if (!alignment.synchronized)
+		{
+			setSelectedTraceIndex(
+				alignment.indexA
 			);
 
-		if (difference.any())
-		{
-			const size_t firstIndex =
-				findDifferenceStart(
-					index
-				);
+			m_selectedTraceIndexB =
+				alignment.indexB;
 
+			setScrollToSelectedTrace(
+				true
+			);
+
+			return;
+		}
+
+		if (alignment.indexA >= m_traceA.size() ||
+			alignment.indexB >= m_traceB.size())
+		{
+			continue;
+		}
+
+		if (compareInstructions(
+			m_traceA[alignment.indexA],
+			m_traceB[alignment.indexB]
+		).any())
+		{
 			setSelectedTraceIndex(
-				firstIndex
+				alignment.indexA
 			);
 
 			setScrollToSelectedTrace(
@@ -261,141 +278,6 @@ void TraceComparisonWindow::selectFirstDifference()
 			return;
 		}
 	}
-}
-
-size_t TraceComparisonWindow::findDifferenceStart(
-	size_t index
-) const
-{
-	if (index >= m_traceA.size() ||
-		index >= m_traceB.size())
-	{
-		return index;
-	}
-
-	const TraceInstructionDifference difference =
-		compareInstructions(
-			m_traceA[index],
-			m_traceB[index]
-		);
-
-	while (index > 0)
-	{
-		const size_t previousIndex =
-			index - 1;
-
-		bool sameDifferenceValues =
-			true;
-
-		if (difference.ax)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.ax ==
-				m_traceA[index].registers.ax &&
-				m_traceB[previousIndex].registers.ax ==
-				m_traceB[index].registers.ax;
-		}
-
-		if (difference.bx)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.bx ==
-				m_traceA[index].registers.bx &&
-				m_traceB[previousIndex].registers.bx ==
-				m_traceB[index].registers.bx;
-		}
-
-		if (difference.cx)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.cx ==
-				m_traceA[index].registers.cx &&
-				m_traceB[previousIndex].registers.cx ==
-				m_traceB[index].registers.cx;
-		}
-
-		if (difference.dx)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.dx ==
-				m_traceA[index].registers.dx &&
-				m_traceB[previousIndex].registers.dx ==
-				m_traceB[index].registers.dx;
-		}
-
-		if (difference.si)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.si ==
-				m_traceA[index].registers.si &&
-				m_traceB[previousIndex].registers.si ==
-				m_traceB[index].registers.si;
-		}
-
-		if (difference.di)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.di ==
-				m_traceA[index].registers.di &&
-				m_traceB[previousIndex].registers.di ==
-				m_traceB[index].registers.di;
-		}
-
-		if (difference.bp)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.bp ==
-				m_traceA[index].registers.bp &&
-				m_traceB[previousIndex].registers.bp ==
-				m_traceB[index].registers.bp;
-		}
-
-		if (difference.sp)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.sp ==
-				m_traceA[index].registers.sp &&
-				m_traceB[previousIndex].registers.sp ==
-				m_traceB[index].registers.sp;
-		}
-
-		if (difference.ds)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.ds ==
-				m_traceA[index].registers.ds &&
-				m_traceB[previousIndex].registers.ds ==
-				m_traceB[index].registers.ds;
-		}
-
-		if (difference.es)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.es ==
-				m_traceA[index].registers.es &&
-				m_traceB[previousIndex].registers.es ==
-				m_traceB[index].registers.es;
-		}
-
-		if (difference.ss)
-		{
-			sameDifferenceValues &=
-				m_traceA[previousIndex].registers.ss ==
-				m_traceA[index].registers.ss &&
-				m_traceB[previousIndex].registers.ss ==
-				m_traceB[index].registers.ss;
-		}
-
-		if (!sameDifferenceValues)
-		{
-			break;
-		}
-
-		index =
-			previousIndex;
-	}
-
-	return index;
 }
 
 TraceInstructionDifference
@@ -437,57 +319,172 @@ void TraceComparisonWindow::drawTraceSide(
 	bool scrollToSelected
 )
 {
+	ImGuiWindowFlags childFlags =
+		ImGuiWindowFlags_None;
+
+	if (!sideA)
+	{
+		childFlags |=
+			ImGuiWindowFlags_NoScrollbar |
+			ImGuiWindowFlags_NoScrollWithMouse;
+	}
+
 	ImGui::BeginChild(
 		childId,
 		ImVec2(0, 0),
-		false
+		false,
+		childFlags
 	);
 
-	for (const auto& entry :
-		displayEntries)
+	ImGuiListClipper clipper;
+
+	clipper.Begin(
+		static_cast<int>(
+			displayEntries.size()
+			)
+	);
+
+	if (scrollToSelected)
 	{
-		if (entry.collapsedCount > 0)
+		const size_t selectedIndex =
+			sideA
+			? m_selectedTraceIndex
+			: m_selectedTraceIndexB;
+
+		for (size_t displayIndex = 0;
+			displayIndex < displayEntries.size();
+			++displayIndex)
 		{
+			const auto& entry =
+				displayEntries[
+					displayIndex
+				];
+
+			const bool hasEntry =
+				sideA
+				? entry.hasA
+				: entry.hasB;
+
+			if (!hasEntry ||
+				entry.collapsedCount > 0)
+			{
+				continue;
+			}
+
+			const size_t index =
+				sideA
+				? entry.indexA
+				: entry.indexB;
+
+			if (index == selectedIndex)
+			{
+				clipper.IncludeItemByIndex(
+					static_cast<int>(
+						displayIndex
+						)
+				);
+
+				break;
+			}
+		}
+	}
+
+	while (clipper.Step())
+	{
+		for (int displayIndex =
+			clipper.DisplayStart;
+			displayIndex <
+			clipper.DisplayEnd;
+			++displayIndex)
+		{
+			const auto& entry =
+				displayEntries[
+					static_cast<size_t>(
+						displayIndex
+						)
+				];
+			const bool hasEntry =
+				sideA
+				? entry.hasA
+				: entry.hasB;
+
+			if (!hasEntry)
+			{
+				ImGui::Separator();
+				ImGui::TextDisabled(
+					"<no record>"
+				);
+
+				continue;
+			}
+
+			if (entry.collapsedCount > 0)
+			{
+				ImGui::Separator();
+
+				ImGui::TextDisabled(
+					"... %zu identical records ...",
+					entry.collapsedCount
+				);
+
+				continue;
+			}
+
+			const size_t index =
+				sideA
+				? entry.indexA
+				: entry.indexB;
+
+			const size_t selectedIndex =
+				sideA
+				? m_selectedTraceIndex
+				: m_selectedTraceIndexB;
+
+			const bool isSelected =
+				index ==
+				selectedIndex;
+
+			TraceInstructionDifference difference{};
+
+			if (entry.hasA &&
+				entry.hasB)
+			{
+				difference =
+					compareInstructions(
+						m_traceA[entry.indexA],
+						m_traceB[entry.indexB]
+					);
+			}
+
 			ImGui::Separator();
 
-			ImGui::TextDisabled(
-				"... %zu identical records ...",
-				entry.collapsedCount
+			m_recordView.draw(
+				index,
+				trace[index],
+				difference,
+				isSelected
 			);
 
-			continue;
+			if (scrollToSelected &&
+				isSelected)
+			{
+				ImGui::SetScrollHereY(
+					0.5f
+				);
+			}
 		}
-
-		const size_t index =
-			sideA
-			? entry.indexA
-			: entry.indexB;
-		const bool isSelected =
-			index ==
-			selectedTraceIndex();
-
-		const TraceInstructionDifference difference =
-			compareInstructions(
-				m_traceA[entry.indexA],
-				m_traceB[entry.indexB]
-			);
-
-		ImGui::Separator();
-
-		m_recordView.draw(
-			index,
-			trace[index],
-			difference,
-			isSelected
+	}
+	if (!sideA)
+	{
+		ImGui::SetScrollY(
+			m_traceScrollY
 		);
+	}
 
-		if (scrollToSelected &&
-			isSelected)
-		{
-			ImGui::SetScrollHereY(
-				0.5f
-			);
-		}
+	if (sideA)
+	{
+		m_traceScrollY =
+			ImGui::GetScrollY();
 	}
 
 	ImGui::EndChild();
@@ -592,140 +589,142 @@ void TraceComparisonWindow::handleKeyboardNavigation()
 
 void TraceComparisonWindow::selectPreviousDifference()
 {
-	const size_t count =
-		(std::min)(
-			m_traceA.size(),
-			m_traceB.size()
-			);
-
-	if (count == 0)
+	if (m_traceA.empty() ||
+		m_traceB.empty())
 	{
 		return;
 	}
+
+	const std::vector<TraceAlignment> alignments =
+		TraceAligner::align(
+			m_traceA,
+			m_traceB
+		);
 
 	size_t selected =
 		selectedTraceIndex();
 
 	if (selected ==
-		static_cast<size_t>(-1) ||
-		selected >= count)
+		static_cast<size_t>(-1))
 	{
 		selected =
-			count - 1;
+			m_traceA.size();
 	}
 
-	if (compareInstructions(
-		m_traceA[selected],
-		m_traceB[selected]
-	).any())
-	{
-		const size_t blockStart =
-			findDifferenceStart(
-				selected
-			);
-
-		if (blockStart < selected)
-		{
-			setSelectedTraceIndex(
-				blockStart
-			);
-
-			setScrollToSelectedTrace(
-				true
-			);
-
-			return;
-		}
-	}
-
-	size_t index =
-		selected;
-
-	while (index > 0)
-	{
-		--index;
-
-		if (compareInstructions(
-			m_traceA[index],
-			m_traceB[index]
-		).any())
-		{
-			const size_t blockStart =
-				findDifferenceStart(
-					index
+	const size_t previousIndex =
+		TraceDifferenceNavigation::findPreviousDifference(
+			m_traceA,
+			m_traceB,
+			alignments,
+			selected,
+			[this](
+				const RuntimeInstruction& instructionA,
+				const RuntimeInstruction& instructionB
+				)
+			{
+				return compareInstructions(
+					instructionA,
+					instructionB
 				);
+			}
+		);
 
-			setSelectedTraceIndex(
-				blockStart
-			);
+	if (previousIndex ==
+		static_cast<size_t>(-1))
+	{
+		return;
+	}
 
-			setScrollToSelectedTrace(
-				true
-			);
+	setSelectedTraceIndex(
+		previousIndex
+	);
 
-			return;
+	for (const TraceAlignment& alignment :
+		alignments)
+	{
+		if (alignment.indexA ==
+			previousIndex)
+		{
+			m_selectedTraceIndexB =
+				alignment.indexB;
+
+			break;
 		}
 	}
+
+	setScrollToSelectedTrace(
+		true
+	);
 }
 
 void TraceComparisonWindow::selectNextDifference()
 {
-	const size_t count =
-		(std::min)(
-			m_traceA.size(),
-			m_traceB.size()
-			);
-
-	if (count == 0)
+	if (m_traceA.empty() ||
+		m_traceB.empty())
 	{
 		return;
 	}
+
+	const std::vector<TraceAlignment> alignments =
+		TraceAligner::align(
+			m_traceA,
+			m_traceB
+		);
 
 	size_t selected =
 		selectedTraceIndex();
 
 	if (selected ==
-		static_cast<size_t>(-1) ||
-		selected >= count)
+		static_cast<size_t>(-1))
 	{
 		selected =
 			0;
 	}
 
-	size_t index =
-		selected + 1;
-
-	while (index < count)
-	{
-		if (compareInstructions(
-			m_traceA[index],
-			m_traceB[index]
-		).any())
-		{
-			const size_t blockStart =
-				findDifferenceStart(
-					index
-				);
-
-			if (blockStart <= selected)
+	const size_t nextIndex =
+		TraceDifferenceNavigation::findNextDifference(
+			m_traceA,
+			m_traceB,
+			alignments,
+			selected,
+			[this](
+				const RuntimeInstruction& instructionA,
+				const RuntimeInstruction& instructionB
+				)
 			{
-				++index;
-				continue;
+				return compareInstructions(
+					instructionA,
+					instructionB
+				);
 			}
+		);
 
-			setSelectedTraceIndex(
-				blockStart
-			);
-
-			setScrollToSelectedTrace(
-				true
-			);
-
-			return;
-		}
-
-		++index;
+	if (nextIndex ==
+		static_cast<size_t>(-1))
+	{
+		return;
 	}
+
+	setSelectedTraceIndex(
+		nextIndex
+	);
+
+	for (const TraceAlignment& alignment :
+		alignments)
+	{
+		if (alignment.indexA ==
+			nextIndex)
+		{
+			m_selectedTraceIndexB =
+				alignment.indexB;
+
+			break;
+		}
+	}
+
+	setScrollToSelectedTrace(
+		true
+	);
 }
 
 void TraceComparisonWindow::drawToolbar()

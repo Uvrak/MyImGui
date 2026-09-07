@@ -40,7 +40,9 @@ namespace DosBoxMemoryTools
 
         void updateCapture();
 
-        void loadTrace();
+        void beginLoadTrace();
+
+        void continueLoadTrace();
 
         void loadSession();
 
@@ -73,5 +75,17 @@ namespace DosBoxMemoryTools
 
         bool m_traceCompleted =
             false;
+
+        size_t m_traceInstructionLimit =
+            1000;
+
+        bool m_traceLoadPending =
+            false;
+
+        size_t m_traceLoadCount =
+            0;
+
+        size_t m_traceLoadIndex =
+            0;
     };
 }

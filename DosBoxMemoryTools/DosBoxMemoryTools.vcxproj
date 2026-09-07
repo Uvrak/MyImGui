@@ -41,6 +41,7 @@
     </ClCompile>
     <ClCompile Include="TraceDetailView.cpp" />
     <ClCompile Include="TraceDifferenceBaseline.cpp" />
+    <ClCompile Include="TraceDifferenceNavigation.cpp" />
     <ClCompile Include="TraceListView.cpp" />
     <ClCompile Include="TraceRecordView.cpp" />
     <ClCompile Include="TraceTracking.cpp" />
@@ -65,6 +66,7 @@
     <ClInclude Include="TraceComparisonWindow.h" />
     <ClInclude Include="TraceDetailView.h" />
     <ClInclude Include="TraceDifferenceBaseline.h" />
+    <ClInclude Include="TraceDifferenceNavigation.h" />
     <ClInclude Include="TraceListView.h" />
     <ClInclude Include="TraceRecordView.h" />
     <ClInclude Include="TraceTracking.h" />

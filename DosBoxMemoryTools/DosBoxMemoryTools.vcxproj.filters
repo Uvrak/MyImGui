@@ -117,6 +117,9 @@
     <ClCompile Include="TraceAlignment.cpp">
       <Filter>Trace</Filter>
     </ClCompile>
+    <ClCompile Include="TraceDifferenceNavigation.cpp">
+      <Filter>Trace</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -183,6 +186,9 @@
       <Filter>Trace</Filter>
     </ClInclude>
     <ClInclude Include="TraceAlignment.h">
+      <Filter>Trace</Filter>
+    </ClInclude>
+    <ClInclude Include="TraceDifferenceNavigation.h">
       <Filter>Trace</Filter>
     </ClInclude>
   </ItemGroup>

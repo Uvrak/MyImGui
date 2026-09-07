@@ -32,6 +32,10 @@ namespace DosBoxMemoryTools
 
         void drawToolbar();
 
+        void beginLoadTrace();
+
+        void continueLoadTrace();
+
         bool openAndLoadTrace(
             bool forA
         );
@@ -184,10 +188,6 @@ namespace DosBoxMemoryTools
 
         void selectFirstDifference();
 
-        size_t findDifferenceStart(
-            size_t index
-        ) const;
-
         bool m_hasLoadedTraceA =
             false;
 
@@ -203,6 +203,11 @@ namespace DosBoxMemoryTools
         char m_traceBFilename[4096] = {};
 
         size_t m_selectedTraceIndex =
+            static_cast<size_t>(
+                -1
+                );
+
+        size_t m_selectedTraceIndexB =
             static_cast<size_t>(
                 -1
                 );
@@ -231,5 +236,8 @@ namespace DosBoxMemoryTools
             const RuntimeInstruction& instructionA,
             const RuntimeInstruction& instructionB
         ) const;
+
+        float m_traceScrollY = 0.0f;
     };
+
 }

@@ -189,6 +189,17 @@ Bits CPU_Core_Normal_Run(void) {
         std::array<uint8_t, 16>
             instructionBytes{};
 
+        for(size_t i = 0;
+            i < instructionBytes.size();
+            ++i)
+        {
+            instructionBytes[i] =
+                mem_readb_inline(
+                    core.instruction_start +
+                    static_cast<LinearPt>(i)
+                );
+        }
+
         const LinearPt executionTarget =
             MemoryReadTracker::executionCaptureTarget();
 
@@ -261,7 +272,8 @@ Bits CPU_Core_Normal_Run(void) {
                     reg_eip
                     ),
                 registerSnapshot,
-                SegBase(ss) + reg_sp
+                SegBase(ss) + reg_sp,
+                instructionBytes
             );
         }
 

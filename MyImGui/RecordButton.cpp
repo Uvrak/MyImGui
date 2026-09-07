@@ -9,12 +9,15 @@ namespace MyImGui
         const char* recordingLabel
     )
     {
+        const bool wasRecording =
+            m_recording;
+
         const char* label =
             m_recording
             ? recordingLabel
             : "Record";
 
-        if (m_recording)
+        if (wasRecording)
         {
             ImGui::PushStyleColor(
                 ImGuiCol_Button,
@@ -73,12 +76,20 @@ namespace MyImGui
 
         // Ensure each RecordButton instance gets a unique ImGui id to avoid collisions
         ImGui::PushID((void*)this);
+        
         const bool clicked =
             ImGui::Button(
                 "##RecordButton",
                 buttonSize
             );
+
         ImGui::PopID();
+
+        if (clicked)
+        {
+            m_recording =
+                !m_recording;
+        }
 
         const ImVec2 buttonMin =
             ImGui::GetItemRectMin();
@@ -125,22 +136,14 @@ namespace MyImGui
                 label
             );
 
-        if (m_recording)
+        if (wasRecording)
         {
             ImGui::PopStyleColor(
                 3
             );
         }
 
-        if (!clicked)
-        {
-            return false;
-        }
-
-        m_recording =
-            !m_recording;
-
-        return true;
+        return clicked;
     }
 
     bool RecordButton::recording() const

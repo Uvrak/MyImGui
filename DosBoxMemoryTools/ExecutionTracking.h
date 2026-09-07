@@ -12,9 +12,7 @@ namespace DosBoxMemoryTools
             MemoryScanner& scanner
         );
 
-        void draw(
-            const char* targetText
-        );
+        void draw();
 
     private:
         MemoryScanner&
@@ -22,5 +20,14 @@ namespace DosBoxMemoryTools
 
         MyImGui::RecordButton
             m_recordButton;
+
+        char m_targetText[32] =
+            "0xBD3F";
+
+        RuntimeInstruction
+            m_executionCapture;
+
+        bool m_hasExecutionCapture =
+            false;
     };
 }

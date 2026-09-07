@@ -1,3 +1,4 @@
+
 #include "memory_read_tracker.h"
 
 #include <unordered_set>
@@ -85,6 +86,10 @@ namespace
     bool
         hasMemoryWriteWatchHit = false;
 
+    std::atomic<bool> externalMemoryWriteActive{
+     false
+    };
+
     uint8_t
         capturedMemoryWriteValue = 0;
 
@@ -108,7 +113,7 @@ namespace
     bool readTraceRunning = false;
     bool readTraceArmedState = false;
 
-    constexpr size_t readTraceInstructionCount = 1000;
+    size_t readTraceInstructionCount = 1000;
 
     std::deque<MemoryReadTracker::RuntimeInstruction>
         readTraceInstructions;
@@ -169,6 +174,8 @@ namespace
     
     std::mutex
         readAddressesMutex;
+
+
 }
 
 void MemoryReadTracker::record(
@@ -574,7 +581,8 @@ void MemoryReadTracker::setCurrentInstructionContext(
     uint16_t cs,
     uint16_t ip,
     const RegisterSnapshot& registers,
-    LinearPt stackAddress
+    LinearPt stackAddress,
+    const std::array<uint8_t, 16>& instructionBytes
 )
 {
     currentRuntimeInstruction.address =
@@ -588,6 +596,9 @@ void MemoryReadTracker::setCurrentInstructionContext(
 
     currentRuntimeInstruction.registers =
         registers;
+
+    currentRuntimeInstruction.bytes =
+        instructionBytes;
 
     currentStackAddress =
         stackAddress;
@@ -1145,6 +1156,28 @@ void MemoryReadTracker::recordMemoryWrite(
     uint8_t value
 )
 {
+    if(address ==
+        memoryWriteWatchTargetAddress.load())
+    {
+        char buffer[128];
+
+        std::snprintf(
+            buffer,
+            sizeof(buffer),
+            "MEMWR target=%08X instruction=%08X\n",
+            static_cast<unsigned int>(
+                address
+                ),
+            static_cast<unsigned int>(
+                currentRuntimeInstruction.address
+                )
+        );
+
+        OutputDebugStringA(
+            buffer
+        );
+    }
+
     const LinearPt targetAddress =
         memoryWriteWatchTargetAddress.load();
 
@@ -1184,6 +1217,15 @@ void MemoryReadTracker::recordMemoryWrite(
     capturedMemoryWriteInstruction =
         currentRuntimeInstruction;
 
+    capturedMemoryWriteInstruction.writeAddress =
+        address;
+
+    if(externalMemoryWriteActive)
+    {
+        capturedMemoryWriteInstruction.address =
+            0;
+    }
+
     for(size_t i = 0;
         i < capturedMemoryWriteInstruction.stackBytes.size();
         ++i)
@@ -1204,5 +1246,28 @@ void MemoryReadTracker::recordMemoryWrite(
 
     hasMemoryWriteWatchHit =
         true;
+
+
+}
+
+void MemoryReadTracker::setReadTraceInstructionCount(
+    size_t count
+)
+{
+    readTraceInstructionCount =
+        count;
+}
+
+void MemoryReadTracker::setExternalMemoryWrite(
+    bool external
+)
+{
+    externalMemoryWriteActive =
+        external;
+}
+
+bool MemoryReadTracker::externalMemoryWrite()
+{
+    return externalMemoryWriteActive;
 }
 
