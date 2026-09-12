@@ -72,6 +72,14 @@ namespace DosBoxMemoryTools
                 std::move(
                     trace
                 );
+
+            m_traceAFilename[0] = '\0';
+
+            if (!m_traceA.empty() &&
+                !m_traceB.empty())
+            {
+                selectFirstDifference();
+            }
         }
 
         void setTraceB(
@@ -82,6 +90,14 @@ namespace DosBoxMemoryTools
                 std::move(
                     trace
                 );
+
+            m_traceBFilename[0] = '\0';
+
+            if (!m_traceA.empty() &&
+                !m_traceB.empty())
+            {
+                selectFirstDifference();
+            }
         }
 
         bool hasLoadedTraceA() const
@@ -173,11 +189,8 @@ namespace DosBoxMemoryTools
         );
 
     private:
-        void drawTraceSide(
-            const char* childId,
-            const std::vector<RuntimeInstruction>& trace,
+        void drawTraceRows(
             const std::vector<TraceComparisonDisplayEntry>& displayEntries,
-            bool sideA,
             bool scrollToSelected
         );
 

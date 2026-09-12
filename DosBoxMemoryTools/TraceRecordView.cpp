@@ -5,13 +5,44 @@
 
 namespace DosBoxMemoryTools
 {
-    void TraceRecordView::draw(
+
+    bool TraceRecordView::draw(
         size_t index,
         const RuntimeInstruction& instruction,
         const TraceInstructionDifference& difference,
         bool selected
     )
     {
+        const ImVec2 recordMin =
+            ImGui::GetCursorScreenPos();
+
+        const float recordHeight =
+            ImGui::GetTextLineHeightWithSpacing() *
+            5.0f;
+
+        const ImVec2 recordSize(
+            ImGui::GetContentRegionAvail().x,
+            recordHeight
+        );
+
+        ImGui::PushID(
+            static_cast<int>(index)
+        );
+
+        ImGui::InvisibleButton(
+            "##TraceRecord",
+            recordSize
+        );
+
+        ImGui::PopID();
+
+        const bool clicked =
+            ImGui::IsItemClicked();
+
+        ImGui::SetCursorScreenPos(
+            recordMin
+        );
+
         ImVec4 differenceColor(
             1.0f,
             1.0f,
@@ -403,5 +434,6 @@ namespace DosBoxMemoryTools
                     )
             );
         }
+        return clicked;
     }
 }

@@ -41,6 +41,7 @@ TraceComparisonWindow::TraceComparisonWindow()
 		else if (result == TraceComparisonPersistence::RestoreResult::Invalid)
 			m_persistenceErrors[slot] = "Saved trace could not be restored (invalid or unreadable file).";
 	}
+
 	if (!m_traceA.empty() &&
 		!m_traceB.empty())
 	{
@@ -191,32 +192,9 @@ void TraceComparisonWindow::draw()
 	const bool scrollToSelected =
 		takeScrollToSelectedTrace();
 
-	ImGui::Columns(
-		2,
-		"side_by_side",
-		true
-	);
-
-	drawTraceSide(
-		"ListA",
-		m_traceA,
+	drawTraceRows(
 		displayEntries,
-		true,
 		scrollToSelected
-	);
-
-	ImGui::NextColumn();
-
-	drawTraceSide(
-		"ListB",
-		m_traceB,
-		displayEntries,
-		false,
-		scrollToSelected
-	);
-
-	ImGui::Columns(
-		1
 	);
 
 	// close the outer TraceContentScroll child
@@ -237,47 +215,50 @@ void TraceComparisonWindow::selectFirstDifference()
 			m_traceB
 		);
 
+	const size_t firstDifference =
+		TraceDifferenceNavigation::findPreviousDifference(
+			m_traceA,
+			m_traceB,
+			alignments,
+			m_traceA.size(),
+			[this](
+				const RuntimeInstruction& instructionA,
+				const RuntimeInstruction& instructionB
+				)
+			{
+				return compareInstructions(
+					instructionA,
+					instructionB
+				);
+			}
+		);
+
+	if (firstDifference ==
+		static_cast<size_t>(-1))
+	{
+		return;
+	}
+
+	setSelectedTraceIndex(
+		firstDifference
+	);
+
 	for (const TraceAlignment& alignment :
 		alignments)
 	{
-		if (!alignment.synchronized)
+		if (alignment.indexA ==
+			firstDifference)
 		{
-			setSelectedTraceIndex(
-				alignment.indexA
-			);
-
 			m_selectedTraceIndexB =
 				alignment.indexB;
 
-			setScrollToSelectedTrace(
-				true
-			);
-
-			return;
-		}
-
-		if (alignment.indexA >= m_traceA.size() ||
-			alignment.indexB >= m_traceB.size())
-		{
-			continue;
-		}
-
-		if (compareInstructions(
-			m_traceA[alignment.indexA],
-			m_traceB[alignment.indexB]
-		).any())
-		{
-			setSelectedTraceIndex(
-				alignment.indexA
-			);
-
-			setScrollToSelectedTrace(
-				true
-			);
-
-			return;
+			break;
 		}
 	}
+
+	setScrollToSelectedTrace(
+		true
+	);
 }
 
 TraceInstructionDifference
@@ -311,31 +292,11 @@ void TraceComparisonWindow::setSelectedDatasetA(
 		selectedA;
 }
 
-void TraceComparisonWindow::drawTraceSide(
-	const char* childId,
-	const std::vector<RuntimeInstruction>& trace,
+void TraceComparisonWindow::drawTraceRows(
 	const std::vector<TraceComparisonDisplayEntry>& displayEntries,
-	bool sideA,
 	bool scrollToSelected
 )
 {
-	ImGuiWindowFlags childFlags =
-		ImGuiWindowFlags_None;
-
-	if (!sideA)
-	{
-		childFlags |=
-			ImGuiWindowFlags_NoScrollbar |
-			ImGuiWindowFlags_NoScrollWithMouse;
-	}
-
-	ImGui::BeginChild(
-		childId,
-		ImVec2(0, 0),
-		false,
-		childFlags
-	);
-
 	ImGuiListClipper clipper;
 
 	clipper.Begin(
@@ -346,42 +307,18 @@ void TraceComparisonWindow::drawTraceSide(
 
 	if (scrollToSelected)
 	{
-		const size_t selectedIndex =
-			sideA
-			? m_selectedTraceIndex
-			: m_selectedTraceIndexB;
-
 		for (size_t displayIndex = 0;
 			displayIndex < displayEntries.size();
 			++displayIndex)
 		{
 			const auto& entry =
-				displayEntries[
-					displayIndex
-				];
+				displayEntries[displayIndex];
 
-			const bool hasEntry =
-				sideA
-				? entry.hasA
-				: entry.hasB;
-
-			if (!hasEntry ||
-				entry.collapsedCount > 0)
-			{
-				continue;
-			}
-
-			const size_t index =
-				sideA
-				? entry.indexA
-				: entry.indexB;
-
-			if (index == selectedIndex)
+			if (entry.hasA &&
+				entry.indexA == m_selectedTraceIndex)
 			{
 				clipper.IncludeItemByIndex(
-					static_cast<int>(
-						displayIndex
-						)
+					static_cast<int>(displayIndex)
 				);
 
 				break;
@@ -391,82 +328,83 @@ void TraceComparisonWindow::drawTraceSide(
 
 	while (clipper.Step())
 	{
-		for (int displayIndex =
-			clipper.DisplayStart;
-			displayIndex <
-			clipper.DisplayEnd;
+		for (int displayIndex = clipper.DisplayStart;
+			displayIndex < clipper.DisplayEnd;
 			++displayIndex)
 		{
 			const auto& entry =
 				displayEntries[
-					static_cast<size_t>(
-						displayIndex
-						)
+					static_cast<size_t>(displayIndex)
 				];
-			const bool hasEntry =
-				sideA
-				? entry.hasA
-				: entry.hasB;
 
-			if (!hasEntry)
+			ImGui::Columns(
+				2,
+				"TraceRow",
+				false
+			);
+
+			if (entry.hasA)
 			{
-				ImGui::Separator();
+				ImGui::PushID("A");
+
+				if (m_recordView.draw(
+					entry.indexA,
+					m_traceA[entry.indexA],
+					entry.hasA && entry.hasB
+					? compareInstructions(
+						m_traceA[entry.indexA],
+						m_traceB[entry.indexB]
+					)
+					: TraceInstructionDifference{},
+					entry.indexA == m_selectedTraceIndex
+				))
+				{
+					setSelectedTraceIndex(
+						entry.indexA
+					);
+				}
+
+				ImGui::PopID();
+			}
+			else
+			{
 				ImGui::TextDisabled(
 					"<no record>"
 				);
-
-				continue;
 			}
 
-			if (entry.collapsedCount > 0)
+			ImGui::NextColumn();
+
+			if (entry.hasB)
 			{
-				ImGui::Separator();
+				ImGui::PushID("B");
 
-				ImGui::TextDisabled(
-					"... %zu identical records ...",
-					entry.collapsedCount
-				);
-
-				continue;
-			}
-
-			const size_t index =
-				sideA
-				? entry.indexA
-				: entry.indexB;
-
-			const size_t selectedIndex =
-				sideA
-				? m_selectedTraceIndex
-				: m_selectedTraceIndexB;
-
-			const bool isSelected =
-				index ==
-				selectedIndex;
-
-			TraceInstructionDifference difference{};
-
-			if (entry.hasA &&
-				entry.hasB)
-			{
-				difference =
-					compareInstructions(
+				m_recordView.draw(
+					entry.indexB,
+					m_traceB[entry.indexB],
+					entry.hasA && entry.hasB
+					? compareInstructions(
 						m_traceA[entry.indexA],
 						m_traceB[entry.indexB]
-					);
+					)
+					: TraceInstructionDifference{},
+					entry.indexB == m_selectedTraceIndexB
+				);
+
+				ImGui::PopID();
+			}
+			else
+			{
+				ImGui::TextDisabled(
+					"<no record>"
+				);
 			}
 
-			ImGui::Separator();
-
-			m_recordView.draw(
-				index,
-				trace[index],
-				difference,
-				isSelected
-			);
+			ImGui::Columns(1);
 
 			if (scrollToSelected &&
-				isSelected)
+				entry.hasA &&
+				entry.indexA == m_selectedTraceIndex)
 			{
 				ImGui::SetScrollHereY(
 					0.5f
@@ -474,20 +412,6 @@ void TraceComparisonWindow::drawTraceSide(
 			}
 		}
 	}
-	if (!sideA)
-	{
-		ImGui::SetScrollY(
-			m_traceScrollY
-		);
-	}
-
-	if (sideA)
-	{
-		m_traceScrollY =
-			ImGui::GetScrollY();
-	}
-
-	ImGui::EndChild();
 }
 
 void TraceComparisonWindow::handleKeyboardNavigation()

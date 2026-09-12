@@ -73,7 +73,7 @@ namespace MightAndMagic3
         static const ScreenSignature signature 
         {
             {
-                { 490, 209, 52, 52, 52 },
+                { 9, 383, 215, 207,0 },
                 { 253,   5, 85, 85, 85 },
                 {  11, 347, 235, 235, 235 }
             }

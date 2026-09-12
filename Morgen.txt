@@ -1,0 +1,127 @@
+DOSBoxMemoryTools – Notiz für morgen
+Stand: 07.09.2026
+
+HEUTIGER STAND
+
+1. Trace-Aufnahme
+
+- Trace-Laden wurde auf schrittweises/chunked Laden umgestellt.
+- Die Aufnahme funktioniert jetzt auch mit größeren Limits korrekt.
+- Record bleibt während des Ladens aktiv und stoppt erst, wenn alle Datensätze geladen sind.
+- ImGuiListClipper wurde für die Trace-Vergleichsliste eingebaut, wodurch 10.000 Datensätze wieder benutzbar sind.
+- Prev/Next Difference kann ausgewählte, momentan ausgeclippte Einträge wieder einbeziehen.
+
+
+2. Memory-Write-Tracker / Ziel 0x30418
+
+Ziel:
+Herausfinden, welche CPU-Instruktion tatsächlich auf die MM3-Speicheradresse 0x30418 schreibt.
+
+Wichtige Adressrechnung:
+
+DS/SS = 0x2053
+Segmentbasis = 0x20530
+
+0x30418 - 0x20530 = 0xFEE8
+
+=> 0x30418 entspricht 2053:FEE8.
+
+
+Bisher auffällige Capture-Instruktionen:
+
+- 0xBD3F wurde häufig als Instruktionsadresse für Writes auf 0x30418 gemeldet.
+- Die Instruktionen ab BD3F wurden mit Exec untersucht.
+- Der dortige Schreibloop schreibt ab SS:FEEC = physisch 0x3041C.
+- Das ist 4 Bytes HINTER 0x30418 und erklärt den Ziel-Write daher nicht direkt.
+
+- 0xAF94 bleibt besonders interessant:
+  Bei früheren Captures war DI=FEE8, DS/ES/SS=2053.
+  Das passt exakt zur Zieladresse 0x30418.
+
+
+3. Prefix/restart_opcode
+
+Geprüft:
+
+- Der DOSBox-X-Prefix-Pfad mit goto restart_opcode ist nicht offensichtlich der Fehler.
+- Segment-/REP-Prefixe gehören zur selben x86-Instruktion.
+- Der gespeicherte Instruktionsstart darf deshalb beim Prefix bleiben.
+
+
+4. Externe WRITE-Diagnose
+
+Es wurde festgestellt:
+
+- Der IPC-Befehl WRITE verwendet phys_writeb().
+- phys_writeb() schreibt direkt in den RAM.
+- Dadurch läuft der manuelle IPC-Write NICHT durch recordMemoryWrite().
+- Der Test mit externalMemoryWriteActive / Address=0 kann den manuellen Write daher nicht markieren.
+- Diese Diagnose-Hilfskonstruktion ist später entfernbar, aber vorerst nicht groß aufräumen.
+
+
+5. WRITE MARKER
+
+- Der Marker wird beim manuellen Write anhand der Capture-Anzahl gesetzt.
+- Problem: Marker-Zustand blieb zwischen neuen MemWr-Aufnahmen erhalten.
+- In der App wurde vorgesehen, m_memoryWriteMarkerValid beim Setzen eines neuen Memory-Write-Ziels auf false zu setzen.
+- Nach Programmneustart war der alte Marker natürlich ebenfalls weg.
+- Marker-Reset bei Gelegenheit nochmals ohne Neustart verifizieren.
+
+
+LETZTE ÄNDERUNG HEUTE
+
+In memory_read_tracker.h wurde RuntimeInstruction ergänzt um:
+
+    LinearPt writeAddress =
+        0;
+
+In MemoryReadTracker::recordMemoryWrite(...) wurde direkt nach:
+
+    capturedMemoryWriteInstruction =
+        currentRuntimeInstruction;
+
+ergänzt:
+
+    capturedMemoryWriteInstruction.writeAddress =
+        address;
+
+Build: SUCCEEDED.
+
+Damit enthält der DOSBox-X-Capture jetzt zusätzlich die TATSÄCHLICHE Speicheradresse, die recordMemoryWrite() erhalten hat.
+
+WICHTIG:
+writeAddress wird aktuell noch NICHT über IPC zur MemoryTools-App übertragen und dort noch NICHT angezeigt.
+
+
+ERSTER SCHRITT MORGEN
+
+writeAddress durch die bestehende Memory-Write-Capture-IPC-Kette übertragen und in MemoryWriteTracker anzeigen.
+
+Zielanzeige etwa:
+
+    Instruction: 0xBD3F
+    Write Address: 0x30418
+    Written: 0x00
+
+Damit können wir zweifelsfrei prüfen:
+
+- Hat recordMemoryWrite() wirklich 0x30418 gesehen?
+- Welcher currentRuntimeInstruction-Kontext war exakt in diesem Moment gespeichert?
+
+Danach gezielt untersuchen, warum ggf. 0xBD3F als Kontext erscheint, obwohl die dort decodierten Writes nicht 0x30418 treffen.
+
+
+MÖGLICHER NÄCHSTER EXEC-TEST
+
+Wenn die neue Write-Address-Anzeige bestätigt, dass die Capture-Zuordnung stimmt:
+
+- Exec auf 0xAF94 setzen.
+- Bytes/Instruktion dort untersuchen.
+- Besonders prüfen, ob DI=FEE8 verwendet wird.
+- 2053:FEE8 entspricht exakt physisch 0x30418.
+
+
+ARBEITSWEISE
+
+- Weiterhin nur eine kleine Änderung -> Build -> Test.
+- Keine große Bereinigung/Refaktorierung nebenbei.

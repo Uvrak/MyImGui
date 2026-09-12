@@ -1,0 +1,55 @@
+DOSBoxMemoryTools – Kurznotiz
+Stand: 08.09.2026
+
+Ziel:
+Ursprung der MM3-Maus/Cursor-Darstellung finden.
+
+Bisherige Ergebnisse:
+
+- Untersuchte physische Adresse: 0x30418
+- Bei DS/ES = 0x2053 entspricht sie:
+  2053:FEE8 = 0x30418
+
+- Memory-Write-Tracker fand einen echten Schreibzugriff:
+  CS:IP 0823:2D64
+  physische Instruktionsadresse: 0xAF94
+  Opcode: AA = STOSB
+
+- STOSB schreibt:
+  AL -> ES:[DI]
+
+- Bei den beobachteten Treffern:
+  ES = 2053
+  DI = FEE8
+  => Ziel tatsächlich 0x30418
+
+- Die Schleife um 0xAF86 wurde disassembliert:
+
+  AF86  dec si
+  AF87  mov al,[si]
+  AF89  sub al,0Ah
+  AF8B  jnb AF91
+  AF8D  add al,3Ah
+  AF8F  jmp AF94
+  AF91  add al,[bp+04h]
+  AF94  stosb
+  AF95  loop AF86
+  AF97  mov al,00h
+  AF99  stosb
+
+- Die Routine endet bei 0xAFA3 mit ret 0x0C.
+
+Bewertung:
+Die Routine sieht nach Zahlen-/Stringformatierung aus, nicht nach dem Laden
+einer Cursor-Pixelmap. Das abschließende 0-Byte spricht für einen
+nullterminierten String. Beobachtete Werte wie 0x30 ('0'), 0x39 ('9')
+und 0x4D ('M') passen dazu.
+
+Fazit:
+0x30418 ist sehr wahrscheinlich keine eigentliche Cursorvariable bzw.
+kein festes Cursor-Bitmap-Byte. Die frühere Cursorwirkung an dieser Adresse
+war vermutlich ein Nebeneffekt.
+
+Nächster Ansatz:
+Zurück zur Cursor-Suche und gezielt nach dem Grafik-/Cursorpuffer bzw.
+der Routine suchen, die die Cursor-Pixel-/Maskendaten lädt oder zeichnet.

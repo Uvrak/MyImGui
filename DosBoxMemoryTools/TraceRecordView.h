@@ -8,7 +8,7 @@ namespace DosBoxMemoryTools
     class TraceRecordView
     {
     public:
-        void draw(
+        bool draw(
             size_t index,
             const RuntimeInstruction& instruction,
             const TraceInstructionDifference& difference,
