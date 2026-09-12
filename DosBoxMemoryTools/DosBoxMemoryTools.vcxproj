@@ -22,6 +22,11 @@
     <ClCompile Include="DisassemblyWindow.cpp" />
     <ClCompile Include="ExecutionTracking.cpp" />
     <ClCompile Include="ExecutionTracking.h" />
+    <ClCompile Include="MemoryScannerExecutionCapture.cpp" />
+    <ClCompile Include="MemoryScannerReadTrace.cpp" />
+    <ClCompile Include="MemoryScannerReadTracking.cpp" />
+    <ClCompile Include="MemoryScannerTransitionTracking.cpp" />
+    <ClCompile Include="MemoryScannerWriteWatch.cpp" />
     <ClCompile Include="MemoryWriteTracker.cpp" />
     <ClCompile Include="Reader.cpp" />
     <ClCompile Include="MemoryReadTrackerWindow.cpp" />
