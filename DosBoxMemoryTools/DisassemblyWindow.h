@@ -6,6 +6,7 @@
 #include <string>
 
 #include "MemoryReader.h"
+#include "DisassemblyState.h"
 
 namespace DosBoxMemoryTools
 {
@@ -25,48 +26,7 @@ namespace DosBoxMemoryTools
         );
 
     private:
-        struct SavedAddress
-        {
-            size_t address = 0;
-            std::string name;
-        };
-
-        void saveSession();
-        void loadSession();
-
-        void addSavedAddress();
-
-        MemoryReader&
-            m_memoryReader;
-
-        std::vector<uint8_t>
-            m_disassemblyMemory;
-
-        char m_addressText[32] = {};
-
-        size_t m_address = 0;
-
-        std::unordered_map<size_t, int>
-            branchTargetCounts;
-
-        bool m_hasAddress = false;
-        bool m_scrollToTop = false;
-
-        char m_callerTargetText[32] = {};
-
-        std::vector<size_t>
-            m_callers;
-
-        std::vector<SavedAddress>
-            m_savedAddresses;
-
-        char m_sessionName[64] = {};
-
-        std::string m_status;
-
-        bool m_callerSearchPerformed = false;
-        bool m_wasOpen = false;
-
-        bool m_savedAddressesLoaded = false;
+        MemoryReader& m_memoryReader;
+        DisassemblyState state;
     };
 }

@@ -135,6 +135,9 @@
     <ClCompile Include="tests\RecordButtonFloatingWindowTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MemoryPatternSearch.cpp">
+      <Filter>Scanner</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -206,6 +209,9 @@
     <ClInclude Include="TraceDifferenceNavigation.h">
       <Filter>Trace</Filter>
     </ClInclude>
+    <ClInclude Include="MemoryPatternSearch.h">
+      <Filter>Scanner</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="2026-08-29.txt">
@@ -214,5 +220,34 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="scripts\bootstrap_vcpkg_and_gtest.ps1" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="DisassemblyCallerSearch.cpp">
+      <Filter>Dissasembly</Filter>
+    </ClCompile>
+    <ClInclude Include="DisassemblyCallerSearch.h">
+      <Filter>Dissasembly</Filter>
+    </ClInclude>
+    <ClCompile Include="DisassemblySavedAddresses.cpp">
+      <Filter>Dissasembly</Filter>
+    </ClCompile>
+    <ClInclude Include="DisassemblySavedAddresses.h">
+      <Filter>Dissasembly</Filter>
+    </ClInclude>
+    <ClInclude Include="DisassemblyState.h">
+      <Filter>Dissasembly</Filter>
+    </ClInclude>
+    <ClCompile Include="DisassemblyToolbar.cpp">
+      <Filter>Dissasembly</Filter>
+    </ClCompile>
+    <ClInclude Include="DisassemblyToolbar.h">
+      <Filter>Dissasembly</Filter>
+    </ClInclude>
+    <ClCompile Include="DisassemblyView.cpp">
+      <Filter>Dissasembly</Filter>
+    </ClCompile>
+    <ClInclude Include="DisassemblyView.h">
+      <Filter>Dissasembly</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

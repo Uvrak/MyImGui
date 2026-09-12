@@ -1,4 +1,5 @@
 #include "MemoryScanner.h"
+#include "MemoryPatternSearch.h"
 
 #include <algorithm>
 #include <utility>
@@ -131,16 +132,6 @@ namespace DosBoxMemoryTools
         const std::vector<uint8_t>& memory =
             m_memoryReader.memory();
 
-        if (memory.size() < pattern.size())
-        {
-            m_status =
-                "Byte pattern is larger than memory.";
-
-            return false;
-        }
-
-        m_candidates.clear();
-
         const size_t startAddress =
             m_scanRangeEnabled
             ? (std::min)(
@@ -166,28 +157,19 @@ namespace DosBoxMemoryTools
             return false;
         }
 
-        for (size_t address = startAddress;
-            address + pattern.size() <= endAddress;
-            ++address)
+        const auto matches =
+            MemoryPatternSearch::find(
+                memory.data() + startAddress,
+                endAddress - startAddress,
+                pattern
+            );
+
+        m_candidates.clear();
+
+        for (const size_t offset : matches)
         {
-            bool matches = true;
-
-            for (size_t i = 0;
-                i < pattern.size();
-                ++i)
-            {
-                if (memory[address + i] !=
-                    pattern[i])
-                {
-                    matches = false;
-                    break;
-                }
-            }
-
-            if (!matches)
-            {
-                continue;
-            }
+            const size_t address =
+                startAddress + offset;
 
             m_candidates.push_back(
                 MemoryCandidate{
