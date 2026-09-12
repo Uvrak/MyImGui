@@ -268,4 +268,19 @@ copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Co
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClCompile Include="WorldViewCellInteraction.cpp" />
+    <ClInclude Include="WorldViewCellInteraction.h" />
+    <ClCompile Include="WorldViewEraser.cpp" />
+    <ClInclude Include="WorldViewEraser.h" />
+    <ClCompile Include="WorldViewHitTest.cpp" />
+    <ClInclude Include="WorldViewHitTest.h" />
+    <ClCompile Include="WorldViewRenderer.cpp" />
+    <ClInclude Include="WorldViewRenderer.h" />
+    <ClInclude Include="WorldViewTypes.h" />
+    <ClCompile Include="WorldViewViewport.cpp" />
+    <ClInclude Include="WorldViewViewport.h" />
+    <ClCompile Include="WorldViewWallPainter.cpp" />
+    <ClInclude Include="WorldViewWallPainter.h" />
+  </ItemGroup>
 </Project>
