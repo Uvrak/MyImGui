@@ -8,12 +8,17 @@ namespace DosBoxMemoryTools
     MemoryTools::
         MemoryTools(
             const std::string& gameId,
-            DosBoxX::View* dosBoxView
+            DosBoxX::View* dosBoxView,
+            ScannerAddress& scannerAddress,
+            ScannerRange& scannerRange
         )
-        : m_scannerWindow(
+        : 
+        m_scannerWindow(
             m_memoryReader,
             gameId,
-            dosBoxView
+            dosBoxView,
+            scannerAddress,
+            scannerRange
         ),
         m_viewerWindow(
             m_memoryReader

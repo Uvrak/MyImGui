@@ -150,10 +150,10 @@ namespace MyImGui
                         "Game executable: %s\n",
                         m_gameFilename.c_str()
                     );
-					m_startGameRequested = true;
+                    m_startGameRequested = true;
                 }
             }
-            
+
             bool canStartGame =
                 !m_selectedGameExe.empty() &&
                 !m_mountDirectory.empty();
@@ -166,9 +166,9 @@ namespace MyImGui
             ))
             {
                 // DOSBox-Start kommt als Nächstes
-               
+
             }
-            
+
 
             if (!m_selectedGameExe.empty())
             {
@@ -284,7 +284,7 @@ namespace MyImGui
 
         ImGui::EndMainMenuBar();
     }
-    
+
     const std::string&
         MainMenu::selectedGameExe() const
     {
@@ -320,43 +320,53 @@ namespace MyImGui
         return m_gameFilename;
     }
 
-   bool MainMenu::consumeGermanKeyboardLayoutRequest()
-{
-    if (!m_germanKeyboardLayoutRequested)
+    bool MainMenu::consumeGermanKeyboardLayoutRequest()
     {
-        return false;
+        if (!m_germanKeyboardLayoutRequested)
+        {
+            return false;
+        }
+
+        m_germanKeyboardLayoutRequested = false;
+
+        return true;
     }
 
-    m_germanKeyboardLayoutRequested = false;
-
-    return true;
-}
-
-bool MainMenu::consumeUSKeyboardLayoutRequest()
-{
-    if (!m_usKeyboardLayoutRequested)
+    bool MainMenu::consumeUSKeyboardLayoutRequest()
     {
-        return false;
+        if (!m_usKeyboardLayoutRequested)
+        {
+            return false;
+        }
+
+        m_usKeyboardLayoutRequested = false;
+
+        return true;
     }
 
-    m_usKeyboardLayoutRequested = false;
-
-    return true;
-}
-
-bool MainMenu::
-consumeOpenSettingsRequest()
-{
-    if (!m_openSettingsRequested)
+    bool MainMenu::
+        consumeOpenSettingsRequest()
     {
-        return false;
+        if (!m_openSettingsRequested)
+        {
+            return false;
+        }
+
+        m_openSettingsRequested =
+            false;
+
+        return true;
     }
 
-    m_openSettingsRequested =
-        false;
+    DosBoxMemoryTools::ScannerAddress&
+        MainMenu::scannerAddress()
+    {
+        return m_scannerAddress;
+    }
 
-    return true;
-}
-
-
+    DosBoxMemoryTools::ScannerRange&
+        MainMenu::scannerRange()
+    {
+        return m_scannerRange;
+    }
 }

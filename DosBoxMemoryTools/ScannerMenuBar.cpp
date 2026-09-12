@@ -82,7 +82,8 @@ namespace DosBoxMemoryTools
                 changed = true;
             }
         }
-        ImGui::Separator();
+
+        ImGui::SameLine();
 
         if (ImGui::Checkbox(
             "Range",
@@ -136,8 +137,7 @@ namespace DosBoxMemoryTools
             if (ImGui::InputText(
                 "##ScannerRangeEnd",
                 rangeEndText,
-                sizeof(rangeEndText),
-                ImGuiInputTextFlags_EnterReturnsTrue
+                sizeof(rangeEndText)
             ))
             {
                 char* end = nullptr;

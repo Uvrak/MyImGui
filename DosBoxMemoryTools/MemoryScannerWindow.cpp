@@ -18,11 +18,15 @@ namespace DosBoxMemoryTools
     MemoryScannerWindow::MemoryScannerWindow(
         MemoryReader& memoryReader,
         const std::string& gameId,
-        DosBoxX::View* dosBoxView
+        DosBoxX::View* dosBoxView,
+        ScannerAddress& scannerAddress,
+        ScannerRange& scannerRange
     )
         :
         m_scanner(memoryReader),
         m_patternScan(m_scanner),
+        m_scannerAddress(scannerAddress),
+        m_scannerRange(scannerRange),
         m_gameId(gameId),
         m_dosBoxView(dosBoxView)
     {
@@ -61,7 +65,7 @@ namespace DosBoxMemoryTools
         );
 
         if (!ImGui::Begin(
-            "DOSBox Memory Scanner",
+            "Memory Scanner",
             isOpen
         ))
         {
@@ -86,40 +90,23 @@ namespace DosBoxMemoryTools
                 newScanSize
             );
 
+            ImGui::Text(
+                "Candidates: %zu",
+                m_scanner.candidates().size()
+            );
+
             if (ImGui::Button(
                 "New Scan"
             ))
             {
-                if (m_limitScanRange)
+                    if (m_scannerRange.enabled &&
+                    m_scannerRange.start <=
+                    m_scannerRange.end)
                 {
-                    char* startEnd = nullptr;
-                    char* endEnd = nullptr;
-
-                    const unsigned long long startAddress =
-                        std::strtoull(
-                            m_scanStartAddress,
-                            &startEnd,
-                            0
-                        );
-
-                    const unsigned long long endAddress =
-                        std::strtoull(
-                            m_scanEndAddress,
-                            &endEnd,
-                            0
-                        );
-
-                    if (startEnd != m_scanStartAddress &&
-                        *startEnd == '\0' &&
-                        endEnd != m_scanEndAddress &&
-                        *endEnd == '\0' &&
-                        startAddress <= endAddress)
-                    {
-                        m_scanner.setScanRange(
-                            static_cast<size_t>(startAddress),
-                            static_cast<size_t>(endAddress)
-                        );
-                    }
+                    m_scanner.setScanRange(
+                        m_scannerRange.start,
+                        m_scannerRange.end
+                    );
                 }
                 else
                 {
@@ -158,14 +145,14 @@ namespace DosBoxMemoryTools
 
             // Scan mode
             const char* scanModes[] =
-{
-    "Unknown Initial Value",
-    "Exact Value",
-    "Changed",
-    "Unchanged",
-    "Increased",
-    "Decreased"
-};
+            {
+                "Unknown Initial Value",
+                "Exact Value",
+                "Changed",
+                "Unchanged",
+                "Increased",
+                "Decreased"
+            };
 
             int selectedMode =
                 static_cast<int>(
@@ -235,7 +222,7 @@ namespace DosBoxMemoryTools
             {
                 m_valueType =
                     static_cast<
-                    MemoryValueType 
+                    MemoryValueType
                     >(
                         selectedValueType
                         );
@@ -246,7 +233,7 @@ namespace DosBoxMemoryTools
             m_toolbarLayout.endItem();
 
             // Previous
-            
+
             // Exact value
             if (m_scanMode ==
                 MemoryScanMode::ExactValue)
@@ -391,49 +378,6 @@ namespace DosBoxMemoryTools
 
         ImGui::SameLine();
 
-        if (ImGui::Checkbox(
-            "Limit Range",
-            &m_limitScanRange
-        ))
-        {
-            saveScannerSettings();
-        }
-
-        if (m_limitScanRange)
-        {
-            ImGui::SameLine();
-
-            ImGui::SetNextItemWidth(
-                120.0f
-            );
-
-            if (ImGui::InputText(
-                "Start",
-                m_scanStartAddress,
-                sizeof(m_scanStartAddress),
-                ImGuiInputTextFlags_EnterReturnsTrue
-            ))
-            {
-                saveScannerSettings();
-            }
-
-            ImGui::SameLine();
-
-            ImGui::SetNextItemWidth(
-                120.0f
-            );
-
-            if (ImGui::InputText(
-                "End",
-                m_scanEndAddress,
-                sizeof(m_scanEndAddress),
-                ImGuiInputTextFlags_EnterReturnsTrue
-            ))
-            {
-                saveScannerSettings();
-            }
-        }
-
         m_patternScan.draw();
 
         ImGui::Separator();
@@ -449,8 +393,11 @@ namespace DosBoxMemoryTools
 
         std::vector<int> filteredIndices;
         std::vector<int> pinnedIndices;
-        
+        std::vector<int> describedIndices;
+
         std::vector<size_t> pinnedOnlyAddresses;
+
+        std::vector<size_t> describedOnlyAddresses;
 
         filteredIndices.reserve(
             static_cast<int>(
@@ -513,14 +460,26 @@ namespace DosBoxMemoryTools
                         difference ==
                         m_differenceValue)))
             {
-                filteredIndices.push_back(
-                    index
-                );
+                if (m_descriptionsFirst &&
+                    hasDescription(
+                        candidate.address
+                    ))
+                {
+                    describedIndices.push_back(
+                        index
+                    );
+                }
+                else
+                {
+                    filteredIndices.push_back(
+                        index
+                    );
+                }
             }
         }
 
-        for (size_t pinnedAddress :
-        m_scanner.pinnedAddresses())
+        for (const size_t pinnedAddress :
+        m_pinnedAddresses)
         {
             bool foundCandidate = false;
 
@@ -546,17 +505,53 @@ namespace DosBoxMemoryTools
 
         if (m_descriptionsFirst)
         {
-            std::stable_partition(
-                filteredIndices.begin(),
-                filteredIndices.end(),
-                [this](int index)
+            if (m_descriptionsFirst)
+            {
+                for (const auto& [address, description] :
+                    m_pinnedDescriptions)
                 {
-                    return hasDescription(
-                        m_scanner.candidates()[
-                            index
-                        ].address
-                    );
+                    if (description.empty())
+                    {
+                        continue;
+                    }
+
+                    if (m_scanner.pinnedAddresses().contains(
+                        address
+                    ))
+                    {
+                        continue;
+                    }
+
+                    bool foundCandidate = false;
+
+                    for (const MemoryCandidate&
+                        candidate :
+                        m_scanner.candidates())
+                    {
+                        if (candidate.address ==
+                            address)
+                        {
+                            foundCandidate = true;
+                            break;
+                        }
+                    }
+
+                    if (!foundCandidate)
+                    {
+                        describedOnlyAddresses.push_back(
+                            address
+                        );
+                    }
                 }
+            }
+        }
+
+        if (m_descriptionsFirst)
+        {
+            filteredIndices.insert(
+                filteredIndices.begin(),
+                describedIndices.begin(),
+                describedIndices.end()
             );
         }
 
@@ -612,100 +607,24 @@ namespace DosBoxMemoryTools
             120.0f
         );
 
-        const bool addressEnter =
-            ImGui::InputText(
-                "Address",
-                m_addressSearch,
-                sizeof(m_addressSearch),
-                ImGuiInputTextFlags_EnterReturnsTrue
-            );
-
-        ImGui::SameLine();
-
-        if (ImGui::Button(
-    "Find"
-) || addressEnter)
-{
-    m_addressSearchAttempted = true;
-
-    char* end = nullptr;
-
-    const unsigned long long address =
-        std::strtoull(
-            m_addressSearch,
-            &end,
-            0
-        );
-
-    if (end != m_addressSearch &&
-        *end == '\0')
-    {
-        m_foundAddress =
-            static_cast<size_t>(
-                address
-            );
-
-        m_hasFoundAddress = true;
-
-        pinAddresses(
-            std::vector<size_t>{
-                m_foundAddress
-            }
-        );
-    }
-    else
-    {
-        m_hasFoundAddress = false;
-    }
-}
-
-        if (m_addressSearchAttempted)
-        {
-            if (m_hasFoundAddress)
-            {
-                ImGui::TextUnformatted("Found");
-            }
-            else
-            {
-                ImGui::TextUnformatted("Not found");
-            }
-        }
-
         ImGui::NewLine();            
-
-        
 
         if (ImGui::Button(
             "Pin Address"
         ))
         {
-            char* end = nullptr;
+            const size_t address =
+                m_scannerAddress.value;
 
-            const unsigned long long address =
-                std::strtoull(
-                    m_addressSearch,
-                    &end,
-                    0
-                );
+            m_pinnedAddresses.insert(
+                address
+            );
 
-            if (end != m_addressSearch &&
-                *end == '\0')
-            {
-                const size_t parsedAddress =
-                    static_cast<size_t>(
-                        address
-                        );
+            m_scanner.pinAddress(
+                address
+            );
 
-                m_pinnedAddresses.insert(
-                    parsedAddress
-                );
-
-                m_scanner.pinAddress(
-                    parsedAddress
-                );
-
-                savePinnedAddresses();
-            }
+            savePinnedAddresses();
         }
 
         ImGui::SameLine();
@@ -921,8 +840,10 @@ namespace DosBoxMemoryTools
                 clipper.Begin(
                     static_cast<int>(
                         pinnedOnlyAddresses.size() +
+                        describedOnlyAddresses.size() +
                         filteredIndices.size()
-                        )
+                        ),
+                    ImGui::GetTextLineHeightWithSpacing()
                 );
 
                 while (clipper.Step())
@@ -938,14 +859,28 @@ namespace DosBoxMemoryTools
                                 pinnedOnlyAddresses.size()
                                 );
 
+                        const int describedOnlyCount =
+                            static_cast<int>(
+                                describedOnlyAddresses.size()
+                                );
+
                         const bool pinnedOnly =
                             index < pinnedOnlyCount;
-                        
+
+                        const bool describedOnly =
+                            !pinnedOnly &&
+                            index <
+                            pinnedOnlyCount +
+                            describedOnlyCount;
+
                         const int candidateIndex =
-                            pinnedOnly
+                            pinnedOnly ||
+                            describedOnly
                             ? -1
                             : filteredIndices[
-                                index - pinnedOnlyCount
+                                index -
+                                    pinnedOnlyCount -
+                                    describedOnlyCount
                             ];
 
                         if (pinnedOnly)
@@ -1265,6 +1200,81 @@ namespace DosBoxMemoryTools
                             continue;
                         }
 
+                        if (describedOnly)
+                        {
+                            const size_t address =
+                                describedOnlyAddresses[
+                                    index - pinnedOnlyCount
+                                ];
+
+                            uint8_t currentValue = 0;
+
+                            m_scanner.readCurrentValue(
+                                address,
+                                currentValue
+                            );
+
+                            ImGui::TableNextRow();
+
+                            ImGui::TableSetBgColor(
+                                ImGuiTableBgTarget_RowBg0,
+                                ImGui::GetColorU32(
+                                    ImVec4(
+                                        0.10f,
+                                        0.30f,
+                                        0.10f,
+                                        1.0f
+                                    )
+                                )
+                            );
+
+                            ImGui::TableSetColumnIndex(0);
+
+                            char addressText[32];
+
+                            std::snprintf(
+                                addressText,
+                                sizeof(addressText),
+                                "0x%05zX",
+                                address
+                            );
+
+                            ImGui::TextUnformatted(
+                                addressText
+                            );
+
+                            const auto description =
+                                m_pinnedDescriptions.find(
+                                    address
+                                );
+
+                            if (ImGui::IsItemHovered() &&
+                                description !=
+                                m_pinnedDescriptions.end())
+                            {
+                                ImGui::SetTooltip(
+                                    "%s",
+                                    description->second.c_str()
+                                );
+                            }
+
+                            ImGui::TableSetColumnIndex(1);
+                            ImGui::TextUnformatted("-");
+
+                            ImGui::TableSetColumnIndex(2);
+
+                            ImGui::Text(
+                                "%u",
+                                static_cast<unsigned int>(
+                                    currentValue
+                                    )
+                            );
+
+                            ImGui::TableSetColumnIndex(3);
+                            ImGui::TextUnformatted("-");
+
+                            continue;
+                        }
 
                         const MemoryCandidate&
                             candidate =
@@ -1426,7 +1436,7 @@ namespace DosBoxMemoryTools
                                 }
                                 else
                                 {
-                                    if (ImGui::MenuItem(
+                                        if (ImGui::MenuItem(
                                         "Pin Address"
                                     ))
                                     {
@@ -1700,11 +1710,6 @@ namespace DosBoxMemoryTools
             m_scanner.pinAddress(
                 address
             );
-
-            m_pinnedDescriptions.try_emplace(
-                address,
-                ""
-            );
         }
 
         savePinnedAddresses();
@@ -1882,15 +1887,18 @@ namespace DosBoxMemoryTools
                 );
             }
 
-            m_pinnedDescriptions[
-                address
-            ] = description;
+            if (pinned ||
+                !description.empty())
+            {
+                m_pinnedDescriptions[
+                    address
+                ] = description;
+            }
         }
     }
     void MemoryScannerWindow::
         savePinnedAddresses() const
     {
-
         const std::string filename =
             pinnedAddressesFilePath();
 
@@ -1903,17 +1911,11 @@ namespace DosBoxMemoryTools
             return;
         }
 
-        for (const auto& entry :
-            m_pinnedDescriptions)
+        for (const size_t address :
+        m_pinnedAddresses)
         {
-            const size_t address =
-                entry.first;
-
-            const std::string& description =
-                entry.second;
-
-            const bool pinned =
-                m_pinnedAddresses.contains(
+            const auto description =
+                m_pinnedDescriptions.find(
                     address
                 );
 
@@ -1921,9 +1923,39 @@ namespace DosBoxMemoryTools
                 << "0x"
                 << std::hex
                 << address
-                << "|"
-                << (pinned ? 1 : 0)
-                << "|"
+                << "|1|";
+
+            if (description !=
+                m_pinnedDescriptions.end())
+            {
+                file
+                    << description->second;
+            }
+
+            file
+                << '\n';
+        }
+
+        for (const auto& [address, description] :
+            m_pinnedDescriptions)
+        {
+            if (description.empty())
+            {
+                continue;
+            }
+
+            if (m_pinnedAddresses.contains(
+                address
+            ))
+            {
+                continue;
+            }
+
+            file
+                << "0x"
+                << std::hex
+                << address
+                << "|0|"
                 << description
                 << '\n';
         }
@@ -1987,29 +2019,7 @@ namespace DosBoxMemoryTools
                 m_exactValue =
                     std::stoi(value);
             }
-            else if (key == "LimitRange")
-            {
-                m_limitScanRange =
-                    std::stoi(value) != 0;
-            }
-            else if (key == "RangeStart")
-            {
-                std::snprintf(
-                    m_scanStartAddress,
-                    sizeof(m_scanStartAddress),
-                    "%s",
-                    value.c_str()
-                );
-            }
-            else if (key == "RangeEnd")
-            {
-                std::snprintf(
-                    m_scanEndAddress,
-                    sizeof(m_scanEndAddress),
-                    "%s",
-                    value.c_str()
-                );
-            }
+            
             else if (key == "FilterPrevious")
             {
                 m_filterPrevious =
@@ -2073,17 +2083,7 @@ namespace DosBoxMemoryTools
             << m_exactValue
             << '\n'
 
-            << "LimitRange="
-            << (m_limitScanRange ? 1 : 0)
-            << '\n'
 
-            << "RangeStart="
-            << m_scanStartAddress
-            << '\n'
-
-            << "RangeEnd="
-            << m_scanEndAddress
-            << '\n'
 
             << "FilterPrevious="
             << (m_filterPrevious ? 1 : 0)
@@ -2108,7 +2108,6 @@ namespace DosBoxMemoryTools
             << "DifferenceValue="
             << m_differenceValue
             << '\n'
-
             << "DescriptionsFirst="
             << (m_descriptionsFirst ? 1 : 0)
             << '\n';

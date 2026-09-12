@@ -7,7 +7,7 @@ DosBoxMemorySnapshotVersion = 1;
 
 constexpr uint32_t
 DosBoxMemorySnapshotCapacity =
-640U * 1024U;
+1024U * 1024U;
 
 struct DosBoxMemorySnapshotHeader
 {

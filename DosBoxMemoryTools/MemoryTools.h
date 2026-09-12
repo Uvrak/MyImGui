@@ -7,6 +7,8 @@
 #include "TrackingWindow.h"
 #include "ScannerControls.h"
 #include "ScannerMenuBar.h"
+#include "ScannerAddress.h"
+#include "ScannerRange.h"
 
 #include <string>
 
@@ -22,7 +24,9 @@ namespace DosBoxMemoryTools
     public:
         MemoryTools(
             const std::string& gameId,
-            DosBoxX::View* dosBoxView
+            DosBoxX::View* dosBoxView,
+            ScannerAddress& scannerAddress,
+            ScannerRange& scannerRange
         );
 
         void setGameId(

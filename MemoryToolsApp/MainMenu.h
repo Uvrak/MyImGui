@@ -34,6 +34,12 @@ namespace MyImGui
         bool consumeUSKeyboardLayoutRequest();
         bool consumeOpenSettingsRequest();
 
+        DosBoxMemoryTools::ScannerAddress&
+            scannerAddress();
+
+        DosBoxMemoryTools::ScannerRange&
+            scannerRange();
+
     private:
         std::string m_selectedGameExe;
 

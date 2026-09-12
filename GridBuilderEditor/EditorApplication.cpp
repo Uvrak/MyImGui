@@ -150,7 +150,9 @@ EditorApplication::EditorApplication()
         DosBoxMemoryTools::MemoryTools
         >(
             "MM3.EXE",
-            nullptr
+            nullptr,
+            m_scannerAddress,
+            m_scannerRange
         );
 
     m_memoryTools->setGameId(

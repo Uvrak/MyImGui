@@ -10,7 +10,7 @@ namespace DosBoxMemoryTools
 
     constexpr uint32_t
         MemorySnapshotCapacity =
-        640U * 1024U;
+        1024U * 1024U;
 
     struct DosBoxMemorySnapshotHeader
     {

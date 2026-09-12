@@ -203,7 +203,9 @@ int main(int, char**)
     DosBoxMemoryTools::MemoryTools
         memoryTools(
             mainMenu.gameFilename(),
-            &view
+            &view,
+            mainMenu.scannerAddress(),
+            mainMenu.scannerRange()
         );
 
     memoryTools.setGameId(

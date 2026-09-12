@@ -86,7 +86,16 @@ namespace DosBoxMemoryTools
                 currentMemory;
 
             m_status =
-                "New scan initialized.";
+                "size=" +
+                std::to_string(currentMemory.size()) +
+                " enabled=" +
+                std::to_string(m_scanRangeEnabled ? 1 : 0) +
+                " start=" +
+                std::to_string(m_scanStartAddress) +
+                " end=" +
+                std::to_string(m_scanEndAddress) +
+                " candidates=" +
+                std::to_string(m_candidates.size());
 
             return true;
         }
@@ -147,6 +156,8 @@ namespace DosBoxMemoryTools
                 memory.size()
                 )
             : memory.size();
+
+
 
         if (endAddress < startAddress ||
             endAddress - startAddress < pattern.size())
@@ -290,8 +301,16 @@ namespace DosBoxMemoryTools
             ? (std::min)(
                 m_scanEndAddress + 1,
                 memory.size()
-            )
+                )
             : memory.size();
+
+        m_status =
+            "size=" +
+            std::to_string(memory.size()) +
+            " start=" +
+            std::to_string(startAddress) +
+            " end=" +
+            std::to_string(endAddress);
 
         for (size_t address = startAddress;
             address < endAddress;

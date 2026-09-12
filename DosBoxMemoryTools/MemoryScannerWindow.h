@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MemoryScannerPatternScan.h"
+#include "ScannerAddress.h"
 
 #include <vector>
 #include <unordered_set>
@@ -9,6 +10,7 @@
 #include "FloatingWindow.h"
 #include "FlowLayout.h"
 #include "View.h"
+#include "ScannerRange.h"
 
 #include <string>
 #include <unordered_map>
@@ -22,7 +24,9 @@ namespace DosBoxMemoryTools
         MemoryScannerWindow(
             MemoryReader& memoryReader,
             const std::string& gameId,
-            DosBoxX::View* dosBoxView
+            DosBoxX::View* dosBoxView,
+            ScannerAddress& scannerAddress,
+            ScannerRange& scannerRange
         );
 
         void draw(
@@ -74,11 +78,6 @@ namespace DosBoxMemoryTools
             MemoryScanMode::Changed;
 
         int m_exactValue = 0;
-
-        bool m_limitScanRange = false;
-
-        char m_scanStartAddress[32] = {};
-        char m_scanEndAddress[32] = {};
 
         bool m_filterPrevious = false;
         int m_previousValue = 0;
@@ -142,6 +141,12 @@ namespace DosBoxMemoryTools
             m_pinnedDisplayValues;
 
         void refreshPinnedDisplayValues();
+
+        ScannerAddress&
+            m_scannerAddress;
+
+        ScannerRange&
+            m_scannerRange;
     };
 
 }

@@ -12,6 +12,8 @@
 #include "PixelCanvasWindow.h"
 #include "PixelTool.h"
 #include "MainToolbar.h"
+#include "ScannerAddress.h"
+#include "ScannerRange.h"
 
 #include <fstream>
 #include <memory>
@@ -332,5 +334,11 @@ private:
 
     GameModuleManager
         m_gameModuleManager;
+
+    DosBoxMemoryTools::ScannerAddress
+        m_scannerAddress;
+
+    DosBoxMemoryTools::ScannerRange
+        m_scannerRange;
               
 };
