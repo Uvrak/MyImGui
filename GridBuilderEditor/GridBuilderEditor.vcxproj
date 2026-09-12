@@ -249,9 +249,6 @@ copy /Y "$(SolutionDir)ThirdParty\FreeType\bin\x64\freetype.dll" "$(OutDir)"</Co
     <ClInclude Include="WorldViewWindow.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\MyImGui\MyImGui\MyImGui.vcxproj">
-      <Project>{df47b7a7-9d08-45a7-afe0-485bef09fe61}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\DosBoxMemoryTools\DosBoxMemoryTools.vcxproj">
       <Project>{eeab584f-b05a-4e0d-a2b7-e94e0e107fa8}</Project>
     </ProjectReference>

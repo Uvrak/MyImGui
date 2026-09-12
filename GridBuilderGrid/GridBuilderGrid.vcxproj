@@ -21,33 +21,32 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{4e6e6b43-8718-4f86-8a37-4750650077e8}</ProjectGuid>
-    <RootNamespace>MyImGuiTest</RootNamespace>
+    <ProjectGuid>{f8d2b9b9-56b8-43d6-8d97-d10ea19c7951}</ProjectGuid>
+    <RootNamespace>GridBuilderGrid</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>MemoryToolsApp</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -75,15 +74,17 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)MyImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -95,15 +96,17 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)MyImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -113,16 +116,17 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;ZYDIS_STATIC_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)MightAndMagic3ReverseEngeneering;$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)DosBoxX;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)MyImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)MyImGui;$(SolutionDir)GridBuilderCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;DosBoxMemoryTools.lib;Zydis.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>C:\Projects\MyImGui\ThirdParty\zydis\msvc\bin\DebugX64;$(SolutionDir)$(Platform)\$(Configuration)\;$(SolutionDir)ThirdParty\zydis\msvc\bin\DebugX64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -134,40 +138,59 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)DosBoxMemoryTools;$(SolutionDir)DosBoxX;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)MyImGui;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>C:\Projects\MyImGui\ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\imgui;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>
+      </SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>d3d11.lib;DosBoxMemoryTools.ib;%(AdditionalDependencies);DosBoxMemoryTools.lib;DosBoxMemoryTools.lib;DosBoxMemoryTools.lib</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;</AdditionalLibraryDirectories>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx11.cpp" />
-    <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_win32.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="MainMenu.cpp" />
+    <ClInclude Include="ColorMenu.h" />
+    <ClInclude Include="EditorEdgeBox.h" />
+    <ClInclude Include="EditorMiscBox.h" />
+    <ClInclude Include="EditorToolBox.h" />
+    <ClInclude Include="MapPlayerMarker.h" />
+    <ClInclude Include="SvgButtonBar.h" />
+    <ClInclude Include="SvgTextureCache.h" />
+    <ClInclude Include="WorldViewCellInteraction.h" />
+    <ClInclude Include="WorldViewEraser.h" />
+    <ClInclude Include="WorldViewHitTest.h" />
+    <ClInclude Include="WorldViewRenderer.h" />
+    <ClInclude Include="WorldViewTypes.h" />
+    <ClInclude Include="WorldViewViewport.h" />
+    <ClInclude Include="WorldViewWallPainter.h" />
+    <ClInclude Include="WorldViewWindow.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DosBoxMemoryTools\DosBoxMemoryTools.vcxproj">
-      <Project>{eeab584f-b05a-4e0d-a2b7-e94e0e107fa8}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">
-      <Project>{c5542076-9232-495f-91c7-92cf22e2f0df}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\MightAndMagic3ReverseEngeneering\MightAndMagic3ReverseEngeneering.vcxproj">
-      <Project>{a2cbbb64-e396-4b8f-b449-6f4bfd5ac124}</Project>
-    </ProjectReference>
+    <ClCompile Include="ColorMenu.cpp" />
+    <ClCompile Include="EditorEdgeBox.cpp" />
+    <ClCompile Include="EditorMiscBox.cpp" />
+    <ClCompile Include="EditorToolBox.cpp" />
+    <ClCompile Include="GridBuilderGrid.cpp" />
+    <ClCompile Include="SvgButtonBar.cpp" />
+    <ClCompile Include="SvgTextureCache.cpp" />
+    <ClCompile Include="WorldViewCellInteraction.cpp" />
+    <ClCompile Include="WorldViewEraser.cpp" />
+    <ClCompile Include="WorldViewHitTest.cpp" />
+    <ClCompile Include="WorldViewRenderer.cpp" />
+    <ClCompile Include="WorldViewViewport.cpp" />
+    <ClCompile Include="WorldViewWallPainter.cpp" />
+    <ClCompile Include="WorldViewWindow.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="MainMenu.h" />
+    <ProjectReference Include="..\GridBuilderCore\GridBuilderCore.vcxproj">
+      <Project>{f1e86453-4a0c-4062-a662-38e91def7ccd}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

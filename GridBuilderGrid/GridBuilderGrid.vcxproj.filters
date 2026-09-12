@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Grid">
+      <UniqueIdentifier>{7f04ead7-d12b-46fa-a0a3-cf0ee89f4c9e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Grid\Core Types">
+      <UniqueIdentifier>{75a44b8d-16a8-4c5e-b5ad-15584f05ab1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Grid\View">
+      <UniqueIdentifier>{ff39008f-8487-47b0-a8d6-606217ae20f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Grid\Rendering">
+      <UniqueIdentifier>{15842bbb-01b8-4779-b106-fc6753dc640a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Grid\Tools">
+      <UniqueIdentifier>{6ae9bb85-c754-4812-8384-c97f935221f0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MapPlayerMarker.h">
+      <Filter>Grid\Core Types</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewTypes.h">
+      <Filter>Grid\View</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewViewport.h">
+      <Filter>Grid\View</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewHitTest.h">
+      <Filter>Grid\View</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewWallPainter.h">
+      <Filter>Grid\View</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewEraser.h">
+      <Filter>Grid\View</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewCellInteraction.h">
+      <Filter>Grid\View</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewRenderer.h">
+      <Filter>Grid\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldViewWindow.h">
+      <Filter>Grid\View</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorToolBox.h">
+      <Filter>Grid\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="ColorMenu.h">
+      <Filter>Grid\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorEdgeBox.h">
+      <Filter>Grid\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="SvgButtonBar.h">
+      <Filter>Grid\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="SvgTextureCache.h">
+      <Filter>Grid\Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorMiscBox.h">
+      <Filter>Grid\Tools</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="GridBuilderGrid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewViewport.cpp">
+      <Filter>Grid\View</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewHitTest.cpp">
+      <Filter>Grid\View</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewWallPainter.cpp">
+      <Filter>Grid\View</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewEraser.cpp">
+      <Filter>Grid\View</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewCellInteraction.cpp">
+      <Filter>Grid\View</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewRenderer.cpp">
+      <Filter>Grid\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldViewWindow.cpp">
+      <Filter>Grid\View</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorToolBox.cpp">
+      <Filter>Grid\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="ColorMenu.cpp">
+      <Filter>Grid\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorEdgeBox.cpp">
+      <Filter>Grid\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="SvgButtonBar.cpp">
+      <Filter>Grid\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="SvgTextureCache.cpp">
+      <Filter>Grid\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="EditorMiscBox.cpp">
+      <Filter>Grid\Tools</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
