@@ -20,7 +20,9 @@ namespace DosBoxMemoryTools
         const std::string& gameId,
         DosBoxX::View* dosBoxView
     )
-        : m_scanner(memoryReader),
+        :
+        m_scanner(memoryReader),
+        m_patternScan(m_scanner),
         m_gameId(gameId),
         m_dosBoxView(dosBoxView)
     {
@@ -431,6 +433,8 @@ namespace DosBoxMemoryTools
                 saveScannerSettings();
             }
         }
+
+        m_patternScan.draw();
 
         ImGui::Separator();
 

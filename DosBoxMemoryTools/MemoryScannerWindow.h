@@ -1,5 +1,7 @@
 #pragma once
 
+#include "MemoryScannerPatternScan.h"
+
 #include <vector>
 #include <unordered_set>
 
@@ -49,6 +51,9 @@ namespace DosBoxMemoryTools
     private:
         MemoryScanner
             m_scanner;
+
+        MemoryScannerPatternScan
+            m_patternScan;
 
         MyImGui::FloatingWindow m_toolbarWindow{
     "Memory Scanner Toolbar",

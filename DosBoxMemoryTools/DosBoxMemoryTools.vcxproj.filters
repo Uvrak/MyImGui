@@ -40,6 +40,9 @@
     <Filter Include="Viewer">
       <UniqueIdentifier>{a4940971-5094-41e5-98a3-ec95fd64947b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Ui">
+      <UniqueIdentifier>{dd904834-35fe-431b-8b0d-a86528b2189c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MemoryTools.cpp">
@@ -138,6 +141,21 @@
     <ClCompile Include="MemoryPatternSearch.cpp">
       <Filter>Scanner</Filter>
     </ClCompile>
+    <ClCompile Include="MemoryScannerPatternScan.cpp">
+      <Filter>Scanner</Filter>
+    </ClCompile>
+    <ClCompile Include="ScannerRange.h">
+      <Filter>Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ScannerControls.cpp">
+      <Filter>Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ScannerMenuBar.cpp">
+      <Filter>Ui</Filter>
+    </ClCompile>
+    <ClCompile Include="ScannerSettings.cpp">
+      <Filter>Ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -211,6 +229,21 @@
     </ClInclude>
     <ClInclude Include="MemoryPatternSearch.h">
       <Filter>Scanner</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryScannerPatternScan.h">
+      <Filter>Scanner</Filter>
+    </ClInclude>
+    <ClInclude Include="ScannerAddress.h">
+      <Filter>Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ScannerControls.h">
+      <Filter>Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ScannerMenuBar.h">
+      <Filter>Ui</Filter>
+    </ClInclude>
+    <ClInclude Include="ScannerSettings.h">
+      <Filter>Ui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

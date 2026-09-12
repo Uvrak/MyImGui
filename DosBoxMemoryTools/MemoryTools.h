@@ -5,6 +5,8 @@
 #include "MemoryReadTrackerWindow.h"
 #include "DisassemblyWindow.h"
 #include "TrackingWindow.h"
+#include "ScannerControls.h"
+#include "ScannerMenuBar.h"
 
 #include <string>
 
@@ -41,6 +43,18 @@ namespace DosBoxMemoryTools
         bool m_liveView = false;
         double m_lastLiveRefresh = 0.0;
         bool m_initialRefreshDone = false;
+
+        ScannerAddress
+            m_scannerAddress;
+
+        ScannerRange
+            m_scannerRange;
+
+        ScannerMenuBar
+            m_scannerMenuBar;
+
+        ScannerControls
+            m_scannerControls;
 
         MemoryReader
             m_memoryReader;

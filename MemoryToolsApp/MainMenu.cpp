@@ -14,6 +14,14 @@
 
 namespace MyImGui
 {
+    MainMenu::MainMenu()
+    {
+        m_scannerSettings.load(
+            m_scannerAddress,
+            m_scannerRange
+        );
+    }
+
     void MainMenu::draw()
     {
         if (!ImGui::BeginMainMenuBar())
@@ -259,6 +267,19 @@ namespace MyImGui
             }
 
             ImGui::EndMenu();
+        }
+
+        ImGui::Separator();
+
+        if (m_scannerMenuBar.draw(
+            m_scannerAddress,
+            m_scannerRange
+        ))
+        {
+            m_scannerSettings.save(
+                m_scannerAddress,
+                m_scannerRange
+            );
         }
 
         ImGui::EndMainMenuBar();

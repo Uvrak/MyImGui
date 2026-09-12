@@ -58,6 +58,13 @@ namespace DosBoxMemoryTools
             }
         }
 
+        m_scannerControls.draw(
+            m_scannerAddress,
+            m_scannerRange
+        );
+
+        ImGui::Separator();
+
         m_scannerWindow.draw(
             nullptr,
             m_liveView
