@@ -9,7 +9,7 @@ namespace WorldView
 {
 int edgeTextureSize(const Viewport& viewport)
 {
-    return std::max(
+    return (std::max)(
         1,
         static_cast<int>(
             std::round(viewport.m_cellSize)
@@ -125,7 +125,7 @@ void updateLongTickStep(Viewport& viewport)
             std::to_string(viewport.m_gridView.firstVisibleCellX +
                 static_cast<int>(1000.0f / viewport.m_cellSize));
 
-        float textWidth = std::max(
+        float textWidth = (std::max)(
             ImGui::CalcTextSize(left.c_str()).x,
             ImGui::CalcTextSize(right.c_str()).x
         );

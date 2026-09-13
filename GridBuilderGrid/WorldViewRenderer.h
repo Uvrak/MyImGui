@@ -62,13 +62,14 @@ void drawHover(const Viewport& viewport, const Hover& hover, const WallPainting&
     ImVec2 canvasSize
 );
 
-void drawEdgeIcon(const Viewport& viewport,
-     ImDrawList* drawList,
-     SDL_Texture* texture,
-     ImVec2 center,
-     bool horizontal,
-     ImU32 color
- );
+void drawEdgeIcon(
+    const Viewport& viewport,
+    ImDrawList* drawList,
+    ID3D11ShaderResourceView* texture,
+    ImVec2 center,
+    bool horizontal,
+    ImU32 color
+);
 
 void drawEraserPreview(const Viewport& viewport, const Hover& hover, const Eraser& eraser, const ToolSettings& toolSettings,
      ImDrawList* drawList

@@ -258,7 +258,7 @@ bool ColorMenu::draw(
             ImGui::GetContentRegionAvail().x;
 
         const int colorColumnCount =
-            std::max(
+            (std::max)(
                 1,
                 static_cast<int>(
                     (availableWidth + spacing) /

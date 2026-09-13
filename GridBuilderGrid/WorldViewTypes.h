@@ -1,5 +1,5 @@
 #pragma once
-#include <SDL3/SDL.h>
+#include <d3d11.h>
 #include "imgui.h"
 #include "ChunkManager.h"
 #include "WallDirection.h"
@@ -19,7 +19,7 @@
 
 using EdgeTextureResolver =
 std::function<
-	SDL_Texture* (
+	ID3D11ShaderResourceView* (
 		const std::string& edgeId,
 		int size
 		)
@@ -43,7 +43,7 @@ std::function<
 
 using MiscTextureResolver =
 std::function<
-	SDL_Texture* (
+	ID3D11ShaderResourceView* (
 		const std::string& miscId,
 		int size
 		)

@@ -1,20 +1,23 @@
 #pragma once
 
-#include <SDL3/SDL.h>
+#include <d3d11.h>
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
-class SvgTextureCache
+#include "Dx11Texture.h"
+
+class SvgDx11TextureCache
 {
 public:
-    explicit SvgTextureCache(
-        SDL_Renderer* renderer
+    explicit SvgDx11TextureCache(
+        ID3D11Device* device
     );
 
-    ~SvgTextureCache();
+    ~SvgDx11TextureCache() = default;
 
-    SDL_Texture* texture(
+    ID3D11ShaderResourceView* texture(
         const std::string& filename,
         int width,
         int height
@@ -30,10 +33,11 @@ private:
     ) const;
 
 private:
-    SDL_Renderer* m_renderer = nullptr;
+    ID3D11Device* m_device =
+        nullptr;
 
     std::unordered_map<
         std::string,
-        SDL_Texture*
+        std::unique_ptr<Dx11Texture>
     > m_textures;
 };

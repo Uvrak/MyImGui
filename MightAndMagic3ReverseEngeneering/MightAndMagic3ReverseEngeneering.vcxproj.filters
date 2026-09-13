@@ -20,6 +20,9 @@
     <Filter Include="Launch">
       <UniqueIdentifier>{1b224250-4540-4e76-85c3-c65c9f2e0070}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Screen Detection">
+      <UniqueIdentifier>{4330b826-bf54-4d11-b134-6cf06451b22a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Item.h">
@@ -54,6 +57,9 @@
     </ClInclude>
     <ClInclude Include="MM3Launcher.h">
       <Filter>Launch</Filter>
+    </ClInclude>
+    <ClInclude Include="ScreenSignature.h">
+      <Filter>Screen Detection</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -28,6 +28,7 @@
     <ClInclude Include="MM3KeyBindings.h" />
     <ClInclude Include="MM3Launcher.h" />
     <ClInclude Include="Position.h" />
+    <ClInclude Include="ScreenSignature.h" />
     <ClInclude Include="ScreenSignatures.h" />
     <ClInclude Include="StateReader.h" />
   </ItemGroup>

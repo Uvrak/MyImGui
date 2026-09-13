@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameModule.h"
+#include "ScreenSignature.h"
 
 namespace MightAndMagic3
 {

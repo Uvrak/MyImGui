@@ -156,12 +156,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="ColorMenu.h" />
+    <ClInclude Include="Dx11Texture.h" />
     <ClInclude Include="EditorEdgeBox.h" />
     <ClInclude Include="EditorMiscBox.h" />
     <ClInclude Include="EditorToolBox.h" />
+    <ClInclude Include="GridBuilderGrid.h" />
     <ClInclude Include="MapPlayerMarker.h" />
     <ClInclude Include="SvgButtonBar.h" />
-    <ClInclude Include="SvgTextureCache.h" />
+    <ClInclude Include="SvGDx11TextureCache.h" />
     <ClInclude Include="WorldViewCellInteraction.h" />
     <ClInclude Include="WorldViewEraser.h" />
     <ClInclude Include="WorldViewHitTest.h" />
@@ -173,12 +175,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ColorMenu.cpp" />
+    <ClCompile Include="Dx11Texture.cpp" />
     <ClCompile Include="EditorEdgeBox.cpp" />
     <ClCompile Include="EditorMiscBox.cpp" />
     <ClCompile Include="EditorToolBox.cpp" />
     <ClCompile Include="GridBuilderGrid.cpp" />
     <ClCompile Include="SvgButtonBar.cpp" />
-    <ClCompile Include="SvgTextureCache.cpp" />
+    <ClCompile Include="SvGDx11TextureCache.cpp" />
     <ClCompile Include="WorldViewCellInteraction.cpp" />
     <ClCompile Include="WorldViewEraser.cpp" />
     <ClCompile Include="WorldViewHitTest.cpp" />

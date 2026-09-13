@@ -28,6 +28,9 @@
     <Filter Include="Grid\Tools">
       <UniqueIdentifier>{6ae9bb85-c754-4812-8384-c97f935221f0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Grid\Integration">
+      <UniqueIdentifier>{69c41a49-250d-42c4-928a-c885237ad4f3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MapPlayerMarker.h">
@@ -69,17 +72,20 @@
     <ClInclude Include="SvgButtonBar.h">
       <Filter>Grid\Tools</Filter>
     </ClInclude>
-    <ClInclude Include="SvgTextureCache.h">
-      <Filter>Grid\Tools</Filter>
-    </ClInclude>
     <ClInclude Include="EditorMiscBox.h">
       <Filter>Grid\Tools</Filter>
     </ClInclude>
+    <ClInclude Include="GridBuilderGrid.h">
+      <Filter>Grid\Integration</Filter>
+    </ClInclude>
+    <ClInclude Include="Dx11Texture.h">
+      <Filter>Grid\Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="SvGDx11TextureCache.h">
+      <Filter>Grid\Rendering</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="GridBuilderGrid.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="WorldViewViewport.cpp">
       <Filter>Grid\View</Filter>
     </ClCompile>
@@ -113,11 +119,17 @@
     <ClCompile Include="SvgButtonBar.cpp">
       <Filter>Grid\Tools</Filter>
     </ClCompile>
-    <ClCompile Include="SvgTextureCache.cpp">
-      <Filter>Grid\Tools</Filter>
-    </ClCompile>
     <ClCompile Include="EditorMiscBox.cpp">
       <Filter>Grid\Tools</Filter>
+    </ClCompile>
+    <ClCompile Include="GridBuilderGrid.cpp">
+      <Filter>Grid\Integration</Filter>
+    </ClCompile>
+    <ClCompile Include="Dx11Texture.cpp">
+      <Filter>Grid\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="SvGDx11TextureCache.cpp">
+      <Filter>Grid\Rendering</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

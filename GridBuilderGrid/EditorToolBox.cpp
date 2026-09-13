@@ -3,10 +3,9 @@
 #include "imgui.h"
 #include <cstdint>
 
-EditorToolbox::EditorToolbox(
-    SDL_Renderer* renderer
-)
-    : m_window(
+EditorToolbox::EditorToolbox()
+    :
+    m_window(
         "Editor Toolbox",
         {
             .movable = true,
@@ -16,14 +15,12 @@ EditorToolbox::EditorToolbox(
             .titleBar = true,
             .autoResizeHeight = false
         }
-    ),
-    m_renderer(renderer)
+    )
 {
     m_buttons =
     {
         { ICON_FA_PENCIL, "Pencil", EditorTool::Pencil },
         { ICON_FA_ERASER, "Eraser", EditorTool::Eraser },
-        
         { ICON_FA_HAND,   "Pan", EditorTool::Scroll }
     };
 }

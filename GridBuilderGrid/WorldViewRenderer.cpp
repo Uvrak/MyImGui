@@ -99,7 +99,7 @@ void drawMisc(const Viewport& viewport, const ToolSettings& toolSettings, const 
                 continue;
             }
 
-            SDL_Texture* texture =
+            ID3D11ShaderResourceView* texture =
                 cell->hasMisc() &&
                 toolSettings.m_miscTexture
                 ? toolSettings.m_miscTexture(
@@ -212,7 +212,7 @@ void drawMisc(const Viewport& viewport, const ToolSettings& toolSettings, const 
                 );
 
                 drawList->AddImageQuad(
-                    (ImTextureID)(intptr_t)texture,
+                    (ImTextureID)texture,
                     topLeft,
                     topRight,
                     bottomRight,
@@ -314,7 +314,7 @@ void drawLayerWalls(const Viewport& viewport, const Hover& hover, const WallPain
                             direction
                         );
 
-                    SDL_Texture* texture =
+                    ID3D11ShaderResourceView* texture =
                         nullptr;
 
                     if (toolSettings.m_edgeTexture)
@@ -371,12 +371,13 @@ void drawLayerWalls(const Viewport& viewport, const Hover& hover, const WallPain
                                 layerColor.w
                                 )
                         );
-                    WorldView::drawEdgeIcon(viewport,
-                        drawList,
-                        texture,
-                        center,
-                        horizontal,
-                        edgeTint
+                    void WorldView::drawEdgeIcon(
+                        const Viewport & viewport,
+                        ImDrawList * drawList,
+                        ID3D11ShaderResourceView * texture,
+                        ImVec2 center,
+                        bool horizontal,
+                        ImU32 color
                     );
                 };
 
@@ -649,7 +650,7 @@ void drawWallPreview(const Viewport& viewport, const ToolSettings& toolSettings,
     ImU32 color
 )
 {
-    SDL_Texture* texture =
+    ID3D11ShaderResourceView* texture =
         nullptr;
 
     if (toolSettings.m_edgeTexture)
@@ -727,7 +728,7 @@ void drawMiscPreview(const Viewport& viewport, const Hover& hover, const ToolSet
         return;
     }
 
-    SDL_Texture* texture =
+    ID3D11ShaderResourceView* texture =
         toolSettings.m_miscTexture
         ? toolSettings.m_miscTexture(
             toolSettings.m_activeMiscId,
@@ -905,7 +906,7 @@ void drawHover(const Viewport& viewport, const Hover& hover, const WallPainting&
 
 void drawEdgeIcon(const Viewport& viewport,
      ImDrawList* drawList,
-     SDL_Texture* texture,
+     ID3D11ShaderResourceView* texture,
      ImVec2 center,
      bool horizontal,
      ImU32 color
@@ -943,7 +944,7 @@ void drawEdgeIcon(const Viewport& viewport,
      );
 
      const ImTextureID textureId =
-         (ImTextureID)(intptr_t)texture;
+         (ImTextureID)texture;
 
      if (horizontal)
      {

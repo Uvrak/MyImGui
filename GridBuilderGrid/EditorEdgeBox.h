@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <d3d11.h>
 
 #include "imgui.h"
 #include "SvgButtonBar.h"
@@ -15,7 +16,7 @@ class EditorEdgeBox
 {
 public:
     explicit EditorEdgeBox(
-        SDL_Renderer* renderer
+        ID3D11Device* device
     );
 
     ~EditorEdgeBox() = default;
@@ -46,7 +47,7 @@ public:
 
     void clearActiveEdge();
 
-    SDL_Texture* edgeTexture(
+    ID3D11ShaderResourceView* edgeTexture(
         const std::string& edgeId,
         int size
     );

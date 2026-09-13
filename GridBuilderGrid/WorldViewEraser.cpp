@@ -362,7 +362,7 @@ void handleEraser(Viewport& viewport, Hover& hover, Eraser& eraser, ChunkManager
     static float lastMouseWheel = 0.0f;
 
     const int wheelSteps =
-        std::max(
+        (std::max)(
             1,
             static_cast<int>(
                 std::round(
@@ -374,7 +374,7 @@ void handleEraser(Viewport& viewport, Hover& hover, Eraser& eraser, ChunkManager
     if (mouseWheel > 0.0f)
     {
         eraser.m_eraserSize =
-            std::min(
+            (std::min)(
                 eraser.m_eraserSize + wheelSteps,
                 8
             );
@@ -382,7 +382,7 @@ void handleEraser(Viewport& viewport, Hover& hover, Eraser& eraser, ChunkManager
     else if (mouseWheel < 0.0f)
     {
         eraser.m_eraserSize =
-            std::max(
+            (std::max)(
                 eraser.m_eraserSize - wheelSteps,
                 1
             );

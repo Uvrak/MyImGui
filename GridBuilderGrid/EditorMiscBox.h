@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL3/SDL.h>
+#include <d3d11.h>
 
 #include "MyImGui.h"
 #include "SvgButtonBar.h"
@@ -29,7 +30,7 @@ public:
         >;
 
     explicit EditorMiscBox(
-        SDL_Renderer* renderer
+        ID3D11Device* device
     );
 
     using RemoveColorCallback =
@@ -73,7 +74,7 @@ public:
         assignColor
     );
 
-    SDL_Texture* miscTexture(
+    ID3D11ShaderResourceView* miscTexture(
         const std::string& miscId,
         int size
     );

@@ -123,7 +123,7 @@ namespace
 }
 
 EditorMiscBox::EditorMiscBox(
-    SDL_Renderer* renderer
+    ID3D11Device* device
 )
     : m_window(
         "Editor Misc Box",
@@ -140,10 +140,8 @@ EditorMiscBox::EditorMiscBox(
         loadMiscIds()
     ),
     m_buttonBar(
-        renderer,
-        makeButtonDefinitions(
-            m_miscIds
-        )
+        device,
+        makeButtonDefinitions(m_miscIds)
     )
 {}
 
@@ -423,7 +421,8 @@ void EditorMiscBox::openColorMenu(
     );
 }
 
-SDL_Texture* EditorMiscBox::miscTexture(
+ID3D11ShaderResourceView*
+EditorMiscBox::miscTexture(
     const std::string& miscId,
     int size
 )

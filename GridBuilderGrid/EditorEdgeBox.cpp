@@ -234,7 +234,7 @@ namespace
 }
 
 EditorEdgeBox::EditorEdgeBox(
-    SDL_Renderer* renderer
+    ID3D11Device* device
 )
     : m_window(
         "Editor Edge Box",
@@ -251,10 +251,8 @@ EditorEdgeBox::EditorEdgeBox(
         loadEdgeIds()
     ),
     m_buttonBar(
-        renderer,
-        makeButtonDefinitions(
-            m_edgeIds
-        )
+        device,
+        makeButtonDefinitions(m_edgeIds)
     )
 {
     
@@ -784,7 +782,8 @@ EditorEdgeBox::activeEdgeId() const
     ];
 }
 
-SDL_Texture* EditorEdgeBox::edgeTexture(
+ID3D11ShaderResourceView*
+EditorEdgeBox::edgeTexture(
     const std::string& edgeId,
     int size
 )

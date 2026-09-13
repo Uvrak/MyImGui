@@ -27,7 +27,7 @@ private:
     };
 
 public:
-    explicit EditorToolbox(SDL_Renderer* renderer);
+    EditorToolbox();
     ~EditorToolbox();
 
     void draw(EditorTool activeTool);
@@ -46,8 +46,6 @@ private:
     EditorTool m_activeTool = EditorTool::Pencil;
 
     MyImGui::FloatingWindow m_window;
-
-    SDL_Renderer* m_renderer = nullptr;
 
     MyImGui::FlowLayout m_flowLayout;
 

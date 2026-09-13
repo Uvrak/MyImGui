@@ -3,7 +3,7 @@
 #include <SDL3/SDL.h>
 
 #include "imgui.h"
-#include "SvgTextureCache.h"
+#include "SvgDx11TextureCache.h"
 
 #include <string>
 #include <vector>
@@ -62,7 +62,7 @@ public:
             )>;
 
     SvgButtonBar(
-        SDL_Renderer* renderer,
+        ID3D11Device* device,
         std::vector<SvgButtonDefinition>
         definitions
     );
@@ -77,7 +77,7 @@ public:
 		const OverlayCallback& overlayCallback = {}
     );
 
-    SDL_Texture* texture(
+    ID3D11ShaderResourceView* texture(
         int value
     ) const;
 
@@ -105,10 +105,10 @@ private:
 
         std::string id;
 
-        SDL_Texture* texture = nullptr;
+        ID3D11ShaderResourceView* texture = nullptr;
     };
 
-    SvgTextureCache m_textureCache;
+    SvgDx11TextureCache m_textureCache;
 
     std::vector<Button> m_buttons;
 

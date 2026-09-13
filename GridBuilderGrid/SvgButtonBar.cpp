@@ -3,11 +3,13 @@
 #include <utility>
 
 SvgButtonBar::SvgButtonBar(
-    SDL_Renderer* renderer,
-    std::vector<SvgButtonDefinition>
-    definitions
+    ID3D11Device* device,
+    std::vector<SvgButtonDefinition> definitions
 )
-    : m_textureCache(renderer)
+    :
+    m_textureCache(
+        device
+    )
 {
     m_buttons.reserve(
         definitions.size()
@@ -230,7 +232,7 @@ bool SvgButtonBar::draw(
         }
 
         drawList->AddImageQuad(
-            (ImTextureID)(intptr_t)
+            (ImTextureID)
             button.texture,
 
             imageMinimum,
@@ -308,7 +310,8 @@ bool SvgButtonBar::draw(
 }
 
 
-SDL_Texture* SvgButtonBar::texture(
+ID3D11ShaderResourceView*
+SvgButtonBar::texture(
     int value
 ) const
 {
