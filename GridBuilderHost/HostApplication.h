@@ -19,6 +19,8 @@ namespace MightAndMagic3
     class MM3Launcher;
 }
 
+class GridBuilderGrid;
+
 namespace GridBuilderHost
 {
     class ImGuiHost;
@@ -39,12 +41,14 @@ namespace GridBuilderHost
             HostRenderer& hostRenderer,
             DosBoxX::FrameTexture& frameTexture,
             ImGuiHost& imGuiHost,
+            GridBuilderGrid& gridBuilderGrid,
             HostUi& hostUi,
             MightAndMagic3::MM3Launcher& mm3Launcher,
             DosBoxX::Keyboard& dosBoxKeyboard,
             DosBoxX::Mouse& dosBoxMouse,
             DosBoxX::Memory& dosBoxMemory,
-            DosBoxX::NamedPipeClient& dosBoxPipeClient
+            DosBoxX::NamedPipeClient& dosBoxPipeClient           
+
         );
     };
 }

@@ -3,6 +3,9 @@
 #include <SDL3/SDL.h>
 #include <SDL3_image/SDL_image.h>
 
+#include <Windows.h>
+
+
 SvgDx11TextureCache::SvgDx11TextureCache(
     ID3D11Device* device
 )
@@ -49,6 +52,33 @@ SvgDx11TextureCache::texture(
             filename.c_str(),
             "rb"
         );
+
+    {
+        const std::string message =
+            "SVG opened: " +
+            filename +
+            "\n";
+
+        OutputDebugStringA(
+            message.c_str()
+        );
+    }
+
+    if (stream == nullptr)
+    {
+        const std::string message =
+            "SVG open failed: " +
+            filename +
+            " | " +
+            SDL_GetError() +
+            "\n";
+
+        OutputDebugStringA(
+            message.c_str()
+        );
+
+        return nullptr;
+    }
 
     if (stream == nullptr)
     {

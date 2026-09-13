@@ -42,6 +42,8 @@ public:
         const RemoveColorCallback& removeColor
     );
 
+    void handleMouseWheel();
+
     const std::string&
         activeEdgeId() const;
 

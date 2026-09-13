@@ -1,4 +1,5 @@
 #include "ImGuiHost.h"
+#include "IconsFontAwesome7.h"
 
 #include "imgui.h"
 
@@ -27,6 +28,31 @@ namespace GridBuilderHost
 
         ImGuiIO& io =
             ImGui::GetIO();
+
+        ImFontConfig defaultFontConfig;
+        defaultFontConfig.SizePixels = 18.0f;
+
+        io.Fonts->AddFontDefaultVector(
+            &defaultFontConfig
+        );
+
+        ImFontConfig iconConfig;
+        iconConfig.MergeMode = true;
+        iconConfig.PixelSnapH = true;
+
+        static const ImWchar iconRanges[] =
+        {
+            ICON_MIN_FA,
+            ICON_MAX_16_FA,
+            0
+        };
+
+        io.Fonts->AddFontFromFileTTF(
+            "../resources/Fonts/Font Awesome 7 Free-Solid-900.otf",
+            18.0f,
+            &iconConfig,
+            iconRanges
+        );
 
         io.ConfigFlags |=
             ImGuiConfigFlags_DockingEnable;

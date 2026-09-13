@@ -12,7 +12,7 @@ namespace
 {
     const std::filesystem::path
         miscDirectory =
-        "resources/icons/misc";
+        "../resources/icons/misc";
 
     std::vector<std::string>
         loadMiscIds()

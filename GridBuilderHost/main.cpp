@@ -21,6 +21,7 @@
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "Memory.h"
+#include "GridBuilderGrid.h"
 
 int main()
 {
@@ -35,10 +36,13 @@ int main()
     );
 
     GridBuilderHost::DosBoxWindow dosBoxWindow;
+
     MyImGui::SettingsWindow settingsWindow;
+
     settingsWindow.setFontSize(
         hostSettings.fontSize()
     );
+
     GridBuilderHost::HostFontSettings hostFontSettings(
         settingsWindow,
         hostSettings
@@ -60,7 +64,6 @@ int main()
 
     DosBoxX::Keyboard dosBoxKeyboard;
     DosBoxX::Mouse dosBoxMouse;
-
     DosBoxX::Memory dosBoxMemory;
 
     MightAndMagic3::MM3Launcher mm3Launcher(
@@ -83,6 +86,11 @@ int main()
     {
         return 1;
     }
+
+    GridBuilderGrid gridBuilderGrid(
+        hostRenderer.device(),
+        16
+    );
 
     DosBoxX::FrameTexture dosBoxFrameTexture(
         hostRenderer.device(),
@@ -119,6 +127,7 @@ int main()
         hostRenderer,
         dosBoxFrameTexture,
         imGuiHost,
+        gridBuilderGrid,
         hostUi,
         mm3Launcher,
         dosBoxKeyboard,

@@ -63,6 +63,9 @@
     <ClCompile Include="HostSettings.cpp">
       <Filter>GridBuilderHost</Filter>
     </ClCompile>
+    <ClCompile Include="DebugWindow.cpp">
+      <Filter>GridBuilderHost</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="HostWindow.h">
@@ -102,6 +105,9 @@
       <Filter>GridBuilderHost</Filter>
     </ClInclude>
     <ClInclude Include="GameLauncher.h">
+      <Filter>GridBuilderHost</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugWindow.h">
       <Filter>GridBuilderHost</Filter>
     </ClInclude>
   </ItemGroup>

@@ -128,9 +128,14 @@ void WorldViewWindow::draw(
     if (!inputBlocked &&
         !toolbarBlocksMapInput &&
         m_blockMapInputFrames == 0 &&
-        activeTool == EditorTool::Scroll)
+        (
+            activeTool == EditorTool::Scroll ||
+            ImGui::GetIO().KeyCtrl
+            ))
     {
-        WorldView::handleZoom(m_viewport, m_toolSettings,
+        WorldView::handleZoom(
+            m_viewport,
+            m_toolSettings,
             canvasPosition,
             canvasSize
         );
@@ -146,7 +151,10 @@ void WorldViewWindow::draw(
 
     WorldView::updateGridView(m_viewport);
 
-    WorldView::updateHover(m_viewport, m_hover, m_painter,
+    WorldView::updateHover(
+        m_viewport,
+        m_hover,
+        m_painter,
         canvasPosition,
         canvasSize
     );
@@ -159,6 +167,17 @@ void WorldViewWindow::draw(
             canvasPosition,
             canvasSize,
             activeTool
+        );
+    }
+
+    WorldView::updateLongTickStep(
+        m_viewport
+    );
+
+    if (m_hover.m_hasHoveredCell)
+    {
+        ImGui::SetMouseCursor(
+            ImGuiMouseCursor_Arrow
         );
     }
 

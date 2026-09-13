@@ -1,36 +1,42 @@
 #pragma once
 
-#include "WorldViewWindow.h"
-#include "EditorToolBox.h"
-#include "EditorEdgeBox.h"
-#include "EditorMiscBox.h"
-
 #include <d3d11.h>
+
+#include <functional>
+#include <string>
+#include <memory>
 
 class GridBuilderGrid
 {
 public:
-    explicit GridBuilderGrid(
+    GridBuilderGrid(
         ID3D11Device* device,
         int chunkSize
     );
+
+    ~GridBuilderGrid();
+
+    GridBuilderGrid(
+        const GridBuilderGrid&
+    ) = delete;
+
+    GridBuilderGrid& operator=(
+        const GridBuilderGrid&
+        ) = delete;
 
     void draw(
         bool* isOpen
     );
 
-    enum class GridPaintTarget
-    {
-        Edge,
-        Misc
-    };
+    using DebugCallback =
+        std::function<void(const std::string&)>;
+
+    void setDebugCallback(
+        DebugCallback callback
+    );
 
 private:
-    WorldViewWindow m_worldViewWindow;
-    EditorToolbox m_toolBox;
-    EditorEdgeBox m_edgeBox;
-    EditorMiscBox m_miscBox;
+    class Impl;
 
-    GridPaintTarget m_paintTarget =
-        GridPaintTarget::Edge;
+    std::unique_ptr<Impl> m_impl;
 };

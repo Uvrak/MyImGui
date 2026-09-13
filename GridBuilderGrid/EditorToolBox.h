@@ -16,8 +16,6 @@ public:
 
     const char* activeToolIcon() const;
 
-
-
 private:
     struct ToolButton
     {
@@ -51,5 +49,4 @@ private:
 
     MyImGui::DragDropReorder
         m_dragDropReorder;
-   
 };

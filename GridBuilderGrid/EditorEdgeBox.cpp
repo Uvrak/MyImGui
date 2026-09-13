@@ -19,7 +19,7 @@ namespace
 
     const std::filesystem::path
         edgeDirectory =
-        "resources/icons/edges";
+        "C:\\Projects\\MyImGui\\resources\\icons\\edges";
 
     struct EdgeBoxSetting
     {
@@ -426,6 +426,64 @@ bool EditorEdgeBox::draw(
 
     return edgeButtonClicked ||
         edgeButtonRightClicked;
+}
+
+void EditorEdgeBox::handleMouseWheel()
+{
+    const float wheel = ImGui::GetIO().MouseWheel;
+
+    if (wheel == 0.0f || m_enabledEdgeIndices.empty())
+    {
+        return;
+    }
+
+    auto it = std::find(
+        m_enabledEdgeIndices.begin(),
+        m_enabledEdgeIndices.end(),
+        m_activeEdgeIndex
+    );
+
+    if (it == m_enabledEdgeIndices.end())
+    {
+        m_activeEdgeIndex = m_enabledEdgeIndices.front();
+        return;
+    }
+
+    int position =
+        static_cast<int>(
+            std::distance(
+                m_enabledEdgeIndices.begin(),
+                it
+            )
+            );
+
+    if (wheel > 0.0f)
+    {
+        --position;
+    }
+    else
+    {
+        ++position;
+    }
+
+    if (position < 0)
+    {
+        position =
+            static_cast<int>(
+                m_enabledEdgeIndices.size()
+                ) - 1;
+    }
+
+    if (position >=
+        static_cast<int>(
+            m_enabledEdgeIndices.size()
+            ))
+    {
+        position = 0;
+    }
+
+    m_activeEdgeIndex =
+        m_enabledEdgeIndices[position];
 }
 
 bool EditorEdgeBox::drawEdgeOverlay(

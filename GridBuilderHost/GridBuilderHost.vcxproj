@@ -111,13 +111,13 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)MightAndMagic3ReverseEngeneering;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ImGui;$(SolutionDir)MyImGui;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)DosBoxX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\IconFontCppHeaders;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)GridBuilderGrid;$(SolutionDir)MightAndMagic3ReverseEngeneering;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ImGui;$(SolutionDir)MyImGui;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)DosBoxX;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\SDL3\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL3.lib;d3d11.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\SDL3_image\lib\x64;$(SolutionDir)ThirdParty\SDL3\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;d3d11.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -156,6 +156,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="DebugWindow.cpp" />
     <ClCompile Include="DosBoxFramePipeline.cpp" />
     <ClCompile Include="DosBoxWindow.cpp" />
     <ClCompile Include="HostApplication.cpp" />
@@ -171,6 +172,7 @@
     <ClCompile Include="Process.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DebugWindow.h" />
     <ClInclude Include="DosBoxFramePipeline.h" />
     <ClInclude Include="DosBoxWindow.h" />
     <ClInclude Include="GameLauncher.h" />

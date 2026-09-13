@@ -11,6 +11,9 @@
 #include "Mouse.h"
 #include "NamedPipeClient.h"
 #include "Memory.h"
+#include "GridBuilderGrid.h"
+#include "DebugWindow.h"
+
 
 #include <cstdio>
 #include <Windows.h>
@@ -34,6 +37,7 @@ namespace GridBuilderHost
         HostRenderer& hostRenderer,
         DosBoxX::FrameTexture& frameTexture,
         ImGuiHost& imGuiHost,
+        GridBuilderGrid& gridBuilderGrid,
         HostUi& hostUi,
         MightAndMagic3::MM3Launcher& mm3Launcher,
         DosBoxX::Keyboard& dosBoxKeyboard,
@@ -44,6 +48,8 @@ namespace GridBuilderHost
     {
         bool running =
             true;
+
+        DebugWindow debugWindow;
 
         mm3Launcher.start();
         
@@ -113,22 +119,6 @@ namespace GridBuilderHost
                     );
             }
 
-            if (memoryValueValid)
-            {
-                ImGui::Text(
-                    "0x30418 = %u",
-                    static_cast<unsigned int>(
-                        memoryValue
-                        )
-                );
-            }
-            else
-            {
-                ImGui::Text(
-                    "0x30418 = ---"
-                );
-            }
-
             if (ImGui::IsKeyPressed(
                 ImGuiKey_DownArrow,
                 false
@@ -153,6 +143,14 @@ namespace GridBuilderHost
                 dosBoxMouse,
                 dosBoxPipeClient
             );
+
+            bool gridOpen = true;
+
+            gridBuilderGrid.draw(
+                &gridOpen
+            );
+
+            debugWindow.draw();
 
             imGuiHost.endFrame();
 

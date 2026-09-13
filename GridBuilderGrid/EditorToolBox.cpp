@@ -1,6 +1,7 @@
 #include "EditorToolbox.h"
 
 #include "imgui.h"
+
 #include <cstdint>
 
 EditorToolbox::EditorToolbox()
@@ -35,7 +36,7 @@ void EditorToolbox::draw(
     EditorTool activeTool
 )
 {
-    ImGui::SetNextWindowSize(
+        ImGui::SetNextWindowSize(
         ImVec2(170.0f, 70.0f),
         ImGuiCond_FirstUseEver
     );
@@ -77,6 +78,7 @@ void EditorToolbox::draw(
 
     m_window.end();
 }
+
 EditorTool EditorToolbox::activeTool() const
 {
     return m_activeTool;
@@ -152,21 +154,20 @@ void EditorToolbox::drawToolButton(
             button.tool;
     }
 
-    ImGui::PopStyleColor();
-
-    ImGui::PopID();
-
-    if (isActive)
-    {
-        ImGui::PopStyleColor();
-    }
-
     if (ImGui::IsItemHovered())
     {
         ImGui::SetTooltip(
             "%s",
             button.tooltip
         );
+    }
+
+    ImGui::PopStyleColor();
+    ImGui::PopID();
+
+    if (isActive)
+    {
+        ImGui::PopStyleColor();
     }
 }
 
@@ -193,3 +194,4 @@ EditorToolbox::activeToolIcon() const
 
     return "";
 }
+

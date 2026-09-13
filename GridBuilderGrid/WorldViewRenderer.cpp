@@ -371,13 +371,13 @@ void drawLayerWalls(const Viewport& viewport, const Hover& hover, const WallPain
                                 layerColor.w
                                 )
                         );
-                    void WorldView::drawEdgeIcon(
-                        const Viewport & viewport,
-                        ImDrawList * drawList,
-                        ID3D11ShaderResourceView * texture,
-                        ImVec2 center,
-                        bool horizontal,
-                        ImU32 color
+                    WorldView::drawEdgeIcon(
+                        viewport,
+                        drawList,
+                        texture,
+                        center,
+                        horizontal,
+                        edgeTint
                     );
                 };
 
@@ -831,9 +831,9 @@ void drawHover(const Viewport& viewport, const Hover& hover, const WallPainting&
             2.0f
         );
 
-    ImGui::SetMouseCursor(
-        ImGuiMouseCursor_None
-    );
+    //ImGui::SetMouseCursor(
+      //  ImGuiMouseCursor_None
+    //);
 
     HoveredWall previewWall =
         hover.m_hoveredWall;
