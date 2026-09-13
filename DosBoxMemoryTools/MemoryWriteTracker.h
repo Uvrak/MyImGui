@@ -1,4 +1,6 @@
 #pragma once
+#include "ScannerAddress.h"
+#include "ScannerRange.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -19,18 +21,13 @@ namespace DosBoxMemoryTools
         // MemoryWriteTracker.h
 
         void draw(
-            const char* targetText
+            const ScannerAddress& scannerAddress,
+            const ScannerRange& scannerRange
         );
 
     private:
         MemoryScanner&
             m_scanner;
-
-        char m_startAddressText[32] =
-            "0xA0000";
-
-        char m_endAddressText[32] =
-            "0xA00FF";
 
         bool m_captureHit =
             false;

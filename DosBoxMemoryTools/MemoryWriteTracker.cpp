@@ -18,34 +18,13 @@ namespace DosBoxMemoryTools
     {}
 
     void MemoryWriteTracker::draw(
-        const char* targetText
+        const ScannerAddress& scannerAddress,
+        const ScannerRange& scannerRange
     )
     {
-        ImGui::SetNextItemWidth(
-            140.0f
-        );
-
-        ImGui::InputText(
-            "Start##MemoryWrite",
-            m_startAddressText,
-            sizeof(m_startAddressText)
-        );
-
-        ImGui::SameLine();
-
-        ImGui::SetNextItemWidth(
-            140.0f
-        );
-
-        ImGui::InputText(
-            "End##MemoryWrite",
-            m_endAddressText,
-            sizeof(m_endAddressText)
-        );
-
         ImGui::Text(
             "Debug Target: 0x%zX",
-            m_scanner.lastMemoryWriteTarget()
+            scannerAddress.value
         );
 
         ImGui::Text(
@@ -58,40 +37,24 @@ namespace DosBoxMemoryTools
         {
             if (m_recordButton.recording())
             {
-                char* startEnd = nullptr;
-                char* endEnd = nullptr;
+                const size_t startAddress =
+                    scannerRange.enabled
+                    ? scannerRange.start
+                    : scannerAddress.value;
 
-                const unsigned long long startAddress =
-                    std::strtoull(
-                        m_startAddressText,
-                        &startEnd,
-                        0
-                    );
+                const size_t endAddress =
+                    scannerRange.enabled
+                    ? scannerRange.end
+                    : scannerAddress.value;
 
-                const unsigned long long endAddress =
-                    std::strtoull(
-                        m_endAddressText,
-                        &endEnd,
-                        0
-                    );
-
-                if (startEnd != m_startAddressText &&
-                    *startEnd == '\0' &&
-                    endEnd != m_endAddressText &&
-                    *endEnd == '\0' &&
-                    startAddress <= endAddress)
+                if (startAddress <= endAddress)
                 {
                     if (m_scanner.setMemoryWriteWatchRange(
-                        static_cast<size_t>(
-                            startAddress
-                            ),
-                        static_cast<size_t>(
-                            endAddress
-                            )
+                        startAddress,
+                        endAddress
                     ))
                     {
-                        m_captureHit =
-                            false;
+                        m_captureHit = false;
                     }
                     else
                     {
@@ -102,11 +65,6 @@ namespace DosBoxMemoryTools
                 {
                     m_recordButton.stop();
                 }
-            }
-            else
-            {
-                // Captured writes intentionally remain available
-                // after recording has stopped.
             }
         }
 
@@ -234,6 +192,8 @@ namespace DosBoxMemoryTools
             if (memoryWriteHit &&
                 m_recordButton.recording())
             {
+                m_recordButton.stop();
+
                 size_t captureCount = 0;
 
                 m_scanner.getMemoryWriteWatchCaptureCount(
@@ -384,19 +344,7 @@ namespace DosBoxMemoryTools
                         ImGuiMouseButton_Left
                     ))
                 {
-                    std::snprintf(
-                        m_startAddressText,
-                        sizeof(m_startAddressText),
-                        "0x%zX",
-                        m_capture.address
-                    );
-
-                    std::snprintf(
-                        m_endAddressText,
-                        sizeof(m_endAddressText),
-                        "0x%zX",
-                        m_capture.address
-                    );
+                    
                 }
 
                 ImGui::PopID();
@@ -467,19 +415,7 @@ namespace DosBoxMemoryTools
                 ImGuiMouseButton_Left
             ))
         {
-            std::snprintf(
-                m_startAddressText,
-                sizeof(m_startAddressText),
-                "0x%zX",
-                m_capture.address
-            );
-
-            std::snprintf(
-                m_endAddressText,
-                sizeof(m_endAddressText),
-                "0x%zX",
-                m_capture.address
-            );
+           
         }
 
         ImGui::Text(

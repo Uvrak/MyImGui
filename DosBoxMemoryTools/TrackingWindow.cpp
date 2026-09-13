@@ -6,12 +6,14 @@ namespace DosBoxMemoryTools
 {
     TrackingWindow::TrackingWindow(
         MemoryScanner& scanner,
-        const std::string& gameId
+        const std::string& gameId,
+        ScannerAddress& scannerAddress,
+        ScannerRange& scannerRange
     )
         :
-        m_gameId(
-            gameId
-        ),
+        m_scannerAddress(scannerAddress),
+        m_scannerRange(scannerRange),
+        m_gameId(gameId),
         m_traceTracking(
             scanner,
             gameId
@@ -33,6 +35,7 @@ namespace DosBoxMemoryTools
         bool* isOpen
     )
     {
+
         if (isOpen &&
             !*isOpen)
         {
@@ -166,9 +169,10 @@ namespace DosBoxMemoryTools
                 break;
 
             case TrackingTab::MemWr:
-            m_memoryWriteTracker.draw(
-                m_targetText
-            );
+                m_memoryWriteTracker.draw(
+                    m_scannerAddress,
+                    m_scannerRange
+                );
             break;
             }
         }

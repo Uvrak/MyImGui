@@ -12,7 +12,9 @@ namespace DosBoxMemoryTools
             ScannerAddress& scannerAddress,
             ScannerRange& scannerRange
         )
-        : 
+        :
+        m_scannerAddress(scannerAddress),
+        m_scannerRange(scannerRange),
         m_scannerWindow(
             m_memoryReader,
             gameId,
@@ -30,7 +32,9 @@ namespace DosBoxMemoryTools
         ),
         m_trackingWindow(
             m_scannerWindow.scanner(),
-            gameId
+            gameId,
+            scannerAddress,
+            scannerRange
         ),
         m_disassemblyWindow(
             m_memoryReader
@@ -63,10 +67,10 @@ namespace DosBoxMemoryTools
             }
         }
 
-        m_scannerControls.draw(
-            m_scannerAddress,
-            m_scannerRange
-        );
+        //m_scannerControls.draw(
+        //    m_scannerAddress,
+        //    m_scannerRange
+        //);
 
         ImGui::Separator();
 

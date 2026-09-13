@@ -1458,12 +1458,11 @@ namespace
                                 }
 
                                 stream
-                                    << ':'
                                     << static_cast<unsigned int>(
-                                        writeValue
-                                        )
-                                    << ':'
-                                    << instruction.writeAddress;
+                                        instruction.bytes[
+                                            byteIndex
+                                        ]
+                                        );
                             }
 
                             stream << ':';
@@ -1483,15 +1482,15 @@ namespace
                                             byteIndex
                                         ]
                                         );
+                            }
 
-  
-                        }
                             stream
                                 << ':'
                                 << static_cast<unsigned int>(
                                     writeValue
-                                    );
-
+                                    )
+                                << ':'
+                                << instruction.writeAddress;
 
                             response =
                                 stream.str();

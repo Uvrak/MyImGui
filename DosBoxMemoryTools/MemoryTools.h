@@ -48,10 +48,10 @@ namespace DosBoxMemoryTools
         double m_lastLiveRefresh = 0.0;
         bool m_initialRefreshDone = false;
 
-        ScannerAddress
+        ScannerAddress&
             m_scannerAddress;
 
-        ScannerRange
+        ScannerRange&
             m_scannerRange;
 
         ScannerMenuBar

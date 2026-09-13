@@ -7,6 +7,8 @@
 #include "TraceComparisonWindow.h"
 #include "TransitionTracking.h"
 #include "ExecutionTracking.h"
+#include "ScannerAddress.h"
+#include "ScannerRange.h"
 
 namespace DosBoxMemoryTools
 {
@@ -15,7 +17,9 @@ namespace DosBoxMemoryTools
     public:
         TrackingWindow(
             MemoryScanner& scanner,
-            const std::string& gameId
+            const std::string& gameId,
+            ScannerAddress& scannerAddress,
+            ScannerRange& scannerRange
         );
 
         void draw(
@@ -29,6 +33,12 @@ namespace DosBoxMemoryTools
         );
 
     private:
+        ScannerAddress&
+            m_scannerAddress;
+
+        ScannerRange&
+            m_scannerRange;
+
         std::string
             m_gameId;
 
