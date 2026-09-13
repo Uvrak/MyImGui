@@ -248,6 +248,8 @@ namespace DosBoxMemoryTools
             size_t address
         );
 
+        bool setMemoryWriteWatchRange(size_t startAddress, size_t endAddress);
+
         bool clearMemoryWriteWatch();
 
         bool getMemoryWriteWatchHit(

@@ -149,6 +149,11 @@ namespace MemoryReadTracker
         LinearPt address
     );
 
+    void setMemoryWriteWatchRange(
+        LinearPt startAddress,
+        LinearPt endAddress
+    );
+
     LinearPt memoryWriteWatchTarget();
 
     RuntimeInstruction

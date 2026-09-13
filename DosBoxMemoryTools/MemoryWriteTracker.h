@@ -16,14 +16,21 @@ namespace DosBoxMemoryTools
             MemoryScanner& scanner
         );
 
-        void draw();
+        // MemoryWriteTracker.h
+
+        void draw(
+            const char* targetText
+        );
 
     private:
         MemoryScanner&
             m_scanner;
 
-        char m_targetText[32] =
-            "0x30418";
+        char m_startAddressText[32] =
+            "0xA0000";
+
+        char m_endAddressText[32] =
+            "0xA00FF";
 
         bool m_captureHit =
             false;

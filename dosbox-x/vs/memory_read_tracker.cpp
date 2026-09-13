@@ -81,7 +81,10 @@ namespace
         currentStackAddress = 0;
 
     std::atomic<LinearPt>
-        memoryWriteWatchTargetAddress{ 0 };
+    memoryWriteWatchStartAddress{ 0 };
+
+std::atomic<LinearPt>
+    memoryWriteWatchEndAddress{ 0 };
 
     bool
         hasMemoryWriteWatchHit = false;
@@ -619,12 +622,16 @@ void MemoryReadTracker::recordInstruction(
     const LinearPt executionTarget =
         executionCaptureTargetAddress.load();
 
-    const LinearPt memoryWriteTarget =
-        memoryWriteWatchTargetAddress.load();
+    const LinearPt memoryWriteStart =
+        memoryWriteWatchStartAddress.load();
+
+    const LinearPt memoryWriteEnd =
+        memoryWriteWatchEndAddress.load();
 
     if(!tracking &&
         executionTarget == 0 &&
-        memoryWriteTarget == 0 &&
+        memoryWriteStart == 0 &&
+        memoryWriteEnd == 0 &&
         !readTraceRunning)
     {
         return;
@@ -1018,7 +1025,11 @@ void MemoryReadTracker::setMemoryWriteWatchTarget(
         readAddressesMutex
     );
 
-    memoryWriteWatchTargetAddress.store(
+    memoryWriteWatchStartAddress.store(
+        address
+    );
+
+    memoryWriteWatchEndAddress.store(
         address
     );
 
@@ -1046,9 +1057,35 @@ void MemoryReadTracker::setMemoryWriteWatchTarget(
     capturedMemoryWriteInstructions.clear();
 }
 
+void MemoryReadTracker::setMemoryWriteWatchRange(
+    LinearPt startAddress,
+    LinearPt endAddress
+)
+{
+    std::lock_guard<std::mutex> lock(
+        readAddressesMutex
+    );
+
+    memoryWriteWatchStartAddress.store(
+        startAddress
+    );
+
+    memoryWriteWatchEndAddress.store(
+        endAddress
+    );
+
+    hasMemoryWriteWatchHit =
+        false;
+
+    capturedMemoryWriteValue =
+        0;
+
+    capturedMemoryWriteInstructions.clear();
+}
+
 LinearPt MemoryReadTracker::memoryWriteWatchTarget()
 {
-    return memoryWriteWatchTargetAddress.load();
+    return memoryWriteWatchStartAddress.load();
 }
 
 bool MemoryReadTracker::memoryWriteWatchHit()
@@ -1137,7 +1174,11 @@ void MemoryReadTracker::clearMemoryWriteWatch()
         readAddressesMutex
     );
 
-    memoryWriteWatchTargetAddress.store(
+    memoryWriteWatchStartAddress.store(
+        0
+    );
+
+    memoryWriteWatchEndAddress.store(
         0
     );
 
@@ -1156,53 +1197,16 @@ void MemoryReadTracker::recordMemoryWrite(
     uint8_t value
 )
 {
-    if(address ==
-        memoryWriteWatchTargetAddress.load())
-    {
-        char buffer[128];
+    const LinearPt startAddress =
+        memoryWriteWatchStartAddress.load();
 
-        std::snprintf(
-            buffer,
-            sizeof(buffer),
-            "MEMWR target=%08X instruction=%08X\n",
-            static_cast<unsigned int>(
-                address
-                ),
-            static_cast<unsigned int>(
-                currentRuntimeInstruction.address
-                )
-        );
+    const LinearPt endAddress =
+        memoryWriteWatchEndAddress.load();
 
-        OutputDebugStringA(
-            buffer
-        );
-    }
-
-    const LinearPt targetAddress =
-        memoryWriteWatchTargetAddress.load();
-
-    if(targetAddress != 0 &&
-        address >= targetAddress - 16 &&
-        address <= targetAddress + 16)
-    {
-        char debugText[256];
-
-        std::snprintf(
-            debugText,
-            sizeof(debugText),
-            "MEMWRITE near target: address=0x%zX target=0x%zX value=%u\n",
-            static_cast<size_t>(address),
-            static_cast<size_t>(targetAddress),
-            static_cast<unsigned int>(value)
-        );
-
-        OutputDebugStringA(
-            debugText
-        );
-    }
-
-    if(targetAddress == 0 ||
-        address != targetAddress)
+    if(startAddress == 0 ||
+        endAddress == 0 ||
+        address < startAddress ||
+        address > endAddress)
     {
         return;
     }

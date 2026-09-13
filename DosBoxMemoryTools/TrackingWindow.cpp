@@ -166,15 +166,17 @@ namespace DosBoxMemoryTools
                 break;
 
             case TrackingTab::MemWr:
-                m_memoryWriteTracker.draw();
-                break;
+            m_memoryWriteTracker.draw(
+                m_targetText
+            );
+            break;
             }
         }
 
         ImGui::EndChild();
         ImGui::End();
 
-    }
+}
 
 
     void TrackingWindow::saveSession() const

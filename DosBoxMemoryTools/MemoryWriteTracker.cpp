@@ -17,17 +17,30 @@ namespace DosBoxMemoryTools
         )
     {}
 
-    void MemoryWriteTracker::draw()
-       
+    void MemoryWriteTracker::draw(
+        const char* targetText
+    )
     {
         ImGui::SetNextItemWidth(
             140.0f
         );
 
         ImGui::InputText(
-            "Target##MemoryWrite",
-            m_targetText,
-            sizeof(m_targetText)
+            "Start##MemoryWrite",
+            m_startAddressText,
+            sizeof(m_startAddressText)
+        );
+
+        ImGui::SameLine();
+
+        ImGui::SetNextItemWidth(
+            140.0f
+        );
+
+        ImGui::InputText(
+            "End##MemoryWrite",
+            m_endAddressText,
+            sizeof(m_endAddressText)
         );
 
         ImGui::Text(
@@ -45,21 +58,35 @@ namespace DosBoxMemoryTools
         {
             if (m_recordButton.recording())
             {
-                char* end = nullptr;
+                char* startEnd = nullptr;
+                char* endEnd = nullptr;
 
-                const unsigned long long targetAddress =
+                const unsigned long long startAddress =
                     std::strtoull(
-                        m_targetText,
-                        &end,
+                        m_startAddressText,
+                        &startEnd,
                         0
                     );
 
-                if (end != m_targetText &&
-                    *end == '\0')
+                const unsigned long long endAddress =
+                    std::strtoull(
+                        m_endAddressText,
+                        &endEnd,
+                        0
+                    );
+
+                if (startEnd != m_startAddressText &&
+                    *startEnd == '\0' &&
+                    endEnd != m_endAddressText &&
+                    *endEnd == '\0' &&
+                    startAddress <= endAddress)
                 {
-                    if (m_scanner.setMemoryWriteWatchTarget(
+                    if (m_scanner.setMemoryWriteWatchRange(
                         static_cast<size_t>(
-                            targetAddress
+                            startAddress
+                            ),
+                        static_cast<size_t>(
+                            endAddress
                             )
                     ))
                     {
@@ -320,9 +347,10 @@ namespace DosBoxMemoryTools
                 std::snprintf(
                     captureText,
                     sizeof(captureText),
-                    "%zu  Address: 0x%zX  Value: 0x%02X",
+                    "%zu  Instruction: 0x%zX  Write: 0x%zX  Value: 0x%02X",
                     index,
                     m_captures[index].address,
+                    m_captures[index].writeAddress,
                     static_cast<unsigned int>(
                         m_captures[index].writeValue
                         )
@@ -357,10 +385,17 @@ namespace DosBoxMemoryTools
                     ))
                 {
                     std::snprintf(
-                        m_targetText,
-                        sizeof(m_targetText),
+                        m_startAddressText,
+                        sizeof(m_startAddressText),
                         "0x%zX",
-                        m_captures[index].address
+                        m_capture.address
+                    );
+
+                    std::snprintf(
+                        m_endAddressText,
+                        sizeof(m_endAddressText),
+                        "0x%zX",
+                        m_capture.address
                     );
                 }
 
@@ -433,8 +468,15 @@ namespace DosBoxMemoryTools
             ))
         {
             std::snprintf(
-                m_targetText,
-                sizeof(m_targetText),
+                m_startAddressText,
+                sizeof(m_startAddressText),
+                "0x%zX",
+                m_capture.address
+            );
+
+            std::snprintf(
+                m_endAddressText,
+                sizeof(m_endAddressText),
                 "0x%zX",
                 m_capture.address
             );

@@ -1299,6 +1299,48 @@ namespace
                         response = "OK";
                         }
 
+                else if(std::strncmp(
+                    buffer,
+                    "MEMORYWRITE:RANGE:",
+                    std::strlen(
+                    "MEMORYWRITE:RANGE:"
+                    )
+                    ) == 0)
+                    {
+                        const char* parameters =
+                            buffer +
+                            std::strlen(
+                                "MEMORYWRITE:RANGE:"
+                            );
+
+                        size_t startAddress = 0;
+                        size_t endAddress = 0;
+
+                        if(std::sscanf(
+                            parameters,
+                            "%zu:%zu",
+                            &startAddress,
+                            &endAddress
+                        ) == 2)
+                        {
+                            MemoryReadTracker::
+                                setMemoryWriteWatchRange(
+                                    static_cast<LinearPt>(
+                                        startAddress
+                                        ),
+                                    static_cast<LinearPt>(
+                                        endAddress
+                                        )
+                                );
+
+                            response = "OK";
+                        }
+                        else
+                        {
+                            response = "ERROR";
+                        }
+}
+
                 else if(std::strcmp(
                     buffer,
                     "MEMORYWRITE:CLEAR"
@@ -1416,11 +1458,12 @@ namespace
                                 }
 
                                 stream
+                                    << ':'
                                     << static_cast<unsigned int>(
-                                        instruction.bytes[
-                                            byteIndex
-                                        ]
-                                        );
+                                        writeValue
+                                        )
+                                    << ':'
+                                    << instruction.writeAddress;
                             }
 
                             stream << ':';

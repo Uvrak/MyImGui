@@ -165,6 +165,9 @@
     <ProjectReference Include="..\MightAndMagic3ReverseEngeneering\MightAndMagic3ReverseEngeneering.vcxproj">
       <Project>{a2cbbb64-e396-4b8f-b449-6f4bfd5ac124}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\MyImGui\MyImGui.vcxproj">
+      <Project>{df47b7a7-9d08-45a7-afe0-485bef09fe61}</Project>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MainMenu.h" />

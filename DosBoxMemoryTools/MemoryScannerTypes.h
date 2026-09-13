@@ -52,6 +52,7 @@ namespace DosBoxMemoryTools
     struct RuntimeInstruction
     {
         size_t address = 0;
+        size_t writeAddress = 0;
 
         uint16_t cs = 0;
         uint16_t ip = 0;

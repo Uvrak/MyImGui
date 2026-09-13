@@ -75,6 +75,53 @@ namespace DosBoxMemoryTools
     }
 
     bool MemoryScanner::
+        setMemoryWriteWatchRange(
+            size_t startAddress,
+            size_t endAddress
+        )
+    {
+        std::string response;
+
+        const std::string command =
+            "MEMORYWRITE:RANGE:" +
+            std::to_string(
+                startAddress
+            ) +
+            ":" +
+            std::to_string(
+                endAddress
+            );
+
+        if (!m_pipeClient.request(
+            command,
+            response
+        ))
+        {
+            m_status =
+                "Could not set memory write range.";
+
+            return false;
+        }
+
+        if (response != "OK")
+        {
+            m_status =
+                "Setting memory write range failed: " +
+                response;
+
+            return false;
+        }
+
+        m_memoryWriteMarkerValid =
+            false;
+
+        m_status =
+            "Memory write range set.";
+
+        return true;
+    }
+
+    bool MemoryScanner::
         clearMemoryWriteWatch()
     {
         std::string response;
@@ -236,7 +283,7 @@ namespace DosBoxMemoryTools
             );
         }
 
-        if (fields.size() != 17)
+        if (fields.size() != 18)
         {
             m_status =
                 "Invalid memory write capture field count: " +
@@ -435,10 +482,10 @@ namespace DosBoxMemoryTools
                 return false;
             }
 
-            result.writeValue =
-                static_cast<uint8_t>(
-                    std::stoul(
-                        fields[16]
+            result.writeAddress =
+                static_cast<size_t>(
+                    std::stoull(
+                        fields[17]
                     )
                     );
 
