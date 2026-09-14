@@ -149,7 +149,7 @@ namespace DosBoxMemoryTools
                 m_captures;
 
             MemoryWritePersistence::save(
-                "settings/memory_write_a.bin",
+                "../settings/memory_write_a.bin",
                 snapshotA
             );
 
@@ -195,7 +195,7 @@ namespace DosBoxMemoryTools
                 m_captures;
 
             MemoryWritePersistence::save(
-                "settings/memory_write_b.bin",
+                "../settings/memory_write_b.bin",
                 snapshotB
             );
 

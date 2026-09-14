@@ -1197,6 +1197,20 @@ void MemoryReadTracker::recordMemoryWrite(
     uint8_t value
 )
 {
+    const LinearPt stackStart =
+        currentStackAddress >= 0x20
+        ? currentStackAddress - 0x20
+        : 0;
+
+    const LinearPt stackEnd =
+        currentStackAddress + 0x20;
+
+    if(address >= stackStart &&
+        address <= stackEnd)
+    {
+        return;
+    }
+
     const LinearPt startAddress =
         memoryWriteWatchStartAddress.load();
 

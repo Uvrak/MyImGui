@@ -59,6 +59,16 @@ namespace DosBoxMemoryTools
             const std::vector<RuntimeInstruction>& other
         ) const;
 
+        size_t countOccurrences(
+            const std::vector<RuntimeInstruction>& captures,
+            const RuntimeInstruction& target
+        ) const;
+
+        size_t countInstructionOccurrences(
+            const std::vector<RuntimeInstruction>& captures,
+            size_t instructionAddress
+        ) const;
+
         std::vector<RuntimeInstruction>
             m_a;
 

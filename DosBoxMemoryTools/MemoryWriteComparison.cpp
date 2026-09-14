@@ -24,6 +24,57 @@ namespace DosBoxMemoryTools
             &m_hideStackWrites
         );
 
+        std::unordered_set<size_t>
+            shownInstructionsA;
+
+        std::unordered_set<size_t>
+            shownInstructionsB;
+
+        // HIER EINFÜGEN
+        ImGui::TextUnformatted("Instruction Summary");
+
+        for (const RuntimeInstruction& capture : m_a)
+        {
+            if (m_hideStackWrites &&
+                isStackWrite(capture))
+            {
+                continue;
+            }
+
+            if (!shownInstructionsA.insert(
+                capture.address
+            ).second)
+            {
+                continue;
+            }
+
+            const size_t countA =
+                countInstructionOccurrences(
+                    m_a,
+                    capture.address
+                );
+
+            const size_t countB =
+                countInstructionOccurrences(
+                    m_b,
+                    capture.address
+                );
+
+            ImGui::Text(
+                "I: 0x%zX   A:%zu B:%zu",
+                capture.address,
+                countA,
+                countB
+            );
+        }
+
+        // BISHERIGER CODE GEHT HIER WEITER
+        ImGui::Columns(
+            2,
+            "MemoryWriteComparisonColumns",
+            true
+        );
+
         ImGui::Columns(
             2,
             "MemoryWriteComparisonColumns",
@@ -80,6 +131,24 @@ namespace DosBoxMemoryTools
             {
                 continue;
             }
+
+            if (m_showUniqueOnly &&
+                !isDifferent)
+            {
+                continue;
+            }
+
+            const size_t countA =
+                countOccurrences(
+                    m_a,
+                    capture
+                );
+
+            const size_t countB =
+                countOccurrences(
+                    m_b,
+                    capture
+                );
 
             ImGui::PushID(
                 static_cast<int>(i)
@@ -170,10 +239,12 @@ namespace DosBoxMemoryTools
             ImGui::SameLine();
 
             ImGui::Text(
-                "V: 0x%02X",
+                "V: 0x%02X   A:%zu B:%zu",
                 static_cast<unsigned int>(
                     capture.writeValue
-                    )
+                    ),
+                countA,
+                countB
             );
 
             if (isDifferent)
@@ -239,6 +310,18 @@ namespace DosBoxMemoryTools
                 continue;
             }
 
+            const size_t countA =
+                countOccurrences(
+                    m_a,
+                    capture
+                );
+
+            const size_t countB =
+                countOccurrences(
+                    m_b,
+                    capture
+                );
+
             ImGui::PushID(
                 static_cast<int>(i)
             );
@@ -328,10 +411,12 @@ namespace DosBoxMemoryTools
             ImGui::SameLine();
 
             ImGui::Text(
-                "V: 0x%02X",
+                "V: 0x%02X   A:%zu B:%zu",
                 static_cast<unsigned int>(
                     capture.writeValue
-                    )
+                    ),
+                countA,
+                countB
             );
 
             if (isDifferent)
@@ -421,6 +506,55 @@ namespace DosBoxMemoryTools
                 capture,
                 0
             ) == other.size())
+            {
+                ++count;
+            }
+        }
+
+        return count;
+    }
+
+    size_t MemoryWriteComparison::countOccurrences(
+        const std::vector<RuntimeInstruction>& captures,
+        const RuntimeInstruction& target
+    ) const
+    {
+        size_t count = 0;
+
+        for (const RuntimeInstruction& capture : captures)
+        {
+            if (m_hideStackWrites &&
+                isStackWrite(capture))
+            {
+                continue;
+            }
+
+            if (capture.address == target.address &&
+                capture.writeAddress == target.writeAddress)
+            {
+                ++count;
+            }
+        }
+
+        return count;
+    }
+
+    size_t MemoryWriteComparison::countInstructionOccurrences(
+        const std::vector<RuntimeInstruction>& captures,
+        size_t instructionAddress
+    ) const
+    {
+        size_t count = 0;
+
+        for (const RuntimeInstruction& capture : captures)
+        {
+            if (m_hideStackWrites &&
+                isStackWrite(capture))
+            {
+                continue;
+            }
+
+            if (capture.address == instructionAddress)
             {
                 ++count;
             }
