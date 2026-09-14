@@ -12,10 +12,15 @@ namespace DosBoxMemoryTools
 {
     DisassemblyWindow::
         DisassemblyWindow(
-            MemoryReader& memoryReader
+            MemoryReader& memoryReader,
+            ScannerAddress& scannerAddress
         )
-        : m_memoryReader(
+        :
+        m_memoryReader(
             memoryReader
+        ),
+        m_scannerAddress(
+            scannerAddress
         )
     {}
 
@@ -71,7 +76,13 @@ namespace DosBoxMemoryTools
             goToAddress(address);
         };
 
-        DisassemblyToolbar::draw(state, m_memoryReader.memory(), navigate);
+        DisassemblyToolbar::draw(
+            state,
+            m_memoryReader.memory(),
+            navigate,
+            m_scannerAddress
+        );
+
         DisassemblySavedAddresses::draw(state, navigate);
         DisassemblyCallerSearch::drawControls(state);
 

@@ -5,42 +5,36 @@
 
 namespace DosBoxMemoryTools
 {
-    void DisassemblyToolbar::draw(DisassemblyState& state, const std::vector<uint8_t>& liveMemory, const DisassemblyNavigate& goToAddress)
+    void DisassemblyToolbar::draw(
+        DisassemblyState& state,
+        const std::vector<uint8_t>& liveMemory,
+        const DisassemblyNavigate& goToAddress,
+        ScannerAddress& scannerAddress
+    )
     {
         ImGui::SetNextItemWidth(
             120.0f
         );
 
-        ImGui::InputText(
-            "Address",
-            state.m_addressText,
-            sizeof(state.m_addressText)
+        ImGui::Text(
+            "Target: 0x%zX",
+            scannerAddress.value
         );
 
         ImGui::SameLine();
 
         if (ImGui::Button("Go"))
         {
-            char* end = nullptr;
+            const size_t address =
+                scannerAddress.value;
 
-            const unsigned long long address =
-                std::strtoull(
-                    state.m_addressText,
-                    &end,
-                    0
-                );
-
-            if (end != state.m_addressText &&
-                *end == '\0' &&
-                address < liveMemory.size())
+            if (address < liveMemory.size())
             {
                 state.m_disassemblyMemory =
                     liveMemory;
 
                 goToAddress(
-                    static_cast<size_t>(
-                        address
-                        )
+                    address
                 );
 
                 state.m_status =

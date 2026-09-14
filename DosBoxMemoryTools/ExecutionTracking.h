@@ -3,13 +3,16 @@
 #include "MemoryScanner.h"
 #include "RecordButton.h"
 
+#include "ScannerAddress.h"
+
 namespace DosBoxMemoryTools
 {
     class ExecutionTracking
     {
     public:
         ExecutionTracking(
-            MemoryScanner& scanner
+            MemoryScanner& scanner,
+            ScannerAddress& scannerAddress
         );
 
         void draw();
@@ -18,11 +21,11 @@ namespace DosBoxMemoryTools
         MemoryScanner&
             m_scanner;
 
+        ScannerAddress&
+            m_scannerAddress;
+
         MyImGui::RecordButton
             m_recordButton;
-
-        char m_targetText[32] =
-            "0xBD3F";
 
         RuntimeInstruction
             m_executionCapture;

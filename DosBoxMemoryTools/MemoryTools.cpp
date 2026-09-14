@@ -37,7 +37,8 @@ namespace DosBoxMemoryTools
             scannerRange
         ),
         m_disassemblyWindow(
-            m_memoryReader
+            m_memoryReader,
+            scannerAddress
         )
     {}
 

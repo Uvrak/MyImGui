@@ -48,9 +48,20 @@ namespace DosBoxMemoryTools
                 sizeof(rangeEndText),
                 "0x%zX",
                 range.end
+
             );
 
             initialized = true;
+        }
+
+        if (!ImGui::IsAnyItemActive())
+        {
+            std::snprintf(
+                addressText,
+                sizeof(addressText),
+                "0x%zX",
+                address.value
+            );
         }
 
         ImGui::SetNextItemWidth(

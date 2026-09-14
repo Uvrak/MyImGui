@@ -1,6 +1,7 @@
 #pragma once
 #include "ScannerAddress.h"
 #include "ScannerRange.h"
+#include "MemoryWriteComparison.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -21,7 +22,7 @@ namespace DosBoxMemoryTools
         // MemoryWriteTracker.h
 
         void draw(
-            const ScannerAddress& scannerAddress,
+            ScannerAddress& scannerAddress,
             const ScannerRange& scannerRange
         );
 
@@ -51,5 +52,8 @@ namespace DosBoxMemoryTools
 
         std::vector<RuntimeInstruction>
             m_captures;
+
+        MemoryWriteComparison
+            m_comparison;
     };
 }

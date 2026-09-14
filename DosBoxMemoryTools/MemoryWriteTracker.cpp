@@ -18,7 +18,7 @@ namespace DosBoxMemoryTools
     {}
 
     void MemoryWriteTracker::draw(
-        const ScannerAddress& scannerAddress,
+        ScannerAddress& scannerAddress,
         const ScannerRange& scannerRange
     )
     {
@@ -67,6 +67,32 @@ namespace DosBoxMemoryTools
                 }
             }
         }
+
+        if (ImGui::Button("Set A"))
+        {
+            m_comparison.setA(
+                m_captures
+            );
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Set B"))
+        {
+            m_comparison.setB(
+                m_captures
+            );
+        }
+
+        ImGui::Text(
+            "A: %zu   B: %zu",
+            m_comparison.a().size(),
+            m_comparison.b().size()
+        );
+
+        m_comparison.draw(
+            scannerAddress
+        );
 
         if (m_captureHit)
         {
@@ -307,7 +333,7 @@ namespace DosBoxMemoryTools
                 std::snprintf(
                     captureText,
                     sizeof(captureText),
-                    "%zu  Instruction: 0x%zX  Write: 0x%zX  Value: 0x%02X",
+                    "%zu  I: 0x%zX  W: 0x%zX  V: 0x%02X",
                     index,
                     m_captures[index].address,
                     m_captures[index].writeAddress,

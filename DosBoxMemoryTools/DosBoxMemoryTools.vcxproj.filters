@@ -13,12 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="MightAndMagic3">
-      <UniqueIdentifier>{76953754-1f01-46a1-8267-2119dd52dc8b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="MightAndMagic3\docs">
-      <UniqueIdentifier>{41171958-3035-4e9b-a6f6-110fec8f946e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{4d7ae073-cb62-4c0f-a4f6-f788234de111}</UniqueIdentifier>
     </Filter>
@@ -31,9 +25,6 @@
     <Filter Include="Scanner">
       <UniqueIdentifier>{790f0a1c-379a-4a2e-bf5f-9bdc480f3747}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Trace">
-      <UniqueIdentifier>{db1ab5e0-0425-4573-aafa-2bac1fc1ae58}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Tracking">
       <UniqueIdentifier>{76deb51d-c45f-47b7-930b-c512f2849ff6}</UniqueIdentifier>
     </Filter>
@@ -42,6 +33,12 @@
     </Filter>
     <Filter Include="Ui">
       <UniqueIdentifier>{dd904834-35fe-431b-8b0d-a86528b2189c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tracking\MemWriteTracking">
+      <UniqueIdentifier>{6a2c30c5-c281-4b15-80f1-4ae88ee792a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Tracking\TraceTracking">
+      <UniqueIdentifier>{db1ab5e0-0425-4573-aafa-2bac1fc1ae58}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -73,34 +70,31 @@
       <Filter>Tracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceComparison.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceComparisonPersistence.cpp">
-      <Filter>Trace</Filter>
-    </ClCompile>
-    <ClCompile Include="MemoryWriteTracker.cpp">
-      <Filter>Tracking</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceTracking.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceComparisonWindow.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceComparisonToolbar.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceDetailView.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceListView.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceRecordView.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceComparisonFilter.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TransitionTracking.cpp">
       <Filter>Tracking</Filter>
@@ -112,13 +106,13 @@
       <Filter>Tracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceDifferenceBaseline.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceAlignment.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="TraceDifferenceNavigation.cpp">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClCompile>
     <ClCompile Include="MemoryScannerExecutionCapture.cpp">
       <Filter>Scanner</Filter>
@@ -156,6 +150,12 @@
     <ClCompile Include="ScannerSettings.cpp">
       <Filter>Ui</Filter>
     </ClCompile>
+    <ClCompile Include="MemoryWriteTracker.cpp">
+      <Filter>Tracking\MemWriteTracking</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryWriteComparison.cpp">
+      <Filter>Tracking\MemWriteTracking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -186,46 +186,43 @@
       <Filter>Tracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceComparison.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceComparisonPersistence.h">
-      <Filter>Trace</Filter>
-    </ClInclude>
-    <ClInclude Include="MemoryWriteTracker.h">
-      <Filter>Tracking</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceTracking.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceComparisonWindow.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceListView.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceDetailView.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceComparisonToolbar.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceRecordView.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceComparisonFilter.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TransitionTracking.h">
       <Filter>Tracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceDifferenceBaseline.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceAlignment.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="TraceDifferenceNavigation.h">
-      <Filter>Trace</Filter>
+      <Filter>Tracking\TraceTracking</Filter>
     </ClInclude>
     <ClInclude Include="MemoryPatternSearch.h">
       <Filter>Scanner</Filter>
@@ -245,11 +242,12 @@
     <ClInclude Include="ScannerSettings.h">
       <Filter>Ui</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="2026-08-29.txt">
-      <Filter>MightAndMagic3\docs</Filter>
-    </Text>
+    <ClInclude Include="MemoryWriteTracker.h">
+      <Filter>Tracking\MemWriteTracking</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryWriteComparison.h">
+      <Filter>Tracking\MemWriteTracking</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="scripts\bootstrap_vcpkg_and_gtest.ps1" />

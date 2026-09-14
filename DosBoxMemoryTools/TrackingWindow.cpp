@@ -22,7 +22,8 @@ namespace DosBoxMemoryTools
             scanner
         ),
         m_executionTracking(
-            scanner
+            scanner,
+            scannerAddress
         ),
         m_memoryWriteTracker(
             scanner

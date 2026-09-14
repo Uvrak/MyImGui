@@ -7,59 +7,37 @@
 namespace DosBoxMemoryTools
 {
     ExecutionTracking::ExecutionTracking(
-        MemoryScanner& scanner
+        MemoryScanner& scanner,
+        ScannerAddress& scannerAddress
     )
         :
         m_scanner(
             scanner
+        ),
+        m_scannerAddress(
+            scannerAddress
         )
-    {
-
-    }
+    {}
 
     void ExecutionTracking::draw()
     {
-        ImGui::SetNextItemWidth(
-            120.0f
-        );
-
-        ImGui::InputText(
-            "Target",
-            m_targetText,
-            sizeof(m_targetText)
+        ImGui::Text(
+            "Target: 0x%zX",
+            m_scannerAddress.value
         );
 
         if (m_recordButton.draw())
         {
             if (m_recordButton.recording())
             {
-                char* end = nullptr;
+                m_scanner.clearExecutionCapture();
 
-                const unsigned long long targetAddress =
-                    std::strtoull(
-                        m_targetText,
-                        &end,
-                        0
-                    );
+                m_hasExecutionCapture =
+                    false;
 
-                if (end != m_targetText &&
-                    *end == '\0')
-                {
-                    m_scanner.clearExecutionCapture();
-
-                    m_hasExecutionCapture =
-                        false;
-
-                    m_scanner.setExecutionCaptureTarget(
-                        static_cast<size_t>(
-                            targetAddress
-                            )
-                    );
-                }
-                else
-                {
-                    m_recordButton.stop();
-                }
+                m_scanner.setExecutionCaptureTarget(
+                    m_scannerAddress.value
+                );
             }
         }
 
@@ -98,6 +76,7 @@ namespace DosBoxMemoryTools
             ? static_cast<size_t>(1)
             : static_cast<size_t>(0)
         );
+
 
         if (m_hasExecutionCapture)
         {
@@ -185,5 +164,7 @@ namespace DosBoxMemoryTools
             "Scanner status: %s",
             m_scanner.status().c_str()
         );
+
+
     }
 }
