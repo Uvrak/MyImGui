@@ -32,12 +32,32 @@ namespace DosBoxMemoryTools
             {
                 m_scanner.clearExecutionCapture();
 
-                m_hasExecutionCapture =
-                    false;
+                m_hasExecutionCapture = false;
+                m_waitingForTrigger = true;
+            }
+            else
+            {
+                m_waitingForTrigger = false;
+                m_scanner.clearExecutionCapture();
+            }
+        }
 
-                m_scanner.setExecutionCaptureTarget(
-                    m_scannerAddress.value
-                );
+        if (m_waitingForTrigger &&
+            ImGui::IsKeyPressed(
+                ImGuiKey_Space,
+                false
+            ))
+        {
+            if (m_scanner.setExecutionCaptureTarget(
+                m_scannerAddress.value
+            ))
+            {
+                m_waitingForTrigger = false;
+            }
+            else
+            {
+                m_recordButton.stop();
+                m_waitingForTrigger = false;
             }
         }
 
@@ -157,6 +177,28 @@ namespace DosBoxMemoryTools
                     static_cast<unsigned int>(
                         m_executionCapture.bytes[i]
                         )
+                );
+            }
+
+            ImGui::TextUnformatted(
+                "Stack at SS:SP:"
+            );
+
+            for (size_t i = 0;
+                i < m_executionCapture.stackBytes.size();
+                i += 8)
+            {
+                ImGui::Text(
+                    "+%02zX: %02X %02X %02X %02X %02X %02X %02X %02X",
+                    i,
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 0]),
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 1]),
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 2]),
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 3]),
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 4]),
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 5]),
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 6]),
+                    static_cast<unsigned int>(m_executionCapture.stackBytes[i + 7])
                 );
             }
         }

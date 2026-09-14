@@ -38,7 +38,7 @@ namespace DosBoxMemoryTools
         MemoryWritePersistence::Snapshot snapshotB;
 
         if (MemoryWritePersistence::load(
-            "..settings/memory_write_b.bin",
+            "../settings/memory_write_b.bin",
             snapshotB
         ))
         {
@@ -72,11 +72,17 @@ namespace DosBoxMemoryTools
         if (m_captureHit)
         {
             ImGui::Text(
-                "Selected: I 0x%zX  W 0x%zX  V 0x%02X",
+                "Selected: I 0x%zX  W 0x%zX  V 0x%02X  SS:%04X SP:%04X",
                 m_capture.address,
                 m_capture.writeAddress,
                 static_cast<unsigned int>(
                     m_capture.writeValue
+                    ),
+                static_cast<unsigned int>(
+                    m_capture.registers.ss
+                    ),
+                static_cast<unsigned int>(
+                    m_capture.registers.sp
                     )
             );
         }
@@ -88,38 +94,51 @@ namespace DosBoxMemoryTools
         }
 
         ImGui::SameLine();
+        
         if (m_recordButton.draw())
         {
             if (m_recordButton.recording())
             {
-                const size_t startAddress =
-                    scannerRange.enabled
-                    ? scannerRange.start
-                    : scannerAddress.value;
+                m_scanner.clearMemoryWriteWatch();
 
-                const size_t endAddress =
-                    scannerRange.enabled
-                    ? scannerRange.end
-                    : scannerAddress.value;
+                m_waitingForTrigger = true;
+                m_captureHit = false;
+            }
+            else
+            {
+                m_waitingForTrigger = false;
+                m_scanner.clearMemoryWriteWatch();
+            }
+        }
 
-                if (startAddress <= endAddress)
-                {
-                    if (m_scanner.setMemoryWriteWatchRange(
-                        startAddress,
-                        endAddress
-                    ))
-                    {
-                        m_captureHit = false;
-                    }
-                    else
-                    {
-                        m_recordButton.stop();
-                    }
-                }
-                else
-                {
-                    m_recordButton.stop();
-                }
+        if (m_waitingForTrigger &&
+            ImGui::IsKeyPressed(
+                ImGuiKey_Space,
+                false
+            ))
+        {
+            const size_t startAddress =
+                scannerRange.enabled
+                ? scannerRange.start
+                : scannerAddress.value;
+
+            const size_t endAddress =
+                scannerRange.enabled
+                ? scannerRange.end
+                : scannerAddress.value;
+
+            if (startAddress <= endAddress &&
+                m_scanner.setMemoryWriteWatchRange(
+                    startAddress,
+                    endAddress
+                ))
+            {
+                m_waitingForTrigger = false;
+            }
+            else
+            {
+                m_recordButton.stop();
+                m_waitingForTrigger = false;
             }
         }
 
@@ -503,7 +522,14 @@ namespace DosBoxMemoryTools
                         ImGuiMouseButton_Left
                     ))
                 {
-                    
+                    if (ImGui::IsItemHovered() &&
+                        ImGui::IsMouseDoubleClicked(
+                            ImGuiMouseButton_Left
+                        ))
+                    {
+                        scannerAddress.value =
+                            m_captures[index].address;
+                    }
                 }
 
                 ImGui::PopID();

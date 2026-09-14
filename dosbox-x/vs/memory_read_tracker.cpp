@@ -1205,6 +1205,14 @@ void MemoryReadTracker::recordMemoryWrite(
     const LinearPt stackEnd =
         currentStackAddress + 0x20;
 
+    std::printf(
+        "MemWrite W=0x%zX Stack=0x%zX Range=0x%zX-0x%zX\n",
+        static_cast<size_t>(address),
+        static_cast<size_t>(currentStackAddress),
+        static_cast<size_t>(stackStart),
+        static_cast<size_t>(stackEnd)
+    );
+
     if(address >= stackStart &&
         address <= stackEnd)
     {

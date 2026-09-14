@@ -1655,9 +1655,24 @@ namespace DosBoxMemoryTools
                     m_writeValue = 0;
                 }
 
-                if (m_writeValue > 255)
+                switch (m_valueType)
                 {
-                    m_writeValue = 255;
+                case MemoryValueType::Byte:
+                    if (m_writeValue > 0xFF)
+                    {
+                        m_writeValue = 0xFF;
+                    }
+                    break;
+
+                case MemoryValueType::Short:
+                    if (m_writeValue > 0xFFFF)
+                    {
+                        m_writeValue = 0xFFFF;
+                    }
+                    break;
+
+                case MemoryValueType::Int:
+                    break;
                 }
 
 
@@ -1678,9 +1693,10 @@ namespace DosBoxMemoryTools
 
                     if (m_scanner.writeValue(
                         m_writeAddress,
-                        static_cast<uint8_t>(
+                        static_cast<uint32_t>(
                             m_writeValue
-                            )
+                            ),
+                        m_valueType
                     ))
 
                     if (m_dosBoxView != nullptr)

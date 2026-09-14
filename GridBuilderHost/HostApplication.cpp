@@ -129,10 +129,11 @@ namespace GridBuilderHost
                     ? 1
                     : 0;
 
-                dosBoxMemory.writeByte(
+                dosBoxMemory.writeValue(
                     dosBoxPipeClient,
                     0x30418,
-                    newValue
+                    newValue,
+                    1
                 );
             }
 

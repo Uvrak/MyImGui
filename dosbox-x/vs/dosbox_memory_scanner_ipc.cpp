@@ -125,33 +125,56 @@ namespace
                 {
                     size_t address = 0;
                     unsigned int value = 0;
+                    unsigned int size = 0;
 
                     if(std::sscanf(
                         buffer + 6,
-                        "%zu:%u",
+                        "%zu:%u:%u",
                         &address,
-                        &value
-                    ) == 2 &&
-                        value <= 255)
+                        &value,
+                        &size
+                    ) == 3)
                     {
                         MemoryReadTracker::setExternalMemoryWrite(
                             true
                         );
 
-                        phys_writeb(
-                            static_cast<PhysPt>(
-                                address
-                                ),
-                            static_cast<uint8_t>(
-                                value
-                                )
-                        );
+                        switch(size)
+                        {
+                        case 1:
+                            phys_writeb(
+                                static_cast<PhysPt>(address),
+                                static_cast<uint8_t>(value)
+                            );
+                            break;
+
+                        case 2:
+                            phys_writew(
+                                static_cast<PhysPt>(address),
+                                static_cast<uint16_t>(value)
+                            );
+                            break;
+
+                        case 4:
+                            phys_writed(
+                                static_cast<PhysPt>(address),
+                                static_cast<uint32_t>(value)
+                            );
+                            break;
+
+                        default:
+                            size = 0;
+                            break;
+                        }
 
                         MemoryReadTracker::setExternalMemoryWrite(
                             false
                         );
 
-                        response = "OK";
+                        response =
+                            size != 0
+                            ? "OK"
+                            : "ERROR";
                     }
                     else
                     {

@@ -75,7 +75,8 @@ namespace DosBoxMemoryTools
 
         bool writeValue(
             size_t address,
-            uint8_t value
+            uint32_t value,
+            MemoryValueType valueType
         );
 
         bool startReadTracking();

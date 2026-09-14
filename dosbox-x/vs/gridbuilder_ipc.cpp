@@ -501,35 +501,55 @@ void GRIDBUILDER_IPC_ProcessCommands()
             continue;
         }
 
-        const char* memoryWriteBytePrefix =
-            "MEMORYWRITEBYTE:";
+        const char* memoryWriteValuePrefix =
+            "MEMORYWRITEVALUE:";
 
         if(std::strncmp(
             text,
-            memoryWriteBytePrefix,
-            std::strlen(memoryWriteBytePrefix)
+            memoryWriteValuePrefix,
+            std::strlen(memoryWriteValuePrefix)
         ) == 0)
         {
             unsigned int address = 0;
             unsigned int value = 0;
+            unsigned int size = 0;
 
             if(std::sscanf(
-                text + std::strlen(memoryWriteBytePrefix),
-                "%u:%u",
+                text + std::strlen(memoryWriteValuePrefix),
+                "%u:%u:%u",
                 &address,
-                &value
-            ) == 2)
+                &value,
+                &size
+            ) == 3)
             {
-                if(value <= 0xFF)
+                switch(size)
                 {
-                    mem_writeb(
-                        static_cast<PhysPt>(
-                            address
-                            ),
-                        static_cast<Bit8u>(
-                            value
-                            )
+                case 1:
+                    if(value <= 0xFF)
+                    {
+                        mem_writeb(
+                            static_cast<PhysPt>(address),
+                            static_cast<Bit8u>(value)
+                        );
+                    }
+                    break;
+
+                case 2:
+                    if(value <= 0xFFFF)
+                    {
+                        mem_writew(
+                            static_cast<PhysPt>(address),
+                            static_cast<Bit16u>(value)
+                        );
+                    }
+                    break;
+
+                case 4:
+                    mem_writed(
+                        static_cast<PhysPt>(address),
+                        static_cast<Bit32u>(value)
                     );
+                    break;
                 }
             }
 

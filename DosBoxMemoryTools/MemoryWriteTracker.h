@@ -61,5 +61,7 @@ namespace DosBoxMemoryTools
 
         size_t m_rangeBStart = 0;
         size_t m_rangeBEnd = 0;
+
+        bool m_waitingForTrigger = false;
     };
 }

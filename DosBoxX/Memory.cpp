@@ -51,10 +51,11 @@ namespace DosBoxX
         }
     }
 
-    bool Memory::writeByte(
+    bool Memory::writeValue(
         NamedPipeClient& pipeClient,
         std::size_t address,
-        uint8_t value
+        uint32_t value,
+        std::size_t size
     )
     {
         const std::string command =

@@ -16,10 +16,11 @@ namespace DosBoxX
             uint8_t& value
         );
 
-        bool writeByte(
+        bool writeValue(
             NamedPipeClient& pipeClient,
             std::size_t address,
-            uint8_t value
+            uint32_t value,
+            std::size_t size
         );
     };
 }

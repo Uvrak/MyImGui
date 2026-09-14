@@ -32,5 +32,7 @@ namespace DosBoxMemoryTools
 
         bool m_hasExecutionCapture =
             false;
+
+        bool m_waitingForTrigger = false;
     };
 }

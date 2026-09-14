@@ -24,6 +24,7 @@
 #include "MemoryTools.h"
 #include "MyImGuiSettings.h"
 #include "MyImGuiSettingsWindow.h"
+#include "Memory.h"
 
 #include "NamedPipeClient.h"
 DosBoxX::NamedPipeClient NamedPipeClient(
@@ -199,6 +200,7 @@ int main(int, char**)
 
     DosBoxX::Keyboard keyboard;
     DosBoxX::Mouse mouse;   
+    DosBoxX::Memory dosBoxMemory;
     DosBoxX::View view;
     DosBoxMemoryTools::MemoryTools
         memoryTools(
@@ -481,6 +483,10 @@ int main(int, char**)
         ImGui::DockSpaceOverViewport();
 
         memoryTools.draw();
+
+        if (ImGui::Button("Test Cursor Index 1"))
+        {
+        }
 
         mm3ItemSource.refresh();
 

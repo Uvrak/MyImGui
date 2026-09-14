@@ -33,6 +33,8 @@ namespace DosBoxMemoryTools
         // HIER EINFÜGEN
         ImGui::TextUnformatted("Instruction Summary");
 
+        ImGui::PushID("SummaryA");
+
         for (const RuntimeInstruction& capture : m_a)
         {
             if (m_hideStackWrites &&
@@ -60,13 +62,97 @@ namespace DosBoxMemoryTools
                     capture.address
                 );
 
-            ImGui::Text(
+            char summaryText[128];
+
+            std::snprintf(
+                summaryText,
+                sizeof(summaryText),
                 "I: 0x%zX   A:%zu B:%zu",
                 capture.address,
                 countA,
                 countB
             );
+
+            ImGui::Selectable(
+                summaryText,
+                false,
+                ImGuiSelectableFlags_AllowDoubleClick
+            );
+
+            if (ImGui::IsItemHovered() &&
+                ImGui::IsMouseDoubleClicked(
+                    ImGuiMouseButton_Left
+                ))
+            {
+                scannerAddress.value =
+                    capture.address;
+            }
+
+			
+
         }
+
+        ImGui::PopID();
+
+        ImGui::Separator();
+        
+        ImGui::PushID("SummaryB");
+
+for (const RuntimeInstruction& capture : m_b)
+{
+    if (m_hideStackWrites &&
+        isStackWrite(capture))
+    {
+        continue;
+    }
+
+    if (!shownInstructionsB.insert(
+        capture.address
+    ).second)
+    {
+        continue;
+    }
+
+    const size_t countA =
+        countInstructionOccurrences(
+            m_a,
+            capture.address
+        );
+
+    const size_t countB =
+        countInstructionOccurrences(
+            m_b,
+            capture.address
+        );
+
+    char summaryText[128];
+
+    std::snprintf(
+        summaryText,
+        sizeof(summaryText),
+        "I: 0x%zX   A:%zu B:%zu",
+        capture.address,
+        countA,
+        countB
+    );
+
+    ImGui::Selectable(
+        summaryText,
+        false,
+        ImGuiSelectableFlags_AllowDoubleClick
+    );
+
+    if (ImGui::IsItemHovered() &&
+        ImGui::IsMouseDoubleClicked(
+            ImGuiMouseButton_Left
+        ))
+    {
+        scannerAddress.value =
+            capture.address;
+    }
+    
+}
+ImGui::PopID();
 
         // BISHERIGER CODE GEHT HIER WEITER
         ImGui::Columns(

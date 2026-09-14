@@ -604,52 +604,67 @@ namespace DosBoxMemoryTools
 
         return true;
     }
-
     bool MemoryScanner::writeValue(
-        size_t address,
-        uint8_t value
-    )
+    size_t address,
+    uint32_t value,
+    MemoryValueType valueType
+)
+{
+    size_t size = 1;
+
+    switch (valueType)
     {
-        std::string response;
+    case MemoryValueType::Byte:
+        size = 1;
+        break;
 
-        const std::string command =
-            "WRITE:" +
-            std::to_string(address) +
-            ":" +
-            std::to_string(
-                static_cast<unsigned int>(
-                    value
-                    )
-            );
+    case MemoryValueType::Short:
+        size = 2;
+        break;
 
-        if (!m_pipeClient.request(
-            command,
-            response
-        ))
-        {
-            m_status =
-                "Could not write memory.";
-
-            return false;
-        }
-
-        if (response != "OK")
-        {
-            m_status =
-                "Memory write failed: " +
-                response;
-
-            return false;
-        }
-
-        m_lastMemoryWriteTarget =
-            address;
-
-        m_status =
-            "Memory value written.";
-
-        return true;
+    case MemoryValueType::Int:
+        size = 4;
+        break;
     }
+
+    std::string response;
+
+    const std::string command =
+        "WRITE:" +
+        std::to_string(address) +
+        ":" +
+        std::to_string(value) +
+        ":" +
+        std::to_string(size);
+
+    if (!m_pipeClient.request(
+        command,
+        response
+    ))
+    {
+        m_status =
+            "Could not write memory.";
+
+        return false;
+    }
+
+    if (response != "OK")
+    {
+        m_status =
+            "Memory write failed: " +
+            response;
+
+        return false;
+    }
+
+    m_lastMemoryWriteTarget =
+        address;
+
+    m_status =
+        "Memory value written.";
+
+    return true;
+}
     
     void MemoryScanner::setCandidatesFromAddresses(
         const std::vector<size_t>& addresses
