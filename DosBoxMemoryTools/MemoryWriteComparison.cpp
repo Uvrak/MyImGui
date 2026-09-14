@@ -17,6 +17,13 @@ namespace DosBoxMemoryTools
             &m_showUniqueOnly
         );
 
+        ImGui::SameLine();
+
+        ImGui::Checkbox(
+            "Hide stack writes",
+            &m_hideStackWrites
+        );
+
         ImGui::Columns(
             2,
             "MemoryWriteComparisonColumns",
@@ -43,6 +50,12 @@ namespace DosBoxMemoryTools
         {
             const RuntimeInstruction& capture =
                 m_a[i];
+            
+            if (m_hideStackWrites &&
+                isStackWrite(capture))
+            {
+                continue;
+            }
 
             const size_t matchingIndex =
                 findMatchingIndex(
@@ -195,6 +208,12 @@ namespace DosBoxMemoryTools
         {
             const RuntimeInstruction& capture =
                 m_b[i];
+
+            if (m_hideStackWrites &&
+                isStackWrite(capture))
+            {
+                continue;
+            }
 
             const size_t matchingIndex =
                 findMatchingIndex(
@@ -391,6 +410,12 @@ namespace DosBoxMemoryTools
 
         for (const RuntimeInstruction& capture : source)
         {
+            if (m_hideStackWrites &&
+                isStackWrite(capture))
+            {
+                continue;
+            }
+
             if (findMatchingIndex(
                 other,
                 capture,
@@ -402,6 +427,26 @@ namespace DosBoxMemoryTools
         }
 
         return count;
+    }
+
+    bool MemoryWriteComparison::isStackWrite(
+        const RuntimeInstruction& capture
+    ) const
+    {
+        const size_t stackBase =
+            static_cast<size_t>(
+                capture.registers.ss
+                ) << 4;
+
+        const size_t stackPointer =
+            stackBase +
+            capture.registers.sp;
+
+        return
+            capture.writeAddress >=
+            stackPointer - 0x20 &&
+            capture.writeAddress <=
+            stackPointer + 0x20;
     }
 
     void MemoryWriteComparison::setA(

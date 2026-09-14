@@ -40,6 +40,8 @@ namespace MyImGui
         DosBoxMemoryTools::ScannerRange&
             scannerRange();
 
+        void saveScannerSettings();
+
     private:
         std::string m_selectedGameExe;
 

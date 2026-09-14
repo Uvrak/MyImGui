@@ -369,4 +369,12 @@ namespace MyImGui
     {
         return m_scannerRange;
     }
+    
+    void MainMenu::saveScannerSettings()
+    {
+        m_scannerSettings.save(
+            m_scannerAddress,
+            m_scannerRange
+        );
+    }
 }

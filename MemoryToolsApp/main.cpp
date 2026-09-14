@@ -390,6 +390,8 @@ int main(int, char**)
                 }
             }
         }
+
+        mainMenu.saveScannerSettings();
         
 
         // Handle window resize (we don't resize directly in the WM_SIZE handler)

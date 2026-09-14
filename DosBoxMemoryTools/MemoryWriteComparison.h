@@ -34,6 +34,10 @@ namespace DosBoxMemoryTools
         }
 
     private:
+        bool isStackWrite(
+            const RuntimeInstruction& capture
+        ) const;
+
         bool different(
             size_t index
 
@@ -62,6 +66,9 @@ namespace DosBoxMemoryTools
             m_b;
 
         bool m_showUniqueOnly =
+            false;
+
+        bool m_hideStackWrites =
             false;
     };
 }

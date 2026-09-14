@@ -156,6 +156,9 @@
     <ClCompile Include="MemoryWriteComparison.cpp">
       <Filter>Tracking\MemWriteTracking</Filter>
     </ClCompile>
+    <ClCompile Include="MemoryWritePersistence.cpp">
+      <Filter>Tracking\MemWriteTracking</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MemoryTools.h">
@@ -246,6 +249,9 @@
       <Filter>Tracking\MemWriteTracking</Filter>
     </ClInclude>
     <ClInclude Include="MemoryWriteComparison.h">
+      <Filter>Tracking\MemWriteTracking</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryWritePersistence.h">
       <Filter>Tracking\MemWriteTracking</Filter>
     </ClInclude>
   </ItemGroup>

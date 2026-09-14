@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "MemoryWriteTracker.h"
+#include "MemoryWritePersistence.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -15,7 +16,43 @@ namespace DosBoxMemoryTools
         m_scanner(
             scanner
         )
-    {}
+    {
+        MemoryWritePersistence::Snapshot snapshotA;
+
+        if (MemoryWritePersistence::load(
+            "../settings/memory_write_a.bin",
+            snapshotA
+        ))
+        {
+            m_comparison.setA(
+                snapshotA.captures
+            );
+        }
+
+        m_rangeAStart =
+            snapshotA.rangeStart;
+
+        m_rangeAEnd =
+            snapshotA.rangeEnd;
+
+        MemoryWritePersistence::Snapshot snapshotB;
+
+        if (MemoryWritePersistence::load(
+            "..settings/memory_write_b.bin",
+            snapshotB
+        ))
+        {
+            m_comparison.setB(
+                snapshotB.captures
+            );
+
+            m_rangeBStart =
+                snapshotB.rangeStart;
+
+            m_rangeBEnd =
+                snapshotB.rangeEnd;
+        }
+    }
 
     void MemoryWriteTracker::draw(
         ScannerAddress& scannerAddress,
@@ -31,6 +68,24 @@ namespace DosBoxMemoryTools
             "Debug Instruction: 0x%zX",
             m_scanner.lastMemoryWriteInstruction()
         );
+
+        if (m_captureHit)
+        {
+            ImGui::Text(
+                "Selected: I 0x%zX  W 0x%zX  V 0x%02X",
+                m_capture.address,
+                m_capture.writeAddress,
+                static_cast<unsigned int>(
+                    m_capture.writeValue
+                    )
+            );
+        }
+        else
+        {
+            ImGui::TextUnformatted(
+                "Selected: none"
+            );
+        }
 
         ImGui::SameLine();
         if (m_recordButton.draw())
@@ -68,26 +123,104 @@ namespace DosBoxMemoryTools
             }
         }
 
+        ImGui::Columns(
+            2,
+            "MemoryWriteSetColumns",
+            true
+        );
+
+        // ----- A -----
+
         if (ImGui::Button("Set A"))
         {
             m_comparison.setA(
                 m_captures
             );
+
+            MemoryWritePersistence::Snapshot snapshotA;
+
+            snapshotA.rangeStart =
+                scannerRange.start;
+
+            snapshotA.rangeEnd =
+                scannerRange.end;
+
+            snapshotA.captures =
+                m_captures;
+
+            MemoryWritePersistence::save(
+                "settings/memory_write_a.bin",
+                snapshotA
+            );
+
+            m_rangeAStart =
+                snapshotA.rangeStart;
+
+            m_rangeAEnd =
+                snapshotA.rangeEnd;
         }
 
         ImGui::SameLine();
+
+        ImGui::Text(
+            "Range: 0x%zX - 0x%zX",
+            m_rangeAStart,
+            m_rangeAEnd
+        );
+
+        ImGui::Text(
+            "A: %zu",
+            m_comparison.a().size()
+        );
+
+        // ----- B -----
+
+        ImGui::NextColumn();
 
         if (ImGui::Button("Set B"))
         {
             m_comparison.setB(
                 m_captures
             );
+
+            MemoryWritePersistence::Snapshot snapshotB;
+
+            snapshotB.rangeStart =
+                scannerRange.start;
+
+            snapshotB.rangeEnd =
+                scannerRange.end;
+
+            snapshotB.captures =
+                m_captures;
+
+            MemoryWritePersistence::save(
+                "settings/memory_write_b.bin",
+                snapshotB
+            );
+
+            m_rangeBStart =
+                snapshotB.rangeStart;
+
+            m_rangeBEnd =
+                snapshotB.rangeEnd;
         }
 
+        ImGui::SameLine();
+
         ImGui::Text(
-            "A: %zu   B: %zu",
-            m_comparison.a().size(),
+            "Range: 0x%zX - 0x%zX",
+            m_rangeBStart,
+            m_rangeBEnd
+        );
+
+        ImGui::Text(
+            "B: %zu",
             m_comparison.b().size()
+        );
+
+        ImGui::Columns(
+            1
         );
 
         m_comparison.draw(

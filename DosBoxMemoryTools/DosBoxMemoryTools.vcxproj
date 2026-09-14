@@ -30,6 +30,7 @@
     <ClCompile Include="MemoryScannerTransitionTracking.cpp" />
     <ClCompile Include="MemoryScannerWriteWatch.cpp" />
     <ClCompile Include="MemoryWriteComparison.cpp" />
+    <ClCompile Include="MemoryWritePersistence.cpp" />
     <ClCompile Include="MemoryWriteTracker.cpp" />
     <ClCompile Include="Reader.cpp" />
     <ClCompile Include="MemoryReadTrackerWindow.cpp" />
@@ -72,6 +73,7 @@
     <ClInclude Include="MemoryTools.h" />
     <ClInclude Include="MemoryViewerWindow.h" />
     <ClInclude Include="MemoryWriteComparison.h" />
+    <ClInclude Include="MemoryWritePersistence.h" />
     <ClInclude Include="MemoryWriteTracker.h" />
     <ClInclude Include="ScannerAddress.h" />
     <ClInclude Include="ScannerControls.h" />
