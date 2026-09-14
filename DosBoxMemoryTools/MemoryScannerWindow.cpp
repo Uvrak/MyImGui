@@ -297,7 +297,9 @@ namespace DosBoxMemoryTools
 
             if (ImGui::Button("Refresh"))
             {
-                m_scanner.refreshValues();
+                m_scanner.refreshValues(
+                    m_valueType
+                );
                 refreshPinnedDisplayValues();
             }
 
@@ -890,12 +892,13 @@ namespace DosBoxMemoryTools
                                     index
                                 ];
 
-                            uint8_t previousValue = 0;
-                            uint8_t currentValue = 0;
+                            uint32_t previousValue = 0;
+                            uint32_t currentValue = 0;
 
                             const bool hasPreviousValue =
                                 m_scanner.readPreviousValue(
                                     address,
+                                    m_valueType,
                                     previousValue
                                 );
 
@@ -1157,13 +1160,14 @@ namespace DosBoxMemoryTools
 
                             ImGui::TableSetColumnIndex(2);
 
-                            uint8_t liveCurrentValue =
+                            uint32_t liveCurrentValue =
                                 currentValue;
 
                             if (liveView)
                             {
                                 m_scanner.readCurrentValue(
                                     address,
+                                    m_valueType,
                                     liveCurrentValue
                                 );
                             }
@@ -1207,10 +1211,11 @@ namespace DosBoxMemoryTools
                                     index - pinnedOnlyCount
                                 ];
 
-                            uint8_t currentValue = 0;
+                            uint32_t currentValue = 0;
 
                             m_scanner.readCurrentValue(
                                 address,
+                                m_valueType,
                                 currentValue
                             );
 
@@ -1591,13 +1596,14 @@ namespace DosBoxMemoryTools
 
                         ImGui::TableSetColumnIndex(2);
 
-                        uint8_t displayedCurrentValue =
+                        uint32_t displayedCurrentValue =
                             candidate.currentValue;
 
                         if (liveView)
                         {
                             m_scanner.readCurrentValue(
                                 candidate.address,
+                                m_valueType,
                                 displayedCurrentValue
                             );
                         }
@@ -1645,29 +1651,29 @@ namespace DosBoxMemoryTools
                 ImGuiWindowFlags_AlwaysAutoResize
             ))
             {
-                ImGui::InputInt(
+                ImGui::InputScalar(
                     "Value",
-                    &m_writeValue
+                    ImGuiDataType_U32,
+                    &m_writeValue,
+                    nullptr,
+                    nullptr,
+                    "%X",
+                    ImGuiInputTextFlags_CharsHexadecimal
                 );
-
-                if (m_writeValue < 0)
-                {
-                    m_writeValue = 0;
-                }
 
                 switch (m_valueType)
                 {
                 case MemoryValueType::Byte:
-                    if (m_writeValue > 0xFF)
+                    if (m_writeValue > 0xFFu)
                     {
-                        m_writeValue = 0xFF;
+                        m_writeValue = 0xFFu;
                     }
                     break;
 
                 case MemoryValueType::Short:
-                    if (m_writeValue > 0xFFFF)
+                    if (m_writeValue > 0xFFFFu)
                     {
-                        m_writeValue = 0xFFFF;
+                        m_writeValue = 0xFFFFu;
                     }
                     break;
 
@@ -1693,18 +1699,22 @@ namespace DosBoxMemoryTools
 
                     if (m_scanner.writeValue(
                         m_writeAddress,
-                        static_cast<uint32_t>(
-                            m_writeValue
-                            ),
+                        static_cast<uint32_t>(m_writeValue),
                         m_valueType
                     ))
-
-                    if (m_dosBoxView != nullptr)
                     {
-                        m_dosBoxView->requestRefresh();
-                    }
+                        m_scanner.refreshValues(
+                            m_valueType
+                        );
+                        refreshPinnedDisplayValues();
 
-                    ImGui::CloseCurrentPopup();
+                        if (m_dosBoxView != nullptr)
+                        {
+                            m_dosBoxView->requestRefresh();
+                        }
+
+                        ImGui::CloseCurrentPopup();
+                    }
                 }
                 ImGui::EndPopup();
             }
@@ -2135,10 +2145,11 @@ namespace DosBoxMemoryTools
         for (size_t address :
         m_pinnedAddresses)
         {
-            uint8_t value = 0;
+            uint32_t value = 0;
 
             if (m_scanner.readCurrentValue(
                 address,
+                m_valueType,
                 value
             ))
             {

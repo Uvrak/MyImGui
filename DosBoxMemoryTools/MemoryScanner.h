@@ -39,7 +39,8 @@ namespace DosBoxMemoryTools
 
         bool readPreviousValue(
             size_t address,
-            uint8_t& value
+            MemoryValueType valueType,
+            uint32_t& value
         ) const;
 
         bool setReadTraceInstructionLimit(
@@ -69,6 +70,12 @@ namespace DosBoxMemoryTools
         bool readCurrentValue(
             size_t address,
             uint8_t& value
+        ) const;
+
+        bool readCurrentValue(
+            size_t address,
+            MemoryValueType valueType,
+            uint32_t& value
         ) const;
 
         bool refreshMemory();
@@ -228,7 +235,9 @@ namespace DosBoxMemoryTools
             const std::vector<size_t>& addresses
         );
 
-        void refreshValues();
+        void refreshValues(
+            MemoryValueType valueType
+        );
 
         void setScanRange(
             size_t startAddress,

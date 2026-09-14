@@ -518,20 +518,71 @@ namespace DosBoxMemoryTools
 
     bool MemoryScanner::readPreviousValue(
         size_t address,
-        uint8_t& value
+        MemoryValueType valueType,
+        uint32_t& value
     ) const
     {
-        if (address >= m_previousMemory.size())
+        switch (valueType)
         {
-            return false;
+        case MemoryValueType::Byte:
+            if (address >= m_previousMemory.size())
+            {
+                return false;
+            }
+
+            value =
+                m_previousMemory[address];
+            return true;
+
+        case MemoryValueType::Short:
+            if (address + 1 >= m_previousMemory.size())
+            {
+                return false;
+            }
+
+            value =
+                static_cast<uint32_t>(
+                    m_previousMemory[address]
+                    ) |
+                (
+                    static_cast<uint32_t>(
+                        m_previousMemory[address + 1]
+                        ) << 8
+                    );
+
+            return true;
+
+        case MemoryValueType::Int:
+            if (address + 3 >= m_previousMemory.size())
+            {
+                return false;
+            }
+
+            value =
+                static_cast<uint32_t>(
+                    m_previousMemory[address]
+                    ) |
+                (
+                    static_cast<uint32_t>(
+                        m_previousMemory[address + 1]
+                        ) << 8
+                    ) |
+                (
+                    static_cast<uint32_t>(
+                        m_previousMemory[address + 2]
+                        ) << 16
+                    ) |
+                (
+                    static_cast<uint32_t>(
+                        m_previousMemory[address + 3]
+                        ) << 24
+                    );
+
+            return true;
         }
 
-        value =
-            m_previousMemory[address];
-
-        return true;
+        return false;
     }
-
     const std::vector<
         MemoryCandidate
     >& MemoryScanner::
@@ -590,6 +641,56 @@ namespace DosBoxMemoryTools
         value = memory[address];
 
         return true;
+    }
+
+    bool MemoryScanner::readCurrentValue(
+        size_t address,
+        MemoryValueType valueType,
+        uint32_t& value
+    ) const
+    {
+        const std::vector<uint8_t>& memory =
+            m_memoryReader.memory();
+
+        switch (valueType)
+        {
+        case MemoryValueType::Byte:
+            if (address >= memory.size())
+            {
+                return false;
+            }
+
+            value = memory[address];
+            return true;
+
+        case MemoryValueType::Short:
+            if (address + 1 >= memory.size())
+            {
+                return false;
+            }
+
+            value =
+                static_cast<uint32_t>(memory[address]) |
+                (static_cast<uint32_t>(memory[address + 1]) << 8);
+
+            return true;
+
+        case MemoryValueType::Int:
+            if (address + 3 >= memory.size())
+            {
+                return false;
+            }
+
+            value =
+                static_cast<uint32_t>(memory[address]) |
+                (static_cast<uint32_t>(memory[address + 1]) << 8) |
+                (static_cast<uint32_t>(memory[address + 2]) << 16) |
+                (static_cast<uint32_t>(memory[address + 3]) << 24);
+
+            return true;
+        }
+
+        return false;
     }
 
     bool MemoryScanner::refreshMemory()
@@ -714,7 +815,9 @@ namespace DosBoxMemoryTools
             );
     }
 
-    void MemoryScanner::refreshValues()
+    void MemoryScanner::refreshValues(
+        MemoryValueType valueType
+    )
     {
         for (MemoryCandidate& candidate :
             m_candidates)
@@ -734,13 +837,53 @@ namespace DosBoxMemoryTools
         for (MemoryCandidate& candidate :
             m_candidates)
         {
-            if (candidate.address <
-                memory.size())
+            switch (valueType)
             {
+            case MemoryValueType::Byte:
+                if (candidate.address >= memory.size())
+                {
+                    continue;
+                }
+
                 candidate.currentValue =
-                    memory[
-                        candidate.address
-                    ];
+                    memory[candidate.address];
+                break;
+
+            case MemoryValueType::Short:
+                if (candidate.address + 1 >= memory.size())
+                {
+                    continue;
+                }
+
+                candidate.currentValue =
+                    static_cast<uint32_t>(
+                        memory[candidate.address]
+                        ) |
+                    (static_cast<uint32_t>(
+                        memory[candidate.address + 1]
+                        ) << 8);
+                break;
+
+            case MemoryValueType::Int:
+                if (candidate.address + 3 >= memory.size())
+                {
+                    continue;
+                }
+
+                candidate.currentValue =
+                    static_cast<uint32_t>(
+                        memory[candidate.address]
+                        ) |
+                    (static_cast<uint32_t>(
+                        memory[candidate.address + 1]
+                        ) << 8) |
+                    (static_cast<uint32_t>(
+                        memory[candidate.address + 2]
+                        ) << 16) |
+                    (static_cast<uint32_t>(
+                        memory[candidate.address + 3]
+                        ) << 24);
+                break;
             }
         }
     }

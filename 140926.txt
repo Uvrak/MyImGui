@@ -1,0 +1,136 @@
+MM3 – Mauszeiger-Suche
+Stand: 14.09.2026
+
+ZIEL
+
+Den von Might and Magic III selbst gezeichneten Mauszeiger finden und gezielt deaktivieren.
+
+Die Maussteuerung soll weiterhin über GridBuilderHost/DOSBox-X funktionieren. Gesucht wird deshalb nicht einfach eine Möglichkeit, die gesamte DOSBox-Maus abzuschalten, sondern die MM3-Routine bzw. die Speicheroperationen, die den Spielcursor zeichnen oder seinen Zustand verwalten.
+
+
+BISHERIGER AUSGANGSPUNKT
+
+Die physische Speicheradresse 0x30418 war zunächst auffällig.
+
+Das Verändern dieses Bytes konnte den Mauszeiger an einer ganz bestimmten Stelle im Spiel unsichtbar machen. Es stellte sich aber heraus, dass 0x30418 kein einfacher Cursor-An/Aus-Schalter ist.
+
+Der Wert hängt vom Spielzustand ab. Beispielsweise wurde am Brunnen auch der Wert 44 beobachtet.
+
+Damit war klar:
+Nicht weiter blind 0x30418 manipulieren, sondern herausfinden, welche CPU-Instruktionen relevante Speicherstellen beim Cursorwechsel beschreiben.
+
+
+MEMORY WRITE TRACKING
+
+Dafür wurde der Memory Scanner / Memory Write Tracker weiter ausgebaut.
+
+Ziel:
+Eine physische Speicheradresse als Ziel setzen und erfassen, welche DOSBox-emulierten CPU-Instruktionen auf diese Adresse schreiben.
+
+Dabei wurden Execution Tracking und Memory Write Tracking miteinander verbunden.
+
+Der Tracker kann jetzt Schreibzugriffe auf eine Zieladresse erfassen und die dazugehörigen Ausführungen untersuchen.
+
+
+GLOBALE ZIELADRESSE
+
+Die Zieladresse wurde vereinheitlicht, damit Scanner und Tracking nicht mit voneinander unabhängigen Adresswerten arbeiten.
+
+Die Adresse kann im Memory Scanner ausgewählt bzw. eingetragen und für das Tracking verwendet werden.
+
+Dabei wurden auch Probleme mit der Adresseingabe behoben.
+
+
+WRITE-VALUE / BYTE-SHORT-PROBLEM
+
+Bei den Arbeiten am Memory Scanner fiel auf, dass Werte teilweise weiterhin als Byte behandelt wurden.
+
+Beispiel:
+
+0x1AF = 431 dezimal
+
+Der angezeigte Wert wurde aber zu:
+
+0xAF = 175 dezimal
+
+Das zeigte, dass an mehreren Stellen weiterhin nur das Low Byte gelesen bzw. angezeigt wurde.
+
+Der eigentliche WRITE-IPC unterstützt inzwischen unterschiedliche Größen:
+
+Byte  = 1 Byte
+Short = 2 Byte
+Int   = 4 Byte
+
+Für Short wird also ein 16-Bit-Wert geschrieben.
+
+Der Scanner wurde deshalb weiter auf MemoryValueType umgestellt.
+
+readCurrentValue() kann jetzt abhängig vom Typ Byte, Short oder Int lesen.
+
+Auch refreshValues() wurde auf MemoryValueType umgestellt, damit Short-Werte nicht mehr auf das untere Byte reduziert werden.
+
+Die Current-/Pinned-/Live-Anzeige wurde entsprechend von uint8_t auf uint32_t umgestellt bzw. auf die typabhängige readCurrentValue()-Funktion umgeleitet.
+
+Auch readPreviousValue() wurde um eine typabhängige Variante erweitert.
+
+Der Code baut nach diesen Änderungen wieder erfolgreich.
+
+
+WICHTIGSTE BEOBACHTUNG BEI DER CURSOR-SUCHE
+
+Es wurden zwei Zustände miteinander verglichen:
+
+1. Mauszeiger sichtbar
+2. Mauszeiger unsichtbar
+
+Dabei zeigte sich ein deutlicher Unterschied:
+
+Bei sichtbarem Mauszeiger finden wesentlich mehr Memory Writes statt als bei unsichtbarem Mauszeiger.
+
+Bestimmte Writes treten mehrfach auf; bei einer Untersuchung erschien derselbe relevante Vorgang viermal.
+
+Das ist momentan unsere wichtigste Spur.
+
+Die deutlich höhere Anzahl an Writes bei sichtbarem Cursor spricht dafür, dass darunter Speicheroperationen der Cursor-Zeichenroutine sein könnten.
+
+Das passt zu der Vermutung, dass MM3 beim sichtbaren Cursor regelmäßig Bilddaten sichert, verändert oder wiederherstellt.
+
+
+ARBEITSHYPOTHESE
+
+Der MM3-Cursor wird wahrscheinlich nicht einfach über ein einzelnes Boolean-/Statusbyte ein- und ausgeschaltet.
+
+Stattdessen suchen wir eine Routine, die beim sichtbaren Cursor zusätzliche Speicheroperationen ausführt.
+
+Diese könnten beispielsweise:
+
+- Cursorpixel in den Bildspeicher schreiben,
+- den Hintergrund unter dem Cursor sichern,
+- den vorherigen Cursorbereich wiederherstellen,
+- oder Cursor-/Maskendaten kopieren.
+
+Deshalb ist der Vergleich der tatsächlich ausgeführten Writes aussichtsreicher als die Suche nach einem einzelnen Cursorwert.
+
+
+NÄCHSTER SCHRITT
+
+Nicht wieder wahllos Speicheradressen verändern.
+
+Stattdessen:
+
+Sichtbarer Cursor und unsichtbarer Cursor werden mit identischen Bedingungen aufgenommen.
+
+Dann werden die Memory Writes beider Zustände miteinander verglichen.
+
+Besonders interessant sind:
+
+- Writes, die nur beim sichtbaren Cursor vorkommen,
+- Writes, die beim sichtbaren Cursor wesentlich häufiger vorkommen,
+- wiederholt auftretende identische Schreibinstruktionen,
+- und die CPU-Instruktionen unmittelbar vor diesen Writes.
+
+Von einer solchen Schreibinstruktion aus soll anschließend im Disassembly zurückverfolgt werden, aus welcher MM3-Routine sie aufgerufen wird.
+
+Das eigentliche Ziel ist nicht nur eine Speicheradresse, sondern die Cursor-Routine selbst.
+
+Wenn wir diese Routine eindeutig identifiziert haben, können wir untersuchen, wie sie sich gezielt unterdrücken lässt, ohne die restliche Maussteuerung oder das Spiel zu beschädigen.

@@ -123,7 +123,7 @@ namespace DosBoxMemoryTools
         bool m_descriptionsFirst = false;
 
         size_t m_writeAddress = 0;
-        int m_writeValue = 0;
+        uint32_t m_writeValue = 0;
         bool m_showWriteValuePopup = false;
 
         DosBoxX::View* m_dosBoxView = nullptr;
@@ -137,7 +137,7 @@ namespace DosBoxMemoryTools
         bool m_deleteOtherDifferenceCandidates = false;
         bool m_applyDifferenceDeleteRequested = false;
 
-        std::unordered_map<size_t, uint8_t>
+        std::unordered_map<size_t, uint32_t>
             m_pinnedDisplayValues;
 
         void refreshPinnedDisplayValues();
