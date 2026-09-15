@@ -1143,14 +1143,29 @@ namespace DosBoxMemoryTools
                                 ImGui::EndPopup();
                             }
                             ImGui::TableSetColumnIndex(1);
-
+                            
                             if (hasPreviousValue)
                             {
-                                ImGui::Text(
-                                    "%u",
+                                char valueText[32];
+
+                                std::snprintf(
+                                    valueText,
+                                    sizeof(valueText),
+                                    "0x%X",
                                     static_cast<unsigned int>(
                                         previousValue
                                         )
+                                );
+
+                                ImGui::SetCursorPosX(
+                                    ImGui::GetCursorPosX() +
+                                    ImGui::GetColumnWidth() -
+                                    ImGui::CalcTextSize(valueText).x -
+                                    ImGui::GetStyle().CellPadding.x * 2.0f
+                                );
+
+                                ImGui::TextUnformatted(
+                                    valueText
                                 );
                             }
                             else
@@ -1172,12 +1187,25 @@ namespace DosBoxMemoryTools
                                 );
                             }
 
-                            ImGui::Text(
-                                "%u",
+                            char currentText[32];
+
+                            std::snprintf(
+                                currentText,
+                                sizeof(currentText),
+                                "0x%X",
                                 static_cast<unsigned int>(
                                     liveCurrentValue
                                     )
                             );
+
+                            ImGui::SetCursorPosX(
+                                ImGui::GetCursorPosX() +
+                                ImGui::GetColumnWidth() -
+                                ImGui::CalcTextSize(currentText).x -
+                                ImGui::GetStyle().CellPadding.x * 2.0f
+                            );
+
+                            ImGui::TextUnformatted(currentText);
 
                             ImGui::TableSetColumnIndex(3);
 
@@ -1191,10 +1219,25 @@ namespace DosBoxMemoryTools
                                         previousValue
                                         );
 
-                                ImGui::Text(
-                                    "%d",
-                                    difference
+                                char differenceText[32];
+
+                                std::snprintf(
+                                    differenceText,
+                                    sizeof(differenceText),
+                                    "0x%X",
+                                    static_cast<unsigned int>(
+                                        difference
+                                        )
                                 );
+
+                                ImGui::SetCursorPosX(
+                                    ImGui::GetCursorPosX() +
+                                    ImGui::GetColumnWidth() -
+                                    ImGui::CalcTextSize(differenceText).x -
+                                    ImGui::GetStyle().CellPadding.x * 2.0f
+                                );
+
+                                ImGui::TextUnformatted(differenceText);
                             }
                             else
                             {
@@ -1269,7 +1312,7 @@ namespace DosBoxMemoryTools
                             ImGui::TableSetColumnIndex(2);
 
                             ImGui::Text(
-                                "%u",
+                                "0x%X",
                                 static_cast<unsigned int>(
                                     currentValue
                                     )
@@ -1588,7 +1631,7 @@ namespace DosBoxMemoryTools
                         ImGui::TableSetColumnIndex(1);
 
                         ImGui::Text(
-                            "%u",
+                            "0x%X",
                             static_cast<unsigned int>(
                                 candidate.previousValue
                                 )
@@ -1618,11 +1661,9 @@ namespace DosBoxMemoryTools
                         ImGui::TableSetColumnIndex(3);
 
                         ImGui::Text(
-                            "%d",
-                            static_cast<int>(
-                                candidate.currentValue
-                                ) -
-                            static_cast<int>(
+                            "0x%X",
+                            static_cast<unsigned int>(
+                                candidate.currentValue -
                                 candidate.previousValue
                                 )
                         );
