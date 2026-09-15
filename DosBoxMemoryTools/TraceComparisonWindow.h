@@ -197,6 +197,11 @@ namespace DosBoxMemoryTools
             const std::vector<TraceComparisonDisplayEntry>& displayEntries,
             bool scrollToSelected
         );
+        
+        void drawDirectTraceRows(
+            size_t count,
+            bool scrollToSelected
+        );
 
         void handleKeyboardNavigation(
             const ScannerAddress& scannerAddress
@@ -257,6 +262,12 @@ namespace DosBoxMemoryTools
         ) const;
 
         float m_traceScrollY = 0.0f;
+
+        std::vector<TraceComparisonDisplayEntry>
+            m_collapsedDisplayEntries;
+
+        bool
+            m_collapsedDisplayEntriesDirty = true;
     };
 
 }

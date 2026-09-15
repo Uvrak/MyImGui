@@ -207,48 +207,35 @@ void TraceComparisonWindow::draw(
 
 	const size_t count = (std::min)(m_traceA.size(), m_traceB.size());
 
-	std::vector<TraceComparisonDisplayEntry>
-		displayEntries;
-
-	if (m_collapseIdentical)
-	{
-		displayEntries =
-			TraceComparisonFilter::build(
-				m_traceA,
-				m_traceB
-			);
-	}
-	else
-	{
-		displayEntries.reserve(
-			count
-		);
-
-		for (size_t index = 0;
-			index < count;
-			++index)
-		{
-			TraceComparisonDisplayEntry entry{};
-
-			entry.indexA =
-				index;
-
-			entry.indexB =
-				index;
-
-			displayEntries.push_back(
-				entry
-			);
-		}
-	}
-
 	const bool scrollToSelected =
 		takeScrollToSelectedTrace();
 
-	drawTraceRows(
-		displayEntries,
-		scrollToSelected
-	);
+	if (m_collapseIdentical)
+	{
+		if (m_collapsedDisplayEntriesDirty)
+		{
+			m_collapsedDisplayEntries =
+				TraceComparisonFilter::build(
+					m_traceA,
+					m_traceB
+				);
+
+			m_collapsedDisplayEntriesDirty =
+				false;
+		}
+
+		drawTraceRows(
+			m_collapsedDisplayEntries,
+			scrollToSelected
+		);
+	}
+	else
+	{
+		drawDirectTraceRows(
+			count,
+			scrollToSelected
+		);
+	}
 
 	// close the outer TraceContentScroll child
 	ImGui::EndChild();
@@ -465,6 +452,94 @@ void TraceComparisonWindow::drawTraceRows(
 			}
 		}
 	}
+}
+
+void TraceComparisonWindow::drawDirectTraceRows(
+    size_t count,
+    bool scrollToSelected
+)
+{
+	static int lastDrawnRecords = 0;
+
+	ImGui::Text(
+		"Drawn records previous frame: %d",
+		lastDrawnRecords
+	);
+
+	int drawnRecords = 0;
+
+    ImGuiListClipper clipper;
+
+    clipper.Begin(
+        static_cast<int>(count)
+    );
+
+    if (scrollToSelected &&
+        m_selectedTraceIndex < count)
+    {
+        clipper.IncludeItemByIndex(
+            static_cast<int>(
+                m_selectedTraceIndex
+            )
+        );
+    }
+
+    while (clipper.Step())
+    {
+        for (int index = clipper.DisplayStart;
+            index < clipper.DisplayEnd;
+            ++index)
+        {
+			++drawnRecords;
+
+            const size_t traceIndex =
+                static_cast<size_t>(index);
+
+            ImGui::Columns(
+                2,
+                "TraceRow",
+                false
+            );
+
+			const TraceInstructionDifference difference{};
+
+            ImGui::PushID("A");
+
+            if (m_recordView.draw(
+                traceIndex,
+                m_traceA[traceIndex],
+                difference,
+                traceIndex == m_selectedTraceIndex
+            ))
+            {
+                setSelectedTraceIndex(
+                    traceIndex
+                );
+            }
+
+            ImGui::PopID();
+
+            ImGui::NextColumn();
+
+            ImGui::PushID("B");
+
+            m_recordView.draw(
+                traceIndex,
+                m_traceB[traceIndex],
+                difference,
+                traceIndex == m_selectedTraceIndexB
+            );
+
+            ImGui::PopID();
+
+            ImGui::Columns(1);
+        }
+    }
+
+    clipper.End();
+
+	lastDrawnRecords =
+		drawnRecords;
 }
 
 void TraceComparisonWindow::handleKeyboardNavigation(
@@ -898,6 +973,9 @@ bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::
 					setTraceB(std::move(trace));
 					setTraceBFilename(filename);
 				}
+
+				m_collapsedDisplayEntriesDirty =
+					true;
 
 				TraceComparisonPersistence::savePath(
 					comparisonPaths[

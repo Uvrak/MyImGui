@@ -297,3 +297,132 @@ Folgendes ist bereits bekannt und muss nicht erneut bewiesen werden:
 - Die Instruktion ist mov si,[si].
 - Beim dokumentierten Test wird daraus SI=0x1BC7.
 - Der Vorgang muss im Test mit Space ausgelöst werden.
+
+============================================================
+TRACE-ERGEBNISSE
+============================================================
+
+Der Trace-Tracker zeichnet die Instruktionen chronologisch auf:
+
+Record 1 = älteste erhaltene Instruktion
+letzter Record = Target-Instruktion
+
+WICHTIG:
+
+Die bei einem Trace-Record angezeigten Registerwerte entsprechen
+dem CPU-Zustand VOR Ausführung der angezeigten Instruktion.
+
+Damit lässt sich die Wirkung einer Instruktion bestimmen, indem
+die Registerwerte des aktuellen und des folgenden Records
+verglichen werden.
+
+
+============================================================
+MOV SI,[SI] – ZUSAMMENHÄNGENDE TRACES
+============================================================
+
+Für 0x9CFC9 / mov si,[si] liegen inzwischen zusammenhängende
+Traces aus unterschiedlichen MM3-Zuständen vor.
+
+Trace A:
+
+Vor 0x9CFC9:
+
+SI = 0x002A
+DS = 0x6A00
+
+Nächster Record bei 0x9CFCB:
+
+SI = 0x9DBE
+DS = 0x6A00
+
+Damit:
+
+DS:[002A] -> 9DBE
+
+
+Trace B:
+
+Vor 0x9CFC9:
+
+SI = 0x0076
+DS = 0x6173
+
+Nächster Record bei 0x9CFCB:
+
+SI = 0x1BC7
+DS = 0x6173
+
+Damit:
+
+DS:[0076] -> 1BC7
+
+
+WICHTIG:
+
+Diese Werte stammen jeweils aus derselben zusammenhängenden
+Ausführung. Sie sind deshalb belastbarer als frühere Vergleiche
+einzelner Exec-Captures aus verschiedenen Durchläufen.
+
+Die unterschiedlichen Zustände existieren bereits VOR
+0x9CFC9. 0x9CFC9 erzeugt den Unterschied also nicht selbst,
+sondern dereferenziert einen bereits zuvor ausgewählten
+Pointer/Offset.
+
+
+============================================================
+TRACE A/B VERGLEICH
+============================================================
+
+Für die weitere Untersuchung werden zwei Traces desselben
+Targets verwendet.
+
+Ziel:
+
+Rückwärts vor 0x9CFC9 verfolgen, an welcher Stelle sich die
+beiden Ausführungen erstmals relevant unterscheiden.
+
+Dabei besonders beobachten:
+
+- SI
+- DS
+- Instruktionsfluss
+- Speicher-/Pointerzugriffe
+- Verzweigungen, die zur unterschiedlichen Auswahl führen
+
+"Collapse identical" für die genaue Instruktionsanalyse
+deaktiviert lassen.
+
+
+============================================================
+NÄCHSTER SCHRITT
+============================================================
+
+Nicht direkt bei 0x9CFDA weitermachen.
+
+Stattdessen die vorhandenen A/B-Traces rückwärts untersuchen
+und feststellen, wo die Zustände auseinanderlaufen, die später
+zu
+
+SI 002A -> 9DBE
+
+bzw.
+
+SI 0076 -> 1BC7
+
+führen.
+
+Ziel ist die Instruktion bzw. Logik zu finden, welche die
+Cursor-Datenstruktur auswählt.
+
+Erst danach die ausgewählte Struktur bzw. Grafikverarbeitung
+weiterverfolgen.
+
+- Registerwerte eines Trace-Records gelten VOR dessen Instruktion.
+- 0x9CFC9 ist nicht die Stelle, an der die beiden untersuchten
+  Zustände entstehen; sie unterscheiden sich bereits davor.
+- Einzelne Exec-Captures aus verschiedenen Durchläufen dürfen
+  nicht als zusammenhängender Instruktionsablauf interpretiert
+  werden.
+- Die Trace-Reihenfolge ist chronologisch und darf beim Laden
+  nicht umgedreht werden.
