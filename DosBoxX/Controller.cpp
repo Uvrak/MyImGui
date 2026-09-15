@@ -112,6 +112,8 @@ namespace DosBoxX
         );
     }
 
+  
+
     bool Controller::sendDosKey(
         NamedPipeClient& pipeClient,
         const char* key
@@ -129,6 +131,8 @@ namespace DosBoxX
             return false;
         }
 
+        Sleep(10);
+
         std::string keyUp =
             "KEYUP:";
 
@@ -140,6 +144,8 @@ namespace DosBoxX
         {
             return false;
         }
+
+        Sleep(10);
 
         return true;
     }
@@ -287,11 +293,18 @@ namespace DosBoxX
             }
             else if (ch == ' ')
             {
-                sendDosKey(
+                Sleep(100);
+
+                if (!sendDosKey(
                     pipeClient,
                     "SPACE"
-                );
-            }
+                ))
+                {
+                    return false;
+                }
+
+                Sleep(100);
+}
             else if (ch == '"')
             {
                 pipeClient.send(

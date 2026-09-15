@@ -48,7 +48,7 @@ extern bool ignore_opcode_63;
 #endif
 
 #define LoadMb(off) tracked_readb(off)
-#define LoadMw(off) mem_readw_inline(off)
+#define LoadMw(off) tracked_readw(off)
 #define LoadMd(off) mem_readd_inline(off)
 #define LoadMq(off) (((uint64_t)mem_readd_inline(off+4)<<(uint64_t)32) | (uint64_t)mem_readd_inline(off))
 #define SaveMb(off,val)	mem_writeb_inline(off,val)
@@ -124,6 +124,26 @@ tracked_readb(
     );
 
     return mem_readb_inline(
+        address
+    );
+}
+
+static INLINE uint16_t
+tracked_readw(
+    const LinearPt address
+)
+{
+    MemoryReadTracker::record(
+        address,
+        core.instruction_start
+    );
+
+    MemoryReadTracker::record(
+        address + 1,
+        core.instruction_start
+    );
+
+    return mem_readw_inline(
         address
     );
 }
@@ -277,7 +297,11 @@ Bits CPU_Core_Normal_Run(void) {
             );
         }
 
+        const LinearPt memoryReadTarget =
+            MemoryReadTracker::memoryReadWatchTarget();
+
         if(MemoryReadTracker::readTraceActive() ||
+            memoryReadTarget != 0 ||
             (executionTarget != 0 &&
                 core.instruction_start == executionTarget))
         {

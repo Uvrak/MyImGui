@@ -1,0 +1,299 @@
+MM3 Cursor Research
+Stand: 15.09.2026
+
+ZIEL
+
+Herausfinden, wie Might and Magic III den Software-Mauszeiger
+verwaltet, auswählt und zeichnet, um ihn später gezielt
+deaktivieren bzw. durch die GridBuilderHost-Maussteuerung
+ersetzen zu können.
+
+
+============================================================
+BEKANNTE CURSOR-ADRESSE
+============================================================
+
+Lineare Speicheradresse:
+
+0x87652
+
+Bekanntes Verhalten:
+
+- Die Adresse beeinflusst den MM3-Cursor.
+- Sie enthält keinen einfachen An/Aus-Wert, sondern einen Pointer.
+- Wird ein gültiger Wert/Pointer eingetragen, ändert sich der Cursor.
+- Wird ein ungültiger Wert eingetragen, kann MM3 abstürzen.
+- Deshalb nicht blind beliebige Werte auf 0x87652 schreiben.
+
+
+============================================================
+MEMORY WRITE TRACKING
+============================================================
+
+MemWr auf:
+
+0x87652
+
+Ergebnis:
+
+NO HIT
+
+Damit wurde beim untersuchten Cursorwechsel bisher kein direkter
+Schreibzugriff auf 0x87652 gefunden.
+
+
+============================================================
+MEMORY READ TRACKING
+============================================================
+
+MemRd auf:
+
+0x87652
+
+Der Zugriff wird durch Space im Spiel ausgelöst.
+
+Ergebnis:
+
+HIT: 9B23:1D99
+Read Address: 0x87652
+
+Lineare Adresse der ausführenden Instruktion:
+
+0x9CFC9
+
+Instruktion:
+
+0x9CFC9    8B 34    mov si,[si]
+
+Damit ist bestätigt:
+
+Die Instruktion bei 0x9CFC9 liest tatsächlich das Word an der
+linearen Speicheradresse 0x87652.
+
+
+============================================================
+REGISTER VOR DEM READ
+============================================================
+
+Exec-Capture bei:
+
+0x9CFC9
+
+Register:
+
+AX=0076
+BX=0043
+CX=0008
+DX=0008
+
+SI=0076
+DI=0000
+BP=23B9
+SP=FF84
+
+DS=6173
+ES=8B6D
+SS=2053
+
+WICHTIG:
+
+DS=6173 darf hier NICHT einfach als Real-Mode-Adresse
+
+    0x6173 << 4
+
+interpretiert werden.
+
+DOSBox verwendet für den tatsächlichen Speicherzugriff die
+Segmentbasis (SegBase). Der MemRd-Hook misst die tatsächlich
+verwendete lineare Adresse.
+
+Diese wurde eindeutig als
+
+0x87652
+
+gemessen.
+
+
+============================================================
+ERGEBNIS DES READS
+============================================================
+
+Direkt nach
+
+0x9CFC9    mov si,[si]
+
+wurde ein Exec-Capture bei der nächsten Instruktion durchgeführt:
+
+0x9CFCB
+
+Register dort:
+
+AX=0076
+BX=0043
+CX=0008
+DX=0008
+
+SI=1BC7
+DI=0000
+BP=23B9
+SP=FF84
+
+DS=6173
+ES=8B6D
+SS=2053
+
+Damit:
+
+Vor mov si,[si]:
+
+SI = 0x0076
+
+Nach mov si,[si]:
+
+SI = 0x1BC7
+
+Folgerung:
+
+Beim untersuchten Vorgang enthält das Word an 0x87652 den Wert:
+
+0x1BC7
+
+Also:
+
+0x87652 -> 0x1BC7
+
+0x1BC7 wird anschließend als Pointer/Offset weiterverwendet.
+
+
+============================================================
+CODE NACH DEM READ
+============================================================
+
+Disassembly:
+
+0x9CFC9  8B 34           mov si,[si]
+0x9CFCB  E8 0C 00        call 0x9CFDA
+0x9CFCE  59              pop cx
+0x9CFCF  5B              pop bx
+0x9CFD0  5E              pop si
+0x9CFD1  46              inc si
+0x9CFD2  46              inc si
+0x9CFD3  8B 34           mov si,[si]
+0x9CFD5  0B F6           or si,si
+0x9CFD7  74 73           jz 0xD04C
+0x9CFD9  90              nop
+
+Aufgerufene Routine:
+
+0x9CFDA  AD              lodsw
+0x9CFDB  03 C8           add cx,ax
+0x9CFDD  8B D1           mov dx,cx
+0x9CFDF  46              inc si
+0x9CFE0  46              inc si
+0x9CFE1  AD              lodsw
+0x9CFE2  03 D8           add bx,ax
+0x9CFE4  D1 E3           shl bx,1
+0x9CFE6  AD              lodsw
+0x9CFE7  2E A3 64 0B     mov cs:[0x0B64],ax
+0x9CFEB  2B C9           sub cx,cx
+0x9CFED  90              nop
+0x9CFEE  AD              lodsw
+0x9CFEF  0B C0           or ax,ax
+0x9CFF1  74 4F           jz 0xD042
+0x9CFF3  81 FB 90 01     cmp bx,0x190
+0x9CFF7  73 47           jnb 0xD040
+0x9CFF9  8B EE           mov bp,si
+0x9CFFB  03 E8           add bp,ax
+0x9CFFD  2E 8B BF 9C 06  mov di,cs:[bx+0x69C]
+0x9D002  03 FA           add di,dx
+0x9D004  AD              lodsw
+0x9D005  03 F8           add di,ax
+0x9D007  90              nop
+0x9D008  3B F5           cmp si,bp
+0x9D00A  74 36           jz 0xD042
+0x9D00C  AC              lodsb
+0x9D00D  A8 80           test al,0x80
+0x9D00F  75 0D           jnz 0xD01E
+0x9D011  8A C8           mov cl,al
+0x9D013  41              inc cx
+0x9D014  D1 E9           shr cx,1
+0x9D016  F3 A5           rep movsw
+0x9D018  D1 D1           rcl cx,1
+0x9D01A  F3 A4           rep movsb
+
+Die Routine sieht nach Verarbeitung/Kopieren bzw.
+Dekomprimieren von Grafikdaten aus.
+
+
+============================================================
+MEMRD-TRACKER ERWEITERUNGEN
+============================================================
+
+Der MemRd-Tracker wurde erweitert, sodass neben der
+ausführenden Instruktionsadresse auch die tatsächliche
+lineare Read-Adresse gespeichert und über IPC übertragen wird.
+
+RuntimeInstruction besitzt dafür:
+
+readAddress
+
+Die MemRd-Anzeige zeigt jetzt beispielsweise:
+
+Target: 0x87652
+HIT: 9B23:1D99
+Address: 0x87652
+
+Damit können Instruktionsadresse und tatsächliche
+Speicheradresse eindeutig voneinander unterschieden werden.
+
+
+============================================================
+NÄCHSTER SCHRITT
+============================================================
+
+Pointer 0x1BC7 weiterverfolgen.
+
+Nächster Exec-Test:
+
+Target:
+
+0x9CFDA
+
+Ablauf:
+
+1. Exec auswählen.
+2. Target 0x9CFDA setzen.
+3. Record.
+4. In MM3 Space drücken.
+5. Register-Capture dokumentieren.
+
+Besonders wichtig:
+
+DS
+SI
+AX
+BX
+CX
+DX
+DI
+
+Ziel:
+
+Feststellen, wie die durch 0x87652 referenzierte Struktur ab
+SI=0x1BC7 verarbeitet wird und ob es sich dabei direkt um
+Cursor-Grafikdaten bzw. deren Beschreibung handelt.
+
+
+============================================================
+NICHT ERNEUT TESTEN
+============================================================
+
+Folgendes ist bereits bekannt und muss nicht erneut bewiesen werden:
+
+- 0x87652 beeinflusst den Cursor.
+- Ungültige Pointer an 0x87652 können MM3 abstürzen lassen.
+- 0x87652 wird gelesen.
+- Der Read erfolgt bei 0x9CFC9 / 9B23:1D99.
+- Die Instruktion ist mov si,[si].
+- Beim dokumentierten Test wird daraus SI=0x1BC7.
+- Der Vorgang muss im Test mit Space ausgelöst werden.

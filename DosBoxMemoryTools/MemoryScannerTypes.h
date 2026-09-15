@@ -65,6 +65,7 @@ namespace DosBoxMemoryTools
         std::array<uint8_t, 32>
             stackBytes{};
 
+        size_t readAddress = 0;
         uint8_t writeValue = 0;
     };
 

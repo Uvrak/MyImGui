@@ -81,7 +81,19 @@ namespace
         currentStackAddress = 0;
 
     std::atomic<LinearPt>
-    memoryWriteWatchStartAddress{ 0 };
+        memoryReadWatchTargetAddress{ 0 };
+
+    bool
+        hasMemoryReadWatchHit = false;
+
+    MemoryReadTracker::RuntimeInstruction
+        capturedMemoryReadInstruction{};
+
+    LinearPt
+        capturedMemoryReadAddress = 0;
+
+    std::atomic<LinearPt>
+        memoryWriteWatchStartAddress{ 0 };
 
 std::atomic<LinearPt>
     memoryWriteWatchEndAddress{ 0 };
@@ -185,6 +197,23 @@ void MemoryReadTracker::record(
     LinearPt address
 )
 {
+    const LinearPt watchTarget =
+        memoryReadWatchTargetAddress.load();
+
+    if(watchTarget != 0 &&
+        address == watchTarget &&
+        !hasMemoryReadWatchHit)
+    {
+        capturedMemoryReadInstruction =
+            currentRuntimeInstruction;
+
+        capturedMemoryReadAddress =
+            address;
+
+        hasMemoryReadWatchHit =
+            true;
+    }
+
     const bool tracking =
         trackingActive.load();
 
@@ -216,6 +245,23 @@ void MemoryReadTracker::record(
     LinearPt instructionAddress
 )
 {
+    const LinearPt watchTarget =
+        memoryReadWatchTargetAddress.load();
+
+    if(watchTarget != 0 &&
+        address == watchTarget &&
+        !hasMemoryReadWatchHit)
+    {
+        capturedMemoryReadInstruction =
+            currentRuntimeInstruction;
+
+        capturedMemoryReadAddress =
+            address;
+
+        hasMemoryReadWatchHit =
+            true;
+    }
+
     const bool tracking =
         trackingActive.load();
 
@@ -622,6 +668,9 @@ void MemoryReadTracker::recordInstruction(
     const LinearPt executionTarget =
         executionCaptureTargetAddress.load();
 
+    const LinearPt memoryReadTarget =
+        memoryReadWatchTargetAddress.load();
+
     const LinearPt memoryWriteStart =
         memoryWriteWatchStartAddress.load();
 
@@ -630,6 +679,7 @@ void MemoryReadTracker::recordInstruction(
 
     if(!tracking &&
         executionTarget == 0 &&
+        memoryReadTarget == 0 &&
         memoryWriteStart == 0 &&
         memoryWriteEnd == 0 &&
         !readTraceRunning)
@@ -1015,6 +1065,55 @@ MemoryReadTracker::executionCapture()
     );
 
     return capturedExecutionInstruction;
+}
+
+void MemoryReadTracker::setMemoryReadWatchTarget(
+    LinearPt address
+)
+{
+    memoryReadWatchTargetAddress.store(
+        address
+    );
+
+    capturedMemoryReadAddress =
+        0;
+
+    hasMemoryReadWatchHit =
+        false;
+}
+
+void MemoryReadTracker::clearMemoryReadWatch()
+{
+    memoryReadWatchTargetAddress.store(
+        0
+    );
+    
+    capturedMemoryReadAddress =
+        0;
+
+    hasMemoryReadWatchHit =
+        false;
+}
+
+MemoryReadTracker::RuntimeInstruction
+MemoryReadTracker::memoryReadWatchCapture()
+{
+    return capturedMemoryReadInstruction;
+}
+
+LinearPt MemoryReadTracker::memoryReadWatchCaptureAddress()
+{
+    return capturedMemoryReadAddress;
+}
+
+bool MemoryReadTracker::memoryReadWatchHit()
+{
+    return hasMemoryReadWatchHit;
+}
+
+LinearPt MemoryReadTracker::memoryReadWatchTarget()
+{
+    return memoryReadWatchTargetAddress.load();
 }
 
 void MemoryReadTracker::setMemoryWriteWatchTarget(

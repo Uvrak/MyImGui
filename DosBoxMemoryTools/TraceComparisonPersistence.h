@@ -1,19 +1,17 @@
 #pragma once
 
 #include <filesystem>
-#include "MemoryScanner.h"
+#include <string>
 
 namespace DosBoxMemoryTools::TraceComparisonPersistence
 {
-    enum class RestoreResult { Missing, Loaded, Invalid };
+    bool savePath(
+        const std::filesystem::path& path,
+        const std::string& sourceFilename
+    ) noexcept;
 
-    // Full snapshots, independent of the original Load A/B source files.
-    bool save(const std::filesystem::path& path,
-        const std::vector<RuntimeInstruction>& trace,
-        const std::string& sourceFilename) noexcept;
-
-    // Outputs are only replaced after the complete snapshot has been validated.
-    RestoreResult restore(const std::filesystem::path& path,
-        std::vector<RuntimeInstruction>& trace,
-        std::string& sourceFilename) noexcept;
+    bool loadPath(
+        const std::filesystem::path& path,
+        std::string& sourceFilename
+    ) noexcept;
 }

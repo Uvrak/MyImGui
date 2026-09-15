@@ -34,6 +34,14 @@ namespace DosBoxMemoryTools
 
 
     private:
+        friend class MemoryReadRecording;
+
+        friend class MemoryReadComparison;
+
+        friend class MemoryReadInstructionView;
+
+        friend class MemoryReadPersistence;
+
         MemoryScanner&
             m_scanner;
 

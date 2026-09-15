@@ -16,30 +16,64 @@ namespace DosBoxMemoryTools
 {
 namespace
 {
-	const std::filesystem::path comparisonSnapshots[] = {
-		"../settings/trace_comparison_A.snapshot",
-		"../settings/trace_comparison_B.snapshot"
+	const std::filesystem::path comparisonPaths[] = {
+	"../settings/trace_comparison_A.cfg",
+	"../settings/trace_comparison_B.cfg"
 	};
 }
 
 TraceComparisonWindow::TraceComparisonWindow()
 {
-	for (size_t slot = 0; slot < 2; ++slot)
+	for (size_t slot = 0;
+		slot < 2;
+		++slot)
 	{
 		std::string filename;
-		auto& trace = slot == 0 ? m_traceA : m_traceB;
-		const auto result = TraceComparisonPersistence::restore(comparisonSnapshots[slot], trace, filename);
-		if (result == TraceComparisonPersistence::RestoreResult::Loaded)
+
+		if (!TraceComparisonPersistence::loadPath(
+			comparisonPaths[slot],
+			filename
+		))
 		{
-			if (slot == 0)
-			{
-				setTraceAFilename(filename.c_str());
-				m_hasLoadedTraceA = true;
-			}
-			else setTraceBFilename(filename.c_str());
+			continue;
 		}
-		else if (result == TraceComparisonPersistence::RestoreResult::Invalid)
-			m_persistenceErrors[slot] = "Saved trace could not be restored (invalid or unreadable file).";
+
+		std::vector<RuntimeInstruction> trace;
+
+		if (!loadTraceFromFile(
+			filename,
+			trace
+		))
+		{
+			m_persistenceErrors[slot] =
+				"Last trace file could not be loaded.";
+
+			continue;
+		}
+
+		if (slot == 0)
+		{
+			setTraceA(
+				std::move(trace)
+			);
+
+			setTraceAFilename(
+				filename.c_str()
+			);
+
+			m_hasLoadedTraceA =
+				true;
+		}
+		else
+		{
+			setTraceB(
+				std::move(trace)
+			);
+
+			setTraceBFilename(
+				filename.c_str()
+			);
+		}
 	}
 
 	if (!m_traceA.empty() &&
@@ -837,7 +871,25 @@ bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::
 
 	bool TraceComparisonWindow::openAndSaveTrace(bool forA)
 	{
+		const auto& trace =
+			forA
+			? m_traceA
+			: m_traceB;
+
+		if (trace.empty())
+		{
+			return false;
+		}
+
 		char filename[4096] = {};
+
+		std::snprintf(
+			filename,
+			sizeof(filename),
+			"0x%zX__%zu.trace",
+			trace.front().address,
+			trace.size()
+		);
 
 		OPENFILENAMEA dialog{};
 		dialog.lStructSize = sizeof(dialog);
@@ -896,12 +948,12 @@ bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::
 					setTraceBFilename(filename);
 				}
 
-				const size_t slot = forA ? 0 : 1;
-				if (TraceComparisonPersistence::save(comparisonSnapshots[slot],
-					forA ? m_traceA : m_traceB, filename))
-					m_persistenceErrors[slot].clear();
-				else
-					m_persistenceErrors[slot] = "Trace loaded, but saving the snapshot failed. Previous snapshot retained.";
+				TraceComparisonPersistence::savePath(
+					comparisonPaths[
+						forA ? 0 : 1
+					],
+					filename
+				);
 
 				if (!m_traceA.empty() &&
 					!m_traceB.empty())

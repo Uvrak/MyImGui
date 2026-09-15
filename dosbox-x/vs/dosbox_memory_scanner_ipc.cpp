@@ -1288,6 +1288,132 @@ namespace
                                 stream.str();
                         }
                 }
+                else if(std::strncmp(
+                    buffer,
+                    "MEMORYREAD:TARGET:",
+                    std::strlen(
+                    "MEMORYREAD:TARGET:"
+                    )
+                    ) == 0)
+                    {
+                        const size_t address =
+                            static_cast<size_t>(
+                                std::strtoull(
+                                    buffer +
+                                    std::strlen(
+                                        "MEMORYREAD:TARGET:"
+                                    ),
+                                    nullptr,
+                                    10
+                                )
+                                );
+
+                        MemoryReadTracker::setMemoryReadWatchTarget(
+                            static_cast<LinearPt>(
+                                address
+                                )
+                        );
+
+                        response = "OK";
+                }
+
+                else if(std::strcmp(
+                    buffer,
+                    "MEMORYREAD:CLEAR"
+                    ) == 0)
+                    {
+                        MemoryReadTracker::clearMemoryReadWatch();
+
+                        response = "OK";
+                }
+
+                else if(std::strcmp(
+                    buffer,
+                    "MEMORYREAD:HIT"
+                    ) == 0)
+                    {
+                        response =
+                            MemoryReadTracker::memoryReadWatchHit()
+                            ? "1"
+                            : "0";
+                }
+
+                else if(std::strcmp(
+                    buffer,
+                    "MEMORYREAD:GET"
+                    ) == 0)
+                    {
+                        if(!MemoryReadTracker::
+                            memoryReadWatchHit())
+                        {
+                            response =
+                                "ERROR:NO_CAPTURE";
+                        }
+                        else
+                        {
+                            const auto instruction =
+                                MemoryReadTracker::
+                                memoryReadWatchCapture();
+
+                            const LinearPt readAddress =
+                                MemoryReadTracker::
+                                memoryReadWatchCaptureAddress();
+
+                            std::ostringstream stream;
+
+                            stream
+                                << instruction.address
+                                << ':'
+                                << readAddress
+                                << ':'
+                                << instruction.cs
+                                << ':'
+                                << instruction.ip
+                                << ':'
+                                << instruction.registers.ax
+                                << ':'
+                                << instruction.registers.bx
+                                << ':'
+                                << instruction.registers.cx
+                                << ':'
+                                << instruction.registers.dx
+                                << ':'
+                                << instruction.registers.si
+                                << ':'
+                                << instruction.registers.di
+                                << ':'
+                                << instruction.registers.bp
+                                << ':'
+                                << instruction.registers.sp
+                                << ':'
+                                << instruction.registers.ds
+                                << ':'
+                                << instruction.registers.es
+                                << ':'
+                                << instruction.registers.ss
+                                << ':';
+
+                            for(size_t byteIndex = 0;
+                                byteIndex < instruction.bytes.size();
+                                ++byteIndex)
+                            {
+                                if(byteIndex != 0)
+                                {
+                                    stream << '.';
+                                }
+
+                                stream
+                                    << static_cast<unsigned int>(
+                                        instruction.bytes[
+                                            byteIndex
+                                        ]
+                                        );
+                            }
+
+                            response =
+                                stream.str();
+                        }
+                }
 
                 else if(std::strncmp(
                     buffer,
@@ -1320,7 +1446,7 @@ namespace
                             );
 
                         response = "OK";
-                        }
+                }
 
                 else if(std::strncmp(
                     buffer,

@@ -23,10 +23,12 @@
     <ClCompile Include="ExecutionTracking.cpp" />
     <ClCompile Include="ExecutionTracking.h" />
     <ClCompile Include="MemoryPatternSearch.cpp" />
+    <ClCompile Include="MemoryReadTracker.cpp" />
     <ClCompile Include="MemoryScannerExecutionCapture.cpp" />
     <ClCompile Include="MemoryScannerPatternScan.cpp" />
     <ClCompile Include="MemoryScannerReadTrace.cpp" />
     <ClCompile Include="MemoryScannerReadTracking.cpp" />
+    <ClCompile Include="MemoryScannerReadWatch.cpp" />
     <ClCompile Include="MemoryScannerTransitionTracking.cpp" />
     <ClCompile Include="MemoryScannerWriteWatch.cpp" />
     <ClCompile Include="MemoryWriteComparison.cpp" />
@@ -70,6 +72,7 @@
     <ClInclude Include="DisassemblyWindow.h" />
     <ClInclude Include="MemoryPatternSearch.h" />
     <ClInclude Include="MemoryReader.h" />
+    <ClInclude Include="MemoryReadTracker.h" />
     <ClInclude Include="MemoryReadTrackerWindow.h" />
     <ClInclude Include="MemoryScanner.h" />
     <ClInclude Include="MemoryScannerPatternScan.h" />
@@ -259,5 +262,15 @@
     <ClInclude Include="DisassemblyToolbar.h" />
     <ClCompile Include="DisassemblyView.cpp" />
     <ClInclude Include="DisassemblyView.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryReadRecording.cpp" />
+    <ClInclude Include="MemoryReadRecording.h" />
+    <ClCompile Include="MemoryReadComparison.cpp" />
+    <ClInclude Include="MemoryReadComparison.h" />
+    <ClCompile Include="MemoryReadInstructionView.cpp" />
+    <ClInclude Include="MemoryReadInstructionView.h" />
+    <ClCompile Include="MemoryReadPersistence.cpp" />
+    <ClInclude Include="MemoryReadPersistence.h" />
   </ItemGroup>
 </Project>

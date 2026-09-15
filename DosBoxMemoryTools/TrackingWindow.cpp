@@ -15,8 +15,7 @@ namespace DosBoxMemoryTools
         m_scannerRange(scannerRange),
         m_gameId(gameId),
         m_traceTracking(
-            scanner,
-            gameId
+            scanner
         ),
         m_transitionTracking(
             scanner
@@ -24,6 +23,8 @@ namespace DosBoxMemoryTools
         m_executionTracking(
             scanner,
             scannerAddress
+        ), m_memoryReadTracker(
+            scanner
         ),
         m_memoryWriteTracker(
             scanner
@@ -95,6 +96,16 @@ namespace DosBoxMemoryTools
             }
 
             if (ImGui::BeginTabItem(
+                "MemRd"
+            ))
+            {
+                m_activeTab =
+                    TrackingTab::MemRd;
+
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem(
                 "MemWr"
             ))
             {
@@ -128,7 +139,9 @@ namespace DosBoxMemoryTools
             {
             case TrackingTab::Trace:
             {
-                m_traceTracking.draw();
+                m_traceTracking.draw(
+                    m_scannerAddress
+                );
 
                 if (m_traceTracking.takeCompletedTrace())
                 {
@@ -169,6 +182,13 @@ namespace DosBoxMemoryTools
                 m_executionTracking.draw();
                 break;
 
+            case TrackingTab::MemRd:
+                m_memoryReadTracker.draw(
+                    m_scannerAddress,
+                    m_scannerRange
+                );
+                break;
+
             case TrackingTab::MemWr:
                 m_memoryWriteTracker.draw(
                     m_scannerAddress,
@@ -186,7 +206,7 @@ namespace DosBoxMemoryTools
 
     void TrackingWindow::saveSession() const
     {
-        m_traceTracking.saveSession();
+        
     }
 
     void TrackingWindow::setGameId(
@@ -200,11 +220,6 @@ namespace DosBoxMemoryTools
 
         m_gameId =
             gameId;
-
-        m_traceTracking.setGameId(
-            gameId
-        );
-
     }
 }
 

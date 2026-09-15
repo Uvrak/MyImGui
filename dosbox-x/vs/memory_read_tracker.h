@@ -145,9 +145,23 @@ namespace MemoryReadTracker
 
     RuntimeInstruction executionCapture();
 
-    void setMemoryWriteWatchTarget(
+    void setMemoryReadWatchTarget(
         LinearPt address
     );
+
+    void clearMemoryReadWatch();
+
+    bool memoryReadWatchHit();
+
+    LinearPt memoryReadWatchTarget();
+
+    RuntimeInstruction
+        memoryReadWatchCapture();
+
+    LinearPt
+        memoryReadWatchCaptureAddress();
+
+    void setMemoryWriteWatchTarget(LinearPt address);
 
     void setMemoryWriteWatchRange(
         LinearPt startAddress,

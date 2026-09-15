@@ -4,37 +4,56 @@
 #include <cstdio>
 #include <fstream>
 #include <filesystem>
+#include <algorithm>
 
 #include "imgui.h"
 
 namespace DosBoxMemoryTools
 {
     TraceTracking::TraceTracking(
-        MemoryScanner& scanner,
-        const std::string& gameId
+        MemoryScanner& scanner
     )
         :
         m_scanner(
             scanner
-        ),
-        m_gameId(
-            gameId
         )
-    {
-        loadSession();
-    }
+    {}
 
-    TraceTracking::~TraceTracking()
+    void TraceTracking::draw(
+        ScannerAddress& scannerAddress
+    )
     {
-        saveSession();
-    }
+        drawRecorder(
+            scannerAddress
+        );
 
-    void TraceTracking::draw()
-    {
-        drawNavigation();
-        drawRecorder();
         updateCapture();
         continueLoadTrace();
+    }
+
+    const std::vector<RuntimeInstruction>&
+        TraceTracking::trace() const
+    {
+        return m_trace;
+    }
+
+    bool TraceTracking::targetDatasetA() const
+    {
+        return m_targetDataset ==
+            TargetDataset::A;
+    }
+
+    bool TraceTracking::takeCompletedTrace()
+    {
+        if (!m_traceCompleted)
+        {
+            return false;
+        }
+
+        m_traceCompleted =
+            false;
+
+        return true;
     }
 
     void TraceTracking::beginLoadTrace()
@@ -62,24 +81,6 @@ namespace DosBoxMemoryTools
 
         m_traceLoadPending =
             true;
-    }
-
-    void TraceTracking::setGameId(
-        const std::string& gameId
-    )
-    {
-        if (m_gameId ==
-            gameId)
-        {
-            return;
-        }
-
-        saveSession();
-
-        m_gameId =
-            gameId;
-
-        loadSession();
     }
 
     void TraceTracking::continueLoadTrace()
@@ -122,6 +123,11 @@ namespace DosBoxMemoryTools
         if (m_traceLoadIndex >=
             m_traceLoadCount)
         {
+            std::reverse(
+                m_trace.begin(),
+                m_trace.end()
+            );
+
             m_traceLoadPending =
                 false;
 
@@ -132,7 +138,9 @@ namespace DosBoxMemoryTools
         }
     }
 
-    void TraceTracking::drawRecorder()
+    void TraceTracking::drawRecorder(
+        ScannerAddress& scannerAddress
+    )
     {
         const bool recordChanged =
             m_recordButton.draw();
@@ -145,6 +153,17 @@ namespace DosBoxMemoryTools
             ? "true"
             : "false"
         );
+
+        if (m_traceLoadPending)
+        {
+            ImGui::SameLine();
+
+            ImGui::Text(
+                "Loaded: %zu / %zu",
+                m_traceLoadIndex,
+                m_traceLoadCount
+            );
+        }
 
         ImGui::SameLine();
 
@@ -254,17 +273,10 @@ namespace DosBoxMemoryTools
 
         if (m_recordButton.recording())
         {
-            char* end = nullptr;
+            const size_t targetAddress =
+                scannerAddress.value;
 
-            const unsigned long long targetAddress =
-                std::strtoull(
-                    m_targetText,
-                    &end,
-                    0
-                );
-
-            if (end != m_targetText &&
-                *end == '\0')
+            if (targetAddress != 0)
             {
                 m_trace.clear();
 
@@ -276,9 +288,7 @@ namespace DosBoxMemoryTools
                 );
 
                 m_scanner.setReadTraceTarget(
-                    static_cast<size_t>(
-                        targetAddress
-                        )
+                    targetAddress
                 );
             }
             else
@@ -292,8 +302,6 @@ namespace DosBoxMemoryTools
                 0
             );
         }
-
-
     }
 
     void TraceTracking::updateCapture()
@@ -342,141 +350,5 @@ namespace DosBoxMemoryTools
 
         m_traceWasArmedOrActive =
             false;
-    }
-
-    void TraceTracking::drawNavigation()
-    {
-        ImGui::SetNextItemWidth(
-            120.0f
-        );
-
-        ImGui::InputText(
-            "Target",
-            m_targetText,
-            sizeof(m_targetText)
-        );
-
-        if (ImGui::IsItemDeactivatedAfterEdit())
-        {
-            saveSession();
-        }
-    }
-
-    void TraceTracking::saveSession() const
-    {
-        if (m_gameId.empty())
-        {
-            return;
-        }
-
-        std::filesystem::create_directories(
-            "settings"
-        );
-
-        const std::string filename =
-            "../settings/execution_trace_session_" +
-            m_gameId +
-            ".cfg";
-
-        std::ofstream file(
-            filename
-        );
-
-        if (!file)
-        {
-            return;
-        }
-
-        file <<
-            "ExecutionTraceSession 1\n";
-
-        file <<
-            "Target\n";
-
-        file <<
-            m_targetText <<
-            '\n';
-        }
-
-    const std::vector<RuntimeInstruction>&
-        TraceTracking::trace() const
-    {
-        return m_trace;
-    }
-
-    bool TraceTracking::targetDatasetA() const
-    {
-        return m_targetDataset ==
-            TargetDataset::A;
-    }
-
-    bool TraceTracking::takeCompletedTrace()
-    {
-        if (!m_traceCompleted)
-        {
-            return false;
-        }
-
-        m_traceCompleted =
-            false;
-
-        return true;
-    }
-
-    void TraceTracking::loadSession()
-    {
-        if (m_gameId.empty())
-        {
-            return;
-        }
-
-        const std::string filename =
-            "../settings/execution_trace_session_" +
-            m_gameId +
-            ".cfg";
-
-        std::ifstream file(
-            filename
-        );
-
-        if (!file)
-        {
-            return;
-        }
-
-        std::string header;
-
-        std::getline(
-            file,
-            header
-        );
-
-        if (header !=
-            "ExecutionTraceSession 1")
-        {
-            return;
-        }
-
-        std::string section;
-
-        if (!(file >> section) ||
-            section != "Target")
-        {
-            return;
-        }
-
-        std::string target;
-
-        if (!(file >> target))
-        {
-            return;
-        }
-
-        strncpy_s(
-            m_targetText,
-            sizeof(m_targetText),
-            target.c_str(),
-            _TRUNCATE
-        );
     }
 }

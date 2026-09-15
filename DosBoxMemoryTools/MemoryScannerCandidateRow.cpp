@@ -133,6 +133,15 @@ namespace DosBoxMemoryTools
                 }
             }
 
+            if (ImGui::IsItemHovered() &&
+                ImGui::IsMouseDoubleClicked(
+                    ImGuiMouseButton_Left
+                ))
+            {
+                window.m_scannerAddress.value =
+                    address;
+            }
+
             const auto description =
                 window.m_pinnedDescriptions.find(
                     address

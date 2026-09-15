@@ -275,6 +275,20 @@ namespace DosBoxMemoryTools
             RuntimeInstruction& instruction
         );
 
+        bool setMemoryReadWatchTarget(
+            size_t address
+        );
+
+        bool clearMemoryReadWatch();
+
+        bool getMemoryReadWatchHit(
+            bool& hit
+        );
+
+        bool getMemoryReadWatchCapture(
+            RuntimeInstruction& capture
+        );
+
         size_t lastMemoryWriteTarget() const
         {
             return m_lastMemoryWriteTarget;

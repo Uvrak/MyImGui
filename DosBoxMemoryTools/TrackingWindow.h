@@ -9,6 +9,7 @@
 #include "ExecutionTracking.h"
 #include "ScannerAddress.h"
 #include "ScannerRange.h"
+#include "MemoryReadTracker.h"
 
 namespace DosBoxMemoryTools
 {
@@ -50,11 +51,15 @@ namespace DosBoxMemoryTools
             Trace,
             Trans,
             Exec,
+            MemRd,
             MemWr
         };
 
         TrackingTab m_activeTab =
             TrackingTab::Trace;
+
+        MemoryReadTracker
+            m_memoryReadTracker;
 
         MemoryWriteTracker
             m_memoryWriteTracker;

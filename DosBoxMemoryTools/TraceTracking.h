@@ -2,6 +2,7 @@
 
 #include "MemoryScanner.h"
 #include "RecordButton.h"
+#include "ScannerAddress.h"
 
 #include <string>
 #include <vector>
@@ -11,20 +12,13 @@ namespace DosBoxMemoryTools
     class TraceTracking
     {
     public:
-        TraceTracking(
-            MemoryScanner& scanner,
-            const std::string& gameId
+        explicit TraceTracking(
+            MemoryScanner& scanner
         );
 
-        ~TraceTracking();
-
-        void draw();
-
-        void setGameId(
-            const std::string& gameId
+        void draw(
+            ScannerAddress& scannerAddress
         );
-
-        void saveSession() const;
 
         const std::vector<RuntimeInstruction>&
             trace() const;
@@ -34,9 +28,9 @@ namespace DosBoxMemoryTools
         bool takeCompletedTrace();
 
     private:
-        void drawNavigation();
-
-        void drawRecorder();
+        void drawRecorder(
+            ScannerAddress& scannerAddress
+        );
 
         void updateCapture();
 
@@ -44,19 +38,11 @@ namespace DosBoxMemoryTools
 
         void continueLoadTrace();
 
-        void loadSession();
-
         MemoryScanner&
             m_scanner;
 
-        std::string
-            m_gameId;
-
         MyImGui::RecordButton
             m_recordButton;
-
-        char m_targetText[32] =
-            "0x31C33";
 
         std::vector<RuntimeInstruction>
             m_trace;

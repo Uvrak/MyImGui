@@ -480,30 +480,32 @@ namespace DosBoxMemoryTools
                     );
                 }
 
-                char captureText[128];
-
-                std::snprintf(
-                    captureText,
-                    sizeof(captureText),
-                    "%zu  I: 0x%zX  W: 0x%zX  V: 0x%02X",
-                    index,
-                    m_captures[index].address,
-                    m_captures[index].writeAddress,
-                    static_cast<unsigned int>(
-                        m_captures[index].writeValue
-                        )
+                ImGui::Text(
+                    "%zu",
+                    index
                 );
 
-                ImGui::PushID(
-                    static_cast<int>(
-                        index
-                        )
+                ImGui::SameLine();
+
+                char instructionText[64];
+
+                std::snprintf(
+                    instructionText,
+                    sizeof(instructionText),
+                    "I: 0x%zX",
+                    m_captures[index].address
                 );
 
                 ImGui::Selectable(
-                    captureText,
+                    instructionText,
                     false,
-                    ImGuiSelectableFlags_AllowDoubleClick
+                    ImGuiSelectableFlags_AllowDoubleClick,
+                    ImVec2(
+                        ImGui::CalcTextSize(
+                            instructionText
+                        ).x,
+                        0.0f
+                    )
                 );
 
                 if (ImGui::IsItemClicked(
@@ -522,15 +524,61 @@ namespace DosBoxMemoryTools
                         ImGuiMouseButton_Left
                     ))
                 {
-                    if (ImGui::IsItemHovered() &&
-                        ImGui::IsMouseDoubleClicked(
-                            ImGuiMouseButton_Left
-                        ))
-                    {
-                        scannerAddress.value =
-                            m_captures[index].address;
-                    }
+                    scannerAddress.value =
+                        m_captures[index].address;
                 }
+
+                ImGui::SameLine();
+
+                char writeText[64];
+
+                std::snprintf(
+                    writeText,
+                    sizeof(writeText),
+                    "W: 0x%zX",
+                    m_captures[index].writeAddress
+                );
+
+                ImGui::Selectable(
+                    writeText,
+                    false,
+                    ImGuiSelectableFlags_AllowDoubleClick,
+                    ImVec2(
+                        ImGui::CalcTextSize(
+                            writeText
+                        ).x,
+                        0.0f
+                    )
+                );
+
+                if (ImGui::IsItemClicked(
+                    ImGuiMouseButton_Left
+                ))
+                {
+                    m_capture =
+                        m_captures[index];
+
+                    m_captureHit =
+                        true;
+                }
+
+                if (ImGui::IsItemHovered() &&
+                    ImGui::IsMouseDoubleClicked(
+                        ImGuiMouseButton_Left
+                    ))
+                {
+                    scannerAddress.value =
+                        m_captures[index].writeAddress;
+                }
+
+                ImGui::SameLine();
+
+                ImGui::Text(
+                    "V: 0x%02X",
+                    static_cast<unsigned int>(
+                        m_captures[index].writeValue
+                        )
+                );
 
                 ImGui::PopID();
 

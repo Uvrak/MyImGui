@@ -2,6 +2,7 @@
 #include "ScannerControls.h"
 
 #include <cstdlib>
+#include <cstdio>
 
 #include "imgui.h"
 
@@ -21,15 +22,6 @@ namespace DosBoxMemoryTools
         static char rangeEndText[32] =
             "0x0";
 
-        address.value =
-            static_cast<size_t>(
-                std::strtoull(
-                    addressText,
-                    nullptr,
-                    0
-                )
-                );
-
         range.start =
             static_cast<size_t>(
                 std::strtoull(
@@ -48,11 +40,31 @@ namespace DosBoxMemoryTools
                 )
                 );
 
-        ImGui::InputText(
+        if (!ImGui::IsAnyItemActive())
+        {
+            std::snprintf(
+                addressText,
+                sizeof(addressText),
+                "0x%zX",
+                address.value
+            );
+        }
+
+        if (ImGui::InputText(
             "Address",
             addressText,
             sizeof(addressText)
-        );
+        ))
+        {
+            address.value =
+                static_cast<size_t>(
+                    std::strtoull(
+                        addressText,
+                        nullptr,
+                        0
+                    )
+                    );
+        }
 
         ImGui::Checkbox(
             "Limit Range",
