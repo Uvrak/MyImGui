@@ -260,4 +260,14 @@
     <ClCompile Include="DisassemblyView.cpp" />
     <ClInclude Include="DisassemblyView.h" />
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryReadRecording.cpp" />
+    <ClInclude Include="MemoryReadRecording.h" />
+    <ClCompile Include="MemoryReadComparison.cpp" />
+    <ClInclude Include="MemoryReadComparison.h" />
+    <ClCompile Include="MemoryReadInstructionView.cpp" />
+    <ClInclude Include="MemoryReadInstructionView.h" />
+    <ClCompile Include="MemoryReadPersistence.cpp" />
+    <ClInclude Include="MemoryReadPersistence.h" />
+  </ItemGroup>
 </Project>

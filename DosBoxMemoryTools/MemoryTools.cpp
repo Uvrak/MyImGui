@@ -42,6 +42,11 @@ namespace DosBoxMemoryTools
         )
     {}
 
+    bool MemoryTools::refreshMemory()
+    {
+        return m_scannerWindow.refreshMemory();
+    }
+
     void MemoryTools::draw()
     {
         if (!m_initialRefreshDone)
