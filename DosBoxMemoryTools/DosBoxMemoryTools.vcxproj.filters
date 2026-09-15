@@ -287,4 +287,44 @@
       <Filter>Dissasembly</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryScannerToolbar.cpp">
+      <Filter>Scanner</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryScannerToolbar.h">
+      <Filter>Scanner</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryScannerWriteValuePopup.cpp">
+      <Filter>Scanner</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryScannerWriteValuePopup.h">
+      <Filter>Scanner</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryScannerCandidateTable.cpp">
+      <Filter>Scanner</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryScannerCandidateTable.h">
+      <Filter>Scanner</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryScannerCandidateRow.cpp">
+      <Filter>Scanner</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryScannerCandidateRow.h">
+      <Filter>Scanner</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryScannerAddressContextMenu.cpp">
+      <Filter>Scanner</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryScannerAddressContextMenu.h">
+      <Filter>Scanner</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

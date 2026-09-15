@@ -36,6 +36,11 @@
     <ClCompile Include="MemoryReadTrackerWindow.cpp" />
     <ClCompile Include="MemoryScanner.cpp" />
     <ClCompile Include="MemoryScannerWindow.cpp" />
+    <ClCompile Include="MemoryScannerAddressContextMenu.cpp" />
+    <ClCompile Include="MemoryScannerCandidateRow.cpp" />
+    <ClCompile Include="MemoryScannerCandidateTable.cpp" />
+    <ClCompile Include="MemoryScannerWriteValuePopup.cpp" />
+    <ClCompile Include="MemoryScannerToolbar.cpp" />
     <ClCompile Include="MemorySnapshot.cpp" />
     <ClCompile Include="MemoryTools.cpp" />
     <ClCompile Include="MemoryViewerWindow.cpp" />
@@ -69,6 +74,11 @@
     <ClInclude Include="MemoryScanner.h" />
     <ClInclude Include="MemoryScannerPatternScan.h" />
     <ClInclude Include="MemoryScannerWindow.h" />
+    <ClInclude Include="MemoryScannerAddressContextMenu.h" />
+    <ClInclude Include="MemoryScannerCandidateRow.h" />
+    <ClInclude Include="MemoryScannerCandidateTable.h" />
+    <ClInclude Include="MemoryScannerWriteValuePopup.h" />
+    <ClInclude Include="MemoryScannerToolbar.h" />
     <ClInclude Include="MemorySnapshot.h" />
     <ClInclude Include="MemoryTools.h" />
     <ClInclude Include="MemoryViewerWindow.h" />

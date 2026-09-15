@@ -53,6 +53,16 @@ namespace DosBoxMemoryTools
         MemoryScanner& scanner();
 
     private:
+        friend class MemoryScannerAddressContextMenu;
+
+        friend class MemoryScannerCandidateRow;
+
+        friend class MemoryScannerCandidateTable;
+
+        friend class MemoryScannerWriteValuePopup;
+
+        friend class MemoryScannerToolbar;
+
         MemoryScanner
             m_scanner;
 
