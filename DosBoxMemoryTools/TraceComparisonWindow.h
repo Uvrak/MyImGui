@@ -12,6 +12,7 @@
 #include "TraceComparisonToolbar.h"
 #include "TraceRecordView.h"
 #include "TraceDifferenceBaseline.h"
+#include "ScannerAddress.h"
 
 namespace DosBoxMemoryTools
 {
@@ -28,7 +29,9 @@ namespace DosBoxMemoryTools
 
         TraceComparisonWindow();
 
-        void draw();
+        void draw(
+            const ScannerAddress& scannerAddress
+        );
 
         void drawToolbar();
 
@@ -41,7 +44,8 @@ namespace DosBoxMemoryTools
         );
 
         bool openAndSaveTrace(
-            bool forA
+            bool forA,
+            const ScannerAddress& scannerAddress
         );
 
         static bool loadTraceFromFile(
@@ -194,7 +198,9 @@ namespace DosBoxMemoryTools
             bool scrollToSelected
         );
 
-        void handleKeyboardNavigation();
+        void handleKeyboardNavigation(
+            const ScannerAddress& scannerAddress
+        );
 
         void selectPreviousDifference();
         void selectNextDifference();

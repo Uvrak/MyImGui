@@ -4,7 +4,6 @@
 #include <cstdio>
 #include <fstream>
 #include <filesystem>
-#include <algorithm>
 
 #include "imgui.h"
 
@@ -123,11 +122,6 @@ namespace DosBoxMemoryTools
         if (m_traceLoadIndex >=
             m_traceLoadCount)
         {
-            std::reverse(
-                m_trace.begin(),
-                m_trace.end()
-            );
-
             m_traceLoadPending =
                 false;
 

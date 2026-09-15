@@ -83,7 +83,9 @@ TraceComparisonWindow::TraceComparisonWindow()
 	}
 }
 
-void TraceComparisonWindow::draw()
+void TraceComparisonWindow::draw(
+	const ScannerAddress& scannerAddress
+)
 {
 	// Toolbar component
 	// show filenames and counts; display each trace filepath on its own line
@@ -117,8 +119,23 @@ void TraceComparisonWindow::draw()
 		m_traceB.size()
 	);
 
-	// draw toolbar (callbacks wired in drawToolbar)
-	drawToolbar();
+	if (ImGui::Button("Save A"))
+	{
+		openAndSaveTrace(
+			true,
+			scannerAddress
+		);
+	}
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Save B"))
+	{
+		openAndSaveTrace(
+			false,
+			scannerAddress
+		);
+	}
 
 	ImGui::SameLine();
 	// Keyboard shortcuts
@@ -127,7 +144,9 @@ void TraceComparisonWindow::draw()
 	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F))
 		focusFilterRequested = true;
 
-	handleKeyboardNavigation();	
+	handleKeyboardNavigation(
+		scannerAddress
+	);
 
 	static char filter[256] = {};
 	if (focusFilterRequested)
@@ -448,7 +467,9 @@ void TraceComparisonWindow::drawTraceRows(
 	}
 }
 
-void TraceComparisonWindow::handleKeyboardNavigation()
+void TraceComparisonWindow::handleKeyboardNavigation(
+	const ScannerAddress& scannerAddress
+)
 {
 	if (ImGui::IsAnyItemActive())
 	{
@@ -484,7 +505,8 @@ void TraceComparisonWindow::handleKeyboardNavigation()
 		))
 	{
 		openAndSaveTrace(
-			!io.KeyShift
+			!io.KeyShift,
+			scannerAddress
 		);
 	}
 
@@ -685,80 +707,6 @@ void TraceComparisonWindow::selectNextDifference()
 	);
 }
 
-void TraceComparisonWindow::drawToolbar()
-{
-	m_toolbar.setSave(
-		[this]()
-		{
-			openAndSaveTrace(
-				m_selectedDatasetA
-			);
-		}
-	);
-
-	m_toolbar.setPrevDiff(
-		[this]()
-		{
-			selectPreviousDifference();
-		}
-	);
-
-	m_toolbar.setNextDiff(
-		[this]()
-		{
-			selectNextDifference();
-		}
-	);
-
-	m_toolbar.setFocusFilter(
-		[&]()
-		{
-			ImGui::SetKeyboardFocusHere();
-		}
-	);
-
-	m_toolbar.draw();
-
-	const std::vector<TraceAlignment> alignments =
-		TraceAligner::align(
-			m_traceA,
-			m_traceB
-		);
-
-	size_t divergenceCount = 0;
-
-	for (const TraceAlignment& alignment :
-		alignments)
-	{
-		if (!alignment.synchronized)
-		{
-			++divergenceCount;
-		}
-	}
-	ImGui::SameLine();
-
-	ImGui::Text(
-		"Desyncs: %zu",
-		divergenceCount
-	);
-
-	for (size_t slot = 0;
-		slot < 2;
-		++slot)
-	{
-		if (!m_persistenceErrors[slot].empty())
-		{
-			ImGui::TextWrapped(
-				"%s: %s",
-				slot == 0
-				? "A"
-				: "B",
-				m_persistenceErrors[slot].c_str()
-			);
-		}
-	}
-}
-
 bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::vector<RuntimeInstruction>& trace)
 	{
 		std::ifstream file(filename);
@@ -869,7 +817,10 @@ bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::
 		return true;
 	}
 
-	bool TraceComparisonWindow::openAndSaveTrace(bool forA)
+	bool TraceComparisonWindow::openAndSaveTrace(
+		bool forA,
+		const ScannerAddress& scannerAddress
+	)
 	{
 		const auto& trace =
 			forA
@@ -887,7 +838,7 @@ bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::
 			filename,
 			sizeof(filename),
 			"0x%zX__%zu.trace",
-			trace.front().address,
+			scannerAddress.value,
 			trace.size()
 		);
 

@@ -166,7 +166,9 @@ namespace DosBoxMemoryTools
                     m_traceTracking.targetDatasetA()
                 );
 
-                m_traceComparisonWindow.draw();
+                m_traceComparisonWindow.draw(
+                    m_scannerAddress
+                );
 
                 break;
             }
