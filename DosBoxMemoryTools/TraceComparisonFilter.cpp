@@ -27,20 +27,72 @@ namespace DosBoxMemoryTools
         for (const TraceAlignment& alignment :
             alignments)
         {
-            TraceComparisonDisplayEntry entry{};
+            if (alignment.synchronized)
+            {
+                TraceComparisonDisplayEntry entry{};
 
-            entry.indexA =
+                entry.indexA =
+                    alignment.indexA;
+
+                entry.indexB =
+                    alignment.indexB;
+
+                entry.hasA =
+                    true;
+
+                entry.hasB =
+                    true;
+
+                entry.synchronized =
+                    true;
+
+                entries.push_back(
+                    entry
+                );
+
+                continue;
+            }
+
+            size_t indexA =
                 alignment.indexA;
 
-            entry.indexB =
+            size_t indexB =
                 alignment.indexB;
 
-            entry.synchronized =
-                alignment.synchronized;
+            while (indexA < alignment.endIndexA ||
+                indexB < alignment.endIndexB)
+            {
+                TraceComparisonDisplayEntry entry{};
 
-            entries.push_back(
-                entry
-            );
+                entry.indexA =
+                    indexA;
+
+                entry.indexB =
+                    indexB;
+
+                entry.hasA =
+                    indexA < alignment.endIndexA;
+
+                entry.hasB =
+                    indexB < alignment.endIndexB;
+
+                entry.synchronized =
+                    false;
+
+                entries.push_back(
+                    entry
+                );
+
+                if (entry.hasA)
+                {
+                    ++indexA;
+                }
+
+                if (entry.hasB)
+                {
+                    ++indexB;
+                }
+            }
         }
 
         size_t nextIndexA = 0;

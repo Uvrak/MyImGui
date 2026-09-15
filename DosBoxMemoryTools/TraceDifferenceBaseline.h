@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <vector>
+#include <filesystem>
 
 namespace DosBoxMemoryTools
 {
@@ -12,6 +13,8 @@ namespace DosBoxMemoryTools
         size_t address = 0;
 
         TraceInstructionDifference difference;
+
+        bool controlFlow = false;
     };
 
     class TraceDifferenceBaseline
@@ -27,9 +30,21 @@ namespace DosBoxMemoryTools
             const TraceInstructionDifference& difference
         ) const;
 
+        bool containsControlFlow(
+            size_t address
+        ) const;
+
         void clear();
 
         size_t size() const;
+
+        bool save(
+            const std::filesystem::path& path
+        ) const;
+
+        bool load(
+            const std::filesystem::path& path
+        );
 
     private:
         std::vector<TraceDifferenceBaselineEntry>

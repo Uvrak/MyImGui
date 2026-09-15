@@ -20,6 +20,9 @@ namespace
 	"../settings/trace_comparison_A.cfg",
 	"../settings/trace_comparison_B.cfg"
 	};
+
+	const std::filesystem::path baselinePath =
+		"../settings/trace_difference_baseline.cfg";
 }
 
 TraceComparisonWindow::TraceComparisonWindow()
@@ -75,6 +78,10 @@ TraceComparisonWindow::TraceComparisonWindow()
 			);
 		}
 	}
+
+	m_differenceBaseline.load(
+		baselinePath
+	);
 
 	if (!m_traceA.empty() &&
 		!m_traceB.empty())
@@ -138,6 +145,20 @@ void TraceComparisonWindow::draw(
 	}
 
 	ImGui::SameLine();
+
+	if (ImGui::Button("Prev Diff"))
+	{
+		selectPreviousDifference();
+	}
+
+	ImGui::SameLine();
+
+	if (ImGui::Button("Next Diff"))
+	{
+		selectNextDifference();
+	}
+
+	ImGui::SameLine();
 	// Keyboard shortcuts
 	ImGuiIO& io = ImGui::GetIO();
 	bool focusFilterRequested = false;
@@ -171,6 +192,10 @@ void TraceComparisonWindow::draw(
 			m_traceA,
 			m_traceB
 		);
+
+		m_differenceBaseline.save(
+			baselinePath
+		);
 	}
 
 	ImGui::SameLine();
@@ -180,6 +205,10 @@ void TraceComparisonWindow::draw(
 	))
 	{
 		m_differenceBaseline.clear();
+
+		m_differenceBaseline.save(
+			baselinePath
+		);
 	}
 
 	ImGui::SameLine();
@@ -231,8 +260,20 @@ void TraceComparisonWindow::draw(
 	}
 	else
 	{
-		drawDirectTraceRows(
-			count,
+		if (m_collapsedDisplayEntriesDirty)
+		{
+			m_collapsedDisplayEntries =
+				TraceComparisonFilter::build(
+					m_traceA,
+					m_traceB
+				);
+
+			m_collapsedDisplayEntriesDirty =
+				false;
+		}
+
+		drawTraceRows(
+			m_collapsedDisplayEntries,
 			scrollToSelected
 		);
 	}
@@ -269,6 +310,19 @@ void TraceComparisonWindow::selectFirstDifference()
 				return compareInstructions(
 					instructionA,
 					instructionB
+				);
+			},
+			[this](
+				size_t address
+				)
+			{
+				if (!m_ignoreDifferenceBaseline)
+				{
+					return true;
+				}
+
+				return !m_differenceBaseline.containsControlFlow(
+					address
 				);
 			}
 		);
@@ -501,7 +555,11 @@ void TraceComparisonWindow::drawDirectTraceRows(
                 false
             );
 
-			const TraceInstructionDifference difference{};
+			const TraceInstructionDifference difference =
+				compareInstructions(
+					m_traceA[traceIndex],
+					m_traceB[traceIndex]
+				);
 
             ImGui::PushID("A");
 
@@ -681,6 +739,19 @@ void TraceComparisonWindow::selectPreviousDifference()
 					instructionA,
 					instructionB
 				);
+			},
+			[this](
+				size_t address
+				)
+			{
+				if (!m_ignoreDifferenceBaseline)
+				{
+					return true;
+				}
+
+				return !m_differenceBaseline.containsControlFlow(
+					address
+				);
 			}
 		);
 
@@ -750,6 +821,19 @@ void TraceComparisonWindow::selectNextDifference()
 				return compareInstructions(
 					instructionA,
 					instructionB
+				);
+			},
+			[this](
+				size_t address
+				)
+			{
+				if (!m_ignoreDifferenceBaseline)
+				{
+					return true;
+				}
+
+				return !m_differenceBaseline.containsControlFlow(
+					address
 				);
 			}
 		);

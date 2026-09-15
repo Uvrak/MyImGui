@@ -14,12 +14,20 @@ namespace DosBoxMemoryTools
             const std::vector<RuntimeInstruction>& traceA,
             const std::vector<RuntimeInstruction>& traceB,
             const TraceAlignment& alignment,
-            const TraceDifferenceNavigation::DifferenceComparer& comparer
+            const TraceDifferenceNavigation::DifferenceComparer& comparer,
+            const TraceDifferenceNavigation::ControlFlowComparer& controlFlowComparer
         )
         {
             if (!alignment.synchronized)
             {
-                return true;
+                if (alignment.indexA >= traceA.size())
+                {
+                    return false;
+                }
+
+                return controlFlowComparer(
+                    traceA[alignment.indexA].address
+                );
             }
 
             if (alignment.indexA >= traceA.size() ||
@@ -40,7 +48,8 @@ namespace DosBoxMemoryTools
         const std::vector<RuntimeInstruction>& traceB,
         const std::vector<TraceAlignment>& alignments,
         size_t selectedIndexA,
-        TraceDifferenceNavigation::DifferenceComparer comparer
+        TraceDifferenceNavigation::DifferenceComparer comparer,
+        ControlFlowComparer controlFlowComparer
     )
     {
         for (size_t alignmentIndex = 0;
@@ -59,7 +68,8 @@ namespace DosBoxMemoryTools
                 traceA,
                 traceB,
                 alignment,
-                comparer
+                comparer,
+                controlFlowComparer
             ))
             {
                 continue;
@@ -77,7 +87,8 @@ namespace DosBoxMemoryTools
                 traceA,
                 traceB,
                 previous,
-                comparer
+                comparer,
+                controlFlowComparer
             ))
             {
                 return alignment.indexA;
@@ -179,7 +190,8 @@ namespace DosBoxMemoryTools
         const std::vector<RuntimeInstruction>& traceB,
         const std::vector<TraceAlignment>& alignments,
         size_t selectedIndexA,
-        TraceDifferenceNavigation::DifferenceComparer comparer
+        TraceDifferenceNavigation::DifferenceComparer comparer,
+        ControlFlowComparer controlFlowComparer
     )
     {
         size_t result =
@@ -201,7 +213,8 @@ namespace DosBoxMemoryTools
                 traceA,
                 traceB,
                 alignment,
-                comparer
+                comparer,
+                controlFlowComparer
             ))
             {
                 continue;
@@ -223,8 +236,9 @@ namespace DosBoxMemoryTools
                 if (!isDifference(
                     traceA,
                     traceB,
-                    previous,
-                    comparer
+                    alignment,
+                    comparer,
+                    controlFlowComparer
                 ))
                 {
                     isDifferenceStart =

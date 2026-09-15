@@ -20,12 +20,18 @@ namespace DosBoxMemoryTools
                 const RuntimeInstruction&
             )>;
 
+        using ControlFlowComparer =
+            std::function<bool(
+                size_t address
+                )>;
+
         static size_t findNextDifference(
             const std::vector<RuntimeInstruction>& traceA,
             const std::vector<RuntimeInstruction>& traceB,
             const std::vector<TraceAlignment>& alignments,
             size_t selectedIndexA,
-            DifferenceComparer comparer
+            DifferenceComparer comparer,
+            ControlFlowComparer controlFlowComparer
         );
 
         static size_t findPreviousDifference(
@@ -33,7 +39,8 @@ namespace DosBoxMemoryTools
             const std::vector<RuntimeInstruction>& traceB,
             const std::vector<TraceAlignment>& alignments,
             size_t selectedIndexA,
-            DifferenceComparer comparer
+            DifferenceComparer comparer,
+            ControlFlowComparer controlFlowComparer
         );
     };
 }

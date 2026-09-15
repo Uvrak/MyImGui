@@ -1,7 +1,9 @@
 #include "pch.h"
 #include "TraceDifferenceBaseline.h"
+#include "TraceAlignment.h"
 
 #include <algorithm>
+#include <fstream>
 
 namespace DosBoxMemoryTools
 {
@@ -10,21 +12,73 @@ namespace DosBoxMemoryTools
         const std::vector<RuntimeInstruction>& traceB
     )
     {
-        const size_t count =
-            (std::min)(
-                traceA.size(),
-                traceB.size()
-                );
+        const std::vector<TraceAlignment> alignments =
+            TraceAligner::align(
+                traceA,
+                traceB
+            );
 
-        for (size_t index = 0;
-            index < count;
-            ++index)
+        for (const TraceAlignment& alignment :
+            alignments)
         {
+            if (!alignment.synchronized)
+            {
+                if (alignment.indexA >= traceA.size())
+                {
+                    continue;
+                }
+
+                const size_t address =
+                    traceA[alignment.indexA].address;
+
+                auto existing =
+                    std::find_if(
+                        m_entries.begin(),
+                        m_entries.end(),
+                        [address](
+                            const TraceDifferenceBaselineEntry& entry
+                            )
+                        {
+                            return entry.address ==
+                                address;
+                        }
+                    );
+
+                if (existing ==
+                    m_entries.end())
+                {
+                    TraceDifferenceBaselineEntry entry;
+
+                    entry.address =
+                        address;
+
+                    entry.controlFlow =
+                        true;
+
+                    m_entries.push_back(
+                        entry
+                    );
+                }
+                else
+                {
+                    existing->controlFlow =
+                        true;
+                }
+
+                continue;
+            }
+
+            if (alignment.indexA >= traceA.size() ||
+                alignment.indexB >= traceB.size())
+            {
+                continue;
+            }
+
             const RuntimeInstruction& instructionA =
-                traceA[index];
+                traceA[alignment.indexA];
 
             const RuntimeInstruction& instructionB =
-                traceB[index];
+                traceB[alignment.indexB];
 
             const TraceInstructionDifference difference =
                 compareTraceInstructions(
@@ -176,6 +230,27 @@ namespace DosBoxMemoryTools
         return result;
     }
 
+    bool TraceDifferenceBaseline::containsControlFlow(
+        size_t address
+    ) const
+    {
+        const auto existing =
+            std::find_if(
+                m_entries.begin(),
+                m_entries.end(),
+                [address](
+                    const TraceDifferenceBaselineEntry& entry
+                    )
+                {
+                    return entry.address ==
+                        address;
+                }
+            );
+
+        return existing != m_entries.end() &&
+            existing->controlFlow;
+    }
+
     void TraceDifferenceBaseline::clear()
     {
         m_entries.clear();
@@ -185,4 +260,121 @@ namespace DosBoxMemoryTools
     {
         return m_entries.size();
     }
-}
+
+    bool TraceDifferenceBaseline::save(
+        const std::filesystem::path& path
+    ) const
+    {
+        std::ofstream file(
+            path,
+            std::ios::trunc
+        );
+
+        if (!file)
+        {
+            return false;
+        }
+
+        file << "TraceDifferenceBaseline 1\n";
+        file << m_entries.size() << '\n';
+
+        for (const auto& entry : m_entries)
+        {
+            const auto& difference =
+                entry.difference;
+
+            file
+                << entry.address << ' '
+                << difference.address << ' '
+                << difference.ax << ' '
+                << difference.bx << ' '
+                << difference.cx << ' '
+                << difference.dx << ' '
+                << difference.si << ' '
+                << difference.di << ' '
+                << difference.bp << ' '
+                << difference.sp << ' '
+                << difference.ds << ' '
+                << difference.es << ' '
+                << difference.ss << '\n';
+        }
+
+        return file.good();
+    }
+
+    bool TraceDifferenceBaseline::load(
+        const std::filesystem::path& path
+    )
+    {
+        std::ifstream file(
+            path
+        );
+
+        if (!file)
+        {
+            return false;
+        }
+
+        std::string header;
+
+        std::getline(
+            file,
+            header
+        );
+
+        if (header !=
+            "TraceDifferenceBaseline 1")
+        {
+            return false;
+        }
+
+        size_t count = 0;
+
+        if (!(file >> count))
+        {
+            return false;
+        }
+
+        std::vector<TraceDifferenceBaselineEntry>
+            entries;
+
+        entries.reserve(
+            count
+        );
+
+        for (size_t index = 0;
+            index < count;
+            ++index)
+        {
+            TraceDifferenceBaselineEntry entry;
+
+            if (!(file
+                >> entry.address
+                >> entry.difference.address
+                >> entry.difference.ax
+                >> entry.difference.bx
+                >> entry.difference.cx
+                >> entry.difference.dx
+                >> entry.difference.si
+                >> entry.difference.di
+                >> entry.difference.bp
+                >> entry.difference.sp
+                >> entry.difference.ds
+                >> entry.difference.es
+                >> entry.difference.ss))
+            {
+                return false;
+            }
+
+            entries.push_back(
+                entry
+            );
+        }
+
+        m_entries =
+            std::move(entries);
+
+        return true;
+    }
+
+} // namespace DosBoxMemoryTools
