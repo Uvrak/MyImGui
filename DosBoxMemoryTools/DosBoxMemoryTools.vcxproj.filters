@@ -394,4 +394,30 @@
       <Filter>Tracking</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MemoryReadRecording.cpp">
+      <Filter>Tracking</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryReadRecording.h">
+      <Filter>Tracking</Filter>
+    </ClInclude>
+    <ClCompile Include="MemoryReadComparison.cpp">
+      <Filter>Tracking</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryReadComparison.h">
+      <Filter>Tracking</Filter>
+    </ClInclude>
+    <ClCompile Include="MemoryReadInstructionView.cpp">
+      <Filter>Tracking</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryReadInstructionView.h">
+      <Filter>Tracking</Filter>
+    </ClInclude>
+    <ClCompile Include="MemoryReadPersistence.cpp">
+      <Filter>Tracking</Filter>
+    </ClCompile>
+    <ClInclude Include="MemoryReadPersistence.h">
+      <Filter>Tracking</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
