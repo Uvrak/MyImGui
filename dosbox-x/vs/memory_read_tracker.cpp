@@ -66,6 +66,9 @@ namespace
     MemoryReadTracker::RuntimeInstruction
         capturedExecutionInstruction;
 
+    std::vector<MemoryReadTracker::RuntimeInstruction>
+        capturedExecutionHistory;
+
     struct MemoryWriteCapture
     {
         MemoryReadTracker::RuntimeInstruction
@@ -727,11 +730,25 @@ void MemoryReadTracker::recordInstruction(
         executionTarget &&
         !hasExecutionCapture)
     {
+        capturedExecutionHistory.assign(
+            recentInstructions.begin(),
+            recentInstructions.end()
+        );
         capturedExecutionInstruction =
             runtimeInstruction;
 
         hasExecutionCapture =
             true;
+    }
+
+    if(executionTarget != 0 &&
+        !hasExecutionCapture)
+    {
+        recentInstructions.push_back(runtimeInstruction);
+        while(recentInstructions.size() > instructionHistoryCount)
+        {
+            recentInstructions.pop_front();
+        }
     }
 
     if(readTraceRunning)
@@ -1018,6 +1035,9 @@ void MemoryReadTracker::setExecutionCaptureTarget(
     capturedExecutionInstruction =
         RuntimeInstruction{};
 
+    capturedExecutionHistory.clear();
+    recentInstructions.clear();
+
     hasExecutionCapture =
         false;
 
@@ -1039,6 +1059,9 @@ void MemoryReadTracker::clearExecutionCapture()
 
     capturedExecutionInstruction =
         RuntimeInstruction{};
+
+    capturedExecutionHistory.clear();
+    recentInstructions.clear();
 
     hasExecutionCapture =
         false;
@@ -1065,6 +1088,13 @@ MemoryReadTracker::executionCapture()
     );
 
     return capturedExecutionInstruction;
+}
+
+std::vector<MemoryReadTracker::RuntimeInstruction>
+MemoryReadTracker::executionCaptureHistory()
+{
+    std::lock_guard<std::mutex> lock(readAddressesMutex);
+    return capturedExecutionHistory;
 }
 
 void MemoryReadTracker::setMemoryReadWatchTarget(

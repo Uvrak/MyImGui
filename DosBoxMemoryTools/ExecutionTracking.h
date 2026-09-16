@@ -30,6 +30,9 @@ namespace DosBoxMemoryTools
         RuntimeInstruction
             m_executionCapture;
 
+        std::vector<RuntimeInstruction>
+            m_executionHistory;
+
         bool m_hasExecutionCapture =
             false;
 

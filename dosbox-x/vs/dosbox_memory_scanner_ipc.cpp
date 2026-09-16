@@ -1203,6 +1203,42 @@ namespace
 
                 else if(std::strcmp(
                     buffer,
+                    "EXECUTIONCAPTURE:HISTORY"
+                    ) == 0)
+                    {
+                        if(!MemoryReadTracker::executionCaptureHit())
+                        {
+                            response = "ERROR:NO_CAPTURE";
+                        }
+                        else
+                        {
+                            std::ostringstream stream;
+                            const auto history =
+                                MemoryReadTracker::executionCaptureHistory();
+                            for(const auto& instruction : history)
+                            {
+                                stream << instruction.address << ':'
+                                    << instruction.cs << ':' << instruction.ip;
+                                const auto& r = instruction.registers;
+                                stream << ':' << r.ax << ':' << r.bx
+                                    << ':' << r.cx << ':' << r.dx
+                                    << ':' << r.si << ':' << r.di
+                                    << ':' << r.bp << ':' << r.sp
+                                    << ':' << r.ds << ':' << r.es
+                                    << ':' << r.ss << ':';
+                                for(size_t i = 0; i < instruction.bytes.size(); ++i)
+                                {
+                                    if(i != 0) stream << '.';
+                                    stream << static_cast<unsigned int>(instruction.bytes[i]);
+                                }
+                                stream << '\n';
+                            }
+                            response = stream.str();
+                        }
+                    }
+
+                else if(std::strcmp(
+                    buffer,
                     "EXECUTIONCAPTURE:GET"
                     ) == 0)
                     {

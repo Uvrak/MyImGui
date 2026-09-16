@@ -44,7 +44,7 @@ namespace DosBoxX
                 1.0f
             );
         }
-        else if (m_inputActive)
+        else if (mouse.inputActive())
         {
             tabColor = ImVec4(
                 0.0f,
@@ -117,19 +117,10 @@ namespace DosBoxX
                 false
             ))
         {
-            m_inputActive =
-                !m_inputActive;
-
-            if (!m_inputActive)
-            {
-                ClipCursor(
-                    nullptr
-                );
-
-                NamedPipeClient.send(
-                    "RELEASE_ALL"
-                );
-            }
+            mouse.setInputActive(
+                NamedPipeClient,
+                !mouse.inputActive()
+            );
         }
 
         frameReader.tryOpen();
@@ -245,7 +236,7 @@ namespace DosBoxX
                     ImVec2 imageMin =
                         ImGui::GetItemRectMin();
 
-                    if (m_inputActive &&
+                    if (mouse.inputActive() &&
                         m_inputMode ==
                         DosBoxInputMode::Focused)
                     {
@@ -270,7 +261,7 @@ namespace DosBoxX
                         );
                     }
 
-                    if (m_inputActive &&
+                    if (mouse.inputActive() &&
                         dosBoxImageHovered)
                     {
                         mouse.update(
@@ -285,17 +276,13 @@ namespace DosBoxX
 
                     if (dosBoxImageClicked)
                     {
-                        m_inputActive = true;
+                        mouse.setInputActive(NamedPipeClient, true);
                     }
                     else if (ImGui::IsMouseClicked(
                         ImGuiMouseButton_Left
                     ))
                     {
-                        m_inputActive = false;
-
-                        NamedPipeClient.send(
-                            "RELEASE_ALL"
-                        );
+                        mouse.setInputActive(NamedPipeClient, false);
                     }
                 }
             }
@@ -307,7 +294,7 @@ namespace DosBoxX
             );
         }
         
-        if (m_inputActive ||
+        if (mouse.inputActive() ||
             m_inputMode ==
             DosBoxInputMode::AlwaysActive)
         {

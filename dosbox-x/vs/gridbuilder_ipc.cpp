@@ -25,6 +25,7 @@
 
 #include "gridbuilder_memory.h"
 #include "mightandmagic1.h"
+#include "mm3_cursor_patch.h"
 
 extern std::string RunningProgram;
 class DOS_Drive;
@@ -58,6 +59,29 @@ g_gridBuilderCommandMutex;
 
 static GridBuilderMemory
 g_gridBuilderMemory;
+
+static MM3CursorPatch g_mm3CursorPatch;
+static bool g_mm3CursorHidden = true;
+static std::chrono::steady_clock::time_point g_mm3CursorNextCheck{};
+static std::atomic<MM3CursorPatch::Status> g_mm3CursorStatus{MM3CursorPatch::Status::Inactive};
+static std::atomic<size_t> g_mm3CursorAddress{0};
+
+static void GRIDBUILDER_IPC_UpdateMM3Cursor()
+{
+    const auto now = std::chrono::steady_clock::now();
+    if (now < g_mm3CursorNextCheck)
+        return;
+    g_mm3CursorNextCheck = now + std::chrono::milliseconds(250);
+
+    // This runs between CPU slices. Use the normal memory write path so that
+    // translated code is invalidated as well if a dynamic CPU core is selected.
+    g_mm3CursorPatch.update(MemBase, MemSize, RunningProgram == "MM3",
+        g_mm3CursorHidden, [](size_t address, uint8_t value) {
+            mem_writeb(static_cast<LinearPt>(address), value);
+        });
+    g_mm3CursorAddress = g_mm3CursorPatch.address();
+    g_mm3CursorStatus = g_mm3CursorPatch.status();
+}
 
 static std::atomic<int>
 g_mightAndMagic1X{ 0 };
@@ -147,6 +171,7 @@ static void GRIDBUILDER_IPC_SetKey(
 
 void GRIDBUILDER_IPC_ProcessCommands()
 {
+    GRIDBUILDER_IPC_UpdateMM3Cursor();
     g_cDriveMounted = Drives[2] != nullptr;
     g_currentDrive = DOS_GetDefaultDrive();
 
@@ -262,6 +287,15 @@ void GRIDBUILDER_IPC_ProcessCommands()
 
         const char* text =
             command.c_str();
+
+        if (std::strcmp(text, "MM3_CURSOR:OFF") == 0 ||
+            std::strcmp(text, "MM3_CURSOR:ON") == 0)
+        {
+            g_mm3CursorHidden = std::strcmp(text, "MM3_CURSOR:OFF") == 0;
+            g_mm3CursorNextCheck = {};
+            GRIDBUILDER_IPC_UpdateMM3Cursor();
+            continue;
+        }
 
         if(std::strcmp(
             text,
@@ -1187,6 +1221,24 @@ static void GRIDBUILDER_IPC_Thread()
             }
 
             buffer[bytesRead] = '\0';
+
+            if (std::strcmp(buffer, "MM3_CURSOR:STATUS") == 0)
+            {
+                const char* state = "INACTIVE";
+                switch (g_mm3CursorStatus.load())
+                {
+                case MM3CursorPatch::Status::Searching: state = "SEARCHING"; break;
+                case MM3CursorPatch::Status::Ambiguous: state = "AMBIGUOUS"; break;
+                case MM3CursorPatch::Status::Visible: state = "VISIBLE"; break;
+                case MM3CursorPatch::Status::Hidden: state = "HIDDEN"; break;
+                default: break;
+                }
+                const std::string response = std::string(state) + ":" +
+                    std::to_string(g_mm3CursorAddress.load());
+                DWORD written = 0;
+                WriteFile(pipe, response.data(), static_cast<DWORD>(response.size()), &written, nullptr);
+                continue;
+            }
 
             if(std::strcmp(buffer, "MM3_DRIVE_STATUS") == 0)
             {

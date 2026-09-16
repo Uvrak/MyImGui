@@ -13,6 +13,52 @@
 
 namespace DosBoxX
 {
+    bool Mouse::inputActive() const
+    {
+        return m_inputActive;
+    }
+
+    void Mouse::setInputActive(
+        NamedPipeClient& namedPipeClient,
+        bool active
+    )
+    {
+        if (m_inputActive == active)
+            return;
+
+        m_inputActive = active;
+
+        if (!active)
+        {
+            ClipCursor(nullptr);
+            namedPipeClient.send("RELEASE_ALL");
+            m_lastX = -1;
+            m_lastY = -1;
+        }
+    }
+
+    void Mouse::move(
+        NamedPipeClient& namedPipeClient,
+        int x,
+        int y,
+        int contentWidth,
+        int contentHeight
+    )
+    {
+        if (!m_inputActive || contentWidth <= 1 || contentHeight <= 1 ||
+            (x == m_lastX && y == m_lastY))
+            return;
+
+        namedPipeClient.send(
+            "MOUSEMOVE:" + std::to_string(x) + ":" +
+            std::to_string(y) + ":" +
+            std::to_string(contentWidth) + ":" +
+            std::to_string(contentHeight)
+        );
+        m_lastX = x;
+        m_lastY = y;
+    }
+
     void Mouse::update(
         NamedPipeClient& NamedPipeClient,
         const DosBoxFrameHeader& frameHeader,

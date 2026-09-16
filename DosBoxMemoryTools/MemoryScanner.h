@@ -124,6 +124,10 @@ namespace DosBoxMemoryTools
             RuntimeInstruction& instruction
         );
 
+        bool getExecutionCaptureHistory(
+            std::vector<RuntimeInstruction>& history
+        );
+
         bool setReadTraceTarget(
             size_t address
         );

@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <utility>
+#include <stdexcept>
 
 namespace DosBoxMemoryTools
 {
@@ -405,6 +406,75 @@ namespace DosBoxMemoryTools
         m_status =
             "Execution capture loaded.";
 
+        return true;
+    }
+
+    bool MemoryScanner::getExecutionCaptureHistory(
+        std::vector<RuntimeInstruction>& history
+    )
+    {
+        std::string response;
+        if (!m_pipeClient.request("EXECUTIONCAPTURE:HISTORY", response) ||
+            response.rfind("ERROR", 0) == 0)
+        {
+            m_status = "Could not get execution capture history: " + response;
+            return false;
+        }
+
+        std::vector<RuntimeInstruction> result;
+        std::stringstream lines(response);
+        std::string line;
+        try
+        {
+            while (std::getline(lines, line))
+            {
+                std::vector<std::string> fields;
+                std::stringstream fieldStream(line);
+                std::string field;
+                while (std::getline(fieldStream, field, ':'))
+                    fields.push_back(field);
+                if (fields.size() != 15 || result.size() >= 16)
+                    throw std::runtime_error("Invalid history entry");
+
+                RuntimeInstruction entry;
+                entry.address = static_cast<size_t>(std::stoull(fields[0]));
+                entry.cs = static_cast<uint16_t>(std::stoul(fields[1]));
+                entry.ip = static_cast<uint16_t>(std::stoul(fields[2]));
+                auto& r = entry.registers;
+                r.ax = static_cast<uint16_t>(std::stoul(fields[3]));
+                r.bx = static_cast<uint16_t>(std::stoul(fields[4]));
+                r.cx = static_cast<uint16_t>(std::stoul(fields[5]));
+                r.dx = static_cast<uint16_t>(std::stoul(fields[6]));
+                r.si = static_cast<uint16_t>(std::stoul(fields[7]));
+                r.di = static_cast<uint16_t>(std::stoul(fields[8]));
+                r.bp = static_cast<uint16_t>(std::stoul(fields[9]));
+                r.sp = static_cast<uint16_t>(std::stoul(fields[10]));
+                r.ds = static_cast<uint16_t>(std::stoul(fields[11]));
+                r.es = static_cast<uint16_t>(std::stoul(fields[12]));
+                r.ss = static_cast<uint16_t>(std::stoul(fields[13]));
+
+                std::stringstream bytes(fields[14]);
+                std::string byte;
+                for (auto& value : entry.bytes)
+                {
+                    if (!std::getline(bytes, byte, '.'))
+                        throw std::runtime_error("Missing history byte");
+                    const auto parsed = std::stoul(byte);
+                    if (parsed > 255)
+                        throw std::runtime_error("Invalid history byte");
+                    value = static_cast<uint8_t>(parsed);
+                }
+                if (std::getline(bytes, byte, '.'))
+                    throw std::runtime_error("Extra history byte");
+                result.push_back(entry);
+            }
+        }
+        catch (...)
+        {
+            m_status = "Invalid execution capture history.";
+            return false;
+        }
+        history = std::move(result);
         return true;
     }
 

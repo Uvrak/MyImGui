@@ -3,6 +3,8 @@
 #include "imgui.h"
 
 #include <cstdlib>
+#include <cstdio>
+#include <string>
 
 namespace DosBoxMemoryTools
 {
@@ -33,6 +35,7 @@ namespace DosBoxMemoryTools
                 m_scanner.clearExecutionCapture();
 
                 m_hasExecutionCapture = false;
+                m_executionHistory.clear();
                 m_waitingForTrigger = true;
             }
             else
@@ -74,6 +77,7 @@ namespace DosBoxMemoryTools
                 m_executionCapture
             ))
             {
+                m_scanner.getExecutionCaptureHistory(m_executionHistory);
                 m_hasExecutionCapture =
                     true;
             }
@@ -101,6 +105,30 @@ namespace DosBoxMemoryTools
         if (m_hasExecutionCapture)
         {
             ImGui::Separator();
+
+            ImGui::Text("Previous instructions (%zu):", m_executionHistory.size());
+            for (const auto& instruction : m_executionHistory)
+            {
+                std::string bytes;
+                for (const auto byte : instruction.bytes)
+                {
+                    char text[4];
+                    std::snprintf(text, sizeof(text), "%02X ",
+                        static_cast<unsigned int>(byte));
+                    bytes += text;
+                }
+                const auto& r = instruction.registers;
+                ImGui::Text(
+                    "0x%zX  %04X:%04X  %s\n"
+                    "AX=%04X BX=%04X CX=%04X DX=%04X SI=%04X DI=%04X BP=%04X SP=%04X DS=%04X ES=%04X SS=%04X",
+                    instruction.address, instruction.cs, instruction.ip, bytes.c_str(),
+                    r.ax, r.bx, r.cx, r.dx, r.si, r.di, r.bp, r.sp,
+                    r.ds, r.es, r.ss
+                );
+            }
+
+            ImGui::Separator();
+            ImGui::TextUnformatted("Execution hit:");
 
             ImGui::Text(
                 "Address: 0x%zX",

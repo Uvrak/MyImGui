@@ -302,8 +302,7 @@ Bits CPU_Core_Normal_Run(void) {
 
         if(MemoryReadTracker::readTraceActive() ||
             memoryReadTarget != 0 ||
-            (executionTarget != 0 &&
-                core.instruction_start == executionTarget))
+            executionTarget != 0)
         {
             MemoryReadTracker::recordInstruction(
                 core.instruction_start,

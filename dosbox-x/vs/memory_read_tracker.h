@@ -145,6 +145,8 @@ namespace MemoryReadTracker
 
     RuntimeInstruction executionCapture();
 
+    std::vector<RuntimeInstruction> executionCaptureHistory();
+
     void setMemoryReadWatchTarget(
         LinearPt address
     );

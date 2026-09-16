@@ -30,6 +30,8 @@ namespace GridBuilderHost
         ID3D11ShaderResourceView* textureView =
             frameTexture.textureView();
 
+        bool mouseInsideImage = false;
+
         if (textureView != nullptr &&
             contentWidth > 0 &&
             contentHeight > 0)
@@ -99,11 +101,12 @@ const ImVec2 imageMax(
     imageMin.y + imageSize.y
 );
 
-const bool mouseInsideImage =
+mouseInsideImage =
     mousePos.x >= imageMin.x &&
     mousePos.x < imageMax.x &&
     mousePos.y >= imageMin.y &&
     mousePos.y < imageMax.y;
+
 
 if (mouseInsideImage)
 {
@@ -144,6 +147,19 @@ if (mouseInsideImage)
         ImGui::EndTooltip();
     }
 
+    if (!dosBoxMouse.inputActive())
+    {
+        dosBoxMouse.setInputActive(dosBoxPipeClient, true);
+    }
+
+    dosBoxMouse.move(
+        dosBoxPipeClient,
+        contentX,
+        contentY,
+        static_cast<int>(contentWidth),
+        static_cast<int>(contentHeight)
+    );
+
     if (ImGui::IsMouseClicked(
         ImGuiMouseButton_Left
     ))
@@ -163,6 +179,18 @@ if (mouseInsideImage)
 }
         }
 
+        if (!mouseInsideImage && dosBoxMouse.inputActive())
+        {
+            dosBoxMouse.setInputActive(
+                dosBoxPipeClient,
+                false
+            );
+        }
+
+        if (mouseInsideImage)
+        {
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        }
 
 
         ImGui::End();
