@@ -26,6 +26,9 @@ namespace DosBoxMemoryTools
         bool targetDatasetA() const;
 
         bool takeCompletedTrace();
+        bool traceLoadPending() const;
+        size_t traceLoadIndex() const;
+        size_t traceLoadCount() const;
 
     private:
         void drawRecorder(

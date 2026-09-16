@@ -11,6 +11,15 @@ namespace DosBoxMemoryTools
             state.traceAFilename()[0] ? state.traceAFilename() : "<not loaded>",
             state.traceACount());
 
+        if (state.traceLoadPending())
+        {
+            ImGui::Text(
+                "Loaded: %zu / %zu datasets",
+                state.traceLoadIndex(),
+                state.traceLoadCount()
+            );
+        }
+
         if (ImGui::Button("Load B")) callbacks.loadB();
         ImGui::SameLine();
         ImGui::Text("B: %s   Records: %zu",
@@ -35,7 +44,10 @@ namespace DosBoxMemoryTools
             "SI",
             "DI",
             "BP",
-            "SP"
+            "SP",
+            "DS", 
+            "ES", 
+            "SS"
         };
 
         int selectedRegister =
@@ -68,6 +80,13 @@ namespace DosBoxMemoryTools
         if (ImGui::Button("Next Register Diff"))
         {
             callbacks.nextRegisterDifference();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Prev Register Change"))
+        {
+            callbacks.previousRegisterChange();
         }
 
         ImGuiIO& io = ImGui::GetIO();

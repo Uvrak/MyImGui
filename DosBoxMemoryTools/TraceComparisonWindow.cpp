@@ -97,14 +97,19 @@ void TraceComparisonWindow::draw(
 {
 	m_toolbar.draw(
 		{
-			[this]() { return traceAFilename(); },
-			[this]() { return traceBFilename(); },
-			[this]() { return m_traceA.size(); },
-			[this]() { return m_traceB.size(); },
-			[this]() { return m_differenceBaseline.size(); },
-			m_collapseIdentical,
-			m_ignoreDifferenceBaseline,
-			m_selectedRegister
+	[this]() { return traceAFilename(); },
+	[this]() { return traceBFilename(); },
+	[this]() { return m_traceA.size(); },
+	[this]() { return m_traceB.size(); },
+
+	[this]() { return m_traceLoadPending; },
+	[this]() { return m_traceLoadIndex; },
+	[this]() { return m_traceLoadCount; },
+
+	[this]() { return m_differenceBaseline.size(); },
+	m_collapseIdentical,
+	m_ignoreDifferenceBaseline,
+	m_selectedRegister
 		},
 	{
 		[this]() { openAndLoadTrace(true); },
@@ -117,6 +122,7 @@ void TraceComparisonWindow::draw(
 
 		[this]() { selectPreviousRegisterDifference(); },
 		[this]() { selectNextRegisterDifference(); },
+		[this]() { selectPreviousRegisterChange(); },
 
 		[this, &scannerAddress]() { handleKeyboardNavigation(scannerAddress); },
 
@@ -239,11 +245,11 @@ void TraceComparisonWindow::selectFirstDifference()
 		);
 
 	const size_t firstDifference =
-		TraceDifferenceNavigation::findPreviousDifference(
+		TraceDifferenceNavigation::findNextDifference(
 			m_traceA,
 			m_traceB,
 			alignments,
-			m_traceA.size(),
+			0,
 			[this](
 				const RuntimeInstruction& instructionA,
 				const RuntimeInstruction& instructionB
@@ -833,6 +839,31 @@ void TraceComparisonWindow::selectNextDifference()
 	);
 }
 
+void TraceComparisonWindow::selectPreviousRegisterChange()
+{
+	if (m_traceA.empty() ||
+		m_selectedTraceIndex == static_cast<size_t>(-1))
+	{
+		return;
+	}
+
+	size_t resultIndex =
+		static_cast<size_t>(-1);
+
+	if (!TraceRegisterDivergenceFinder::findPreviousChange(
+		m_traceA,
+		m_selectedRegister,
+		m_selectedTraceIndex,
+		resultIndex
+	))
+	{
+		return;
+	}
+
+	setSelectedTraceIndex(resultIndex);
+	setScrollToSelectedTrace(true);
+}
+
 void TraceComparisonWindow::selectNextRegisterDifference()
 {
 	if (m_traceA.empty() ||
@@ -1152,6 +1183,17 @@ bool TraceComparisonWindow::loadTraceFromFile(const std::string& filename, std::
 		}
 
 		return false;
+	}
+
+	void TraceComparisonWindow::setTraceLoadProgress(
+		bool pending,
+		size_t index,
+		size_t count
+	)
+	{
+		m_traceLoadPending = pending;
+		m_traceLoadIndex = index;
+		m_traceLoadCount = count;
 	}
 
 }

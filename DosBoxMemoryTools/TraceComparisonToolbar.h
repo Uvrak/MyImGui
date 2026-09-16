@@ -17,6 +17,9 @@ namespace DosBoxMemoryTools
             std::function<const char*()> traceBFilename;
             std::function<size_t()> traceACount;
             std::function<size_t()> traceBCount;
+            std::function<bool()> traceLoadPending;
+            std::function<size_t()> traceLoadIndex;
+            std::function<size_t()> traceLoadCount;
             std::function<size_t()> baselineCount;
             bool& collapseIdentical;
             bool& ignoreBaseline;
@@ -33,6 +36,7 @@ namespace DosBoxMemoryTools
             Action nextDifference;
             Action previousRegisterDifference;
             Action nextRegisterDifference;
+            Action previousRegisterChange;
             Action keyboardNavigation;
             Action collapseChanged;
             Action addToBaseline;

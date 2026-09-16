@@ -55,6 +55,21 @@ namespace DosBoxMemoryTools
         return true;
     }
 
+    bool TraceTracking::traceLoadPending() const
+    {
+        return m_traceLoadPending;
+    }
+
+    size_t TraceTracking::traceLoadIndex() const
+    {
+        return m_traceLoadIndex;
+    }
+
+    size_t TraceTracking::traceLoadCount() const
+    {
+        return m_traceLoadCount;
+    }
+
     void TraceTracking::beginLoadTrace()
     {
         size_t count = 0;
@@ -138,26 +153,6 @@ namespace DosBoxMemoryTools
     {
         const bool recordChanged =
             m_recordButton.draw();
-
-        ImGui::SameLine();
-
-        ImGui::Text(
-            "recording=%s",
-            m_recordButton.recording()
-            ? "true"
-            : "false"
-        );
-
-        if (m_traceLoadPending)
-        {
-            ImGui::SameLine();
-
-            ImGui::Text(
-                "Loaded: %zu / %zu",
-                m_traceLoadIndex,
-                m_traceLoadCount
-            );
-        }
 
         ImGui::SameLine();
 

@@ -143,6 +143,12 @@ namespace DosBoxMemoryTools
                     m_scannerAddress
                 );
 
+                m_traceComparisonWindow.setTraceLoadProgress(
+                    m_traceTracking.traceLoadPending(),
+                    m_traceTracking.traceLoadIndex(),
+                    m_traceTracking.traceLoadCount()
+                );
+
                 if (m_traceTracking.takeCompletedTrace())
                 {
                     const auto& trace =

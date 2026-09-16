@@ -16,7 +16,10 @@ namespace DosBoxMemoryTools
         SI,
         DI,
         BP,
-        SP
+        SP,
+        DS,
+        ES,
+        SS
     };
 
     class TraceRegisterDivergenceFinder
@@ -42,6 +45,13 @@ namespace DosBoxMemoryTools
             size_t startIndexB,
             size_t& resultIndexA,
             size_t& resultIndexB
+        );
+
+        static bool findPreviousChange(
+            const std::vector<RuntimeInstruction>& trace,
+            TraceRegister traceRegister,
+            size_t startIndex,
+            size_t& resultIndex
         );
     };
 }

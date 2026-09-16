@@ -43,6 +43,12 @@ namespace DosBoxMemoryTools
             bool forA
         );
 
+        void setTraceLoadProgress(
+            bool pending,
+            size_t index,
+            size_t count
+        );
+
         bool openAndSaveTrace(
             bool forA,
             const ScannerAddress& scannerAddress
@@ -209,6 +215,7 @@ namespace DosBoxMemoryTools
 
         void selectPreviousDifference();
         void selectNextDifference();
+        void selectPreviousRegisterChange();
         void selectPreviousRegisterDifference();
         void selectNextRegisterDifference();
         void selectFirstDifference();
@@ -272,6 +279,10 @@ namespace DosBoxMemoryTools
 
         TraceRegister m_selectedRegister =
             TraceRegister::AX;
+
+        bool m_traceLoadPending = false;
+        size_t m_traceLoadIndex = 0;
+        size_t m_traceLoadCount = 0;
     };
 
 }

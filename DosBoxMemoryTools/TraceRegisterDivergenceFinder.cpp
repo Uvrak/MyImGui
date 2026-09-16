@@ -2,6 +2,7 @@
 #include "TraceRegisterDivergenceFinder.h"
 
 #include <cstdint>
+#include <algorithm>
 
 namespace DosBoxMemoryTools
 {
@@ -37,6 +38,15 @@ namespace DosBoxMemoryTools
 
             case TraceRegister::SP:
                 return instruction.registers.sp;
+
+            case TraceRegister::DS: 
+                return instruction.registers.ds;
+
+            case TraceRegister::ES:
+                return instruction.registers.es;
+
+            case TraceRegister::SS:
+                return instruction.registers.ss;
             }
 
             return 0;
@@ -159,5 +169,61 @@ namespace DosBoxMemoryTools
         }
 
         return found;
+    }
+   
+    bool TraceRegisterDivergenceFinder::findPreviousChange(
+        const std::vector<RuntimeInstruction>& trace,
+        TraceRegister traceRegister,
+        size_t startIndex,
+        size_t& resultIndex
+    )
+    {
+        if (trace.empty() ||
+            startIndex == 0)
+        {
+            return false;
+        }
+
+        size_t index =
+            (std::min)(startIndex, trace.size() - 1);
+
+        while (index > 0)
+        {
+            const uint16_t currentValue =
+                registerValue(
+                    trace[index],
+                    traceRegister
+                );
+
+            const uint16_t previousValue =
+                registerValue(
+                    trace[index - 1],
+                    traceRegister
+                );
+
+            if (currentValue != previousValue)
+            {
+                const uint16_t difference =
+                    static_cast<uint16_t>(
+                        currentValue - previousValue
+                        );
+
+                // Ignore automatic SI advancement caused by
+                // string-load instructions such as LODSB/LODSW.
+                if (traceRegister == TraceRegister::SI &&
+                    (difference == 1 || difference == 2))
+                {
+                    --index;
+                    continue;
+                }
+
+                resultIndex = index;
+                return true;
+            }
+
+            --index;
+        }
+
+        return false;
     }
 }
