@@ -15,19 +15,12 @@ namespace DosBoxMemoryTools
             const std::vector<RuntimeInstruction>& traceB,
             const TraceAlignment& alignment,
             const TraceDifferenceNavigation::DifferenceComparer& comparer,
-            const TraceDifferenceNavigation::ControlFlowComparer& controlFlowComparer
+            const TraceDifferenceNavigation::ControlFlowComparer&
         )
         {
             if (!alignment.synchronized)
             {
-                if (alignment.indexA >= traceA.size())
-                {
-                    return false;
-                }
-
-                return controlFlowComparer(
-                    alignment
-                );
+                return false;
             }
 
             if (alignment.indexA >= traceA.size() ||
@@ -236,7 +229,7 @@ namespace DosBoxMemoryTools
                 if (!isDifference(
                     traceA,
                     traceB,
-                    alignment,
+                    previous,
                     comparer,
                     controlFlowComparer
                 ))

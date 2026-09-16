@@ -86,16 +86,7 @@ namespace DosBoxMemoryTools
                 ++indexA;
                 ++indexB;
 
-                continue; struct TraceAlignment
-                {
-                    size_t indexA = 0;
-                    size_t indexB = 0;
-
-                    size_t endIndexA = 0;
-                    size_t endIndexB = 0;
-
-                    bool synchronized = true;
-                };
+                continue; 
             }
 
             size_t bestA =

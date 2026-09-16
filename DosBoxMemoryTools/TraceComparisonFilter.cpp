@@ -54,14 +54,9 @@ namespace DosBoxMemoryTools
                 continue;
             }
 
-            size_t indexA =
-                alignment.indexA;
-
-            size_t indexB =
-                alignment.indexB;
-
-            while (indexA < alignment.endIndexA ||
-                indexB < alignment.endIndexB)
+            for (size_t indexA = alignment.indexA;
+                indexA < alignment.endIndexA;
+                ++indexA)
             {
                 TraceComparisonDisplayEntry entry{};
 
@@ -69,13 +64,13 @@ namespace DosBoxMemoryTools
                     indexA;
 
                 entry.indexB =
-                    indexB;
+                    alignment.indexB;
 
                 entry.hasA =
-                    indexA < alignment.endIndexA;
+                    true;
 
                 entry.hasB =
-                    indexB < alignment.endIndexB;
+                    false;
 
                 entry.synchronized =
                     false;
@@ -83,16 +78,32 @@ namespace DosBoxMemoryTools
                 entries.push_back(
                     entry
                 );
+            }
 
-                if (entry.hasA)
-                {
-                    ++indexA;
-                }
+            for (size_t indexB = alignment.indexB;
+                indexB < alignment.endIndexB;
+                ++indexB)
+            {
+                TraceComparisonDisplayEntry entry{};
 
-                if (entry.hasB)
-                {
-                    ++indexB;
-                }
+                entry.indexA =
+                    alignment.indexA;
+
+                entry.indexB =
+                    indexB;
+
+                entry.hasA =
+                    false;
+
+                entry.hasB =
+                    true;
+
+                entry.synchronized =
+                    false;
+
+                entries.push_back(
+                    entry
+                );
             }
 
             if (!alignment.synchronized &&
