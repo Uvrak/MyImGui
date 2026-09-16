@@ -94,143 +94,29 @@ void TraceComparisonWindow::draw(
 	const ScannerAddress& scannerAddress
 )
 {
-	// Toolbar component
-	// show filenames and counts; display each trace filepath on its own line
-	if (ImGui::Button("Load A"))
-	{
-		openAndLoadTrace(true);
-	}
-
-	ImGui::SameLine();
-
-	ImGui::Text(
-		"A: %s   Records: %zu",
-		traceAFilename()[0]
-		? traceAFilename()
-		: "<not loaded>",
-		m_traceA.size()
+	m_toolbar.draw(
+		{ [this]() { return traceAFilename(); }, [this]() { return traceBFilename(); },
+		  [this]() { return m_traceA.size(); }, [this]() { return m_traceB.size(); },
+		  [this]() { return m_differenceBaseline.size(); }, m_collapseIdentical, m_ignoreDifferenceBaseline },
+		{
+			[this]() { openAndLoadTrace(true); },
+			[this]() { openAndLoadTrace(false); },
+			[this, &scannerAddress]() { openAndSaveTrace(true, scannerAddress); },
+			[this, &scannerAddress]() { openAndSaveTrace(false, scannerAddress); },
+			[this]() { selectPreviousDifference(); },
+			[this]() { selectNextDifference(); },
+			[this, &scannerAddress]() { handleKeyboardNavigation(scannerAddress); },
+			[this]() { m_scrollToSelectedTrace = true; },
+			[this]() {
+				m_differenceBaseline.add(m_traceA, m_traceB);
+				m_differenceBaseline.save(baselinePath);
+			},
+			[this]() {
+				m_differenceBaseline.clear();
+				m_differenceBaseline.save(baselinePath);
+			}
+		}
 	);
-
-	if (ImGui::Button("Load B"))
-	{
-		openAndLoadTrace(false);
-	}
-
-	ImGui::SameLine();
-
-	ImGui::Text(
-		"B: %s   Records: %zu",
-		traceBFilename()[0]
-		? traceBFilename()
-		: "<not loaded>",
-		m_traceB.size()
-	);
-
-	if (ImGui::Button("Save A"))
-	{
-		openAndSaveTrace(
-			true,
-			scannerAddress
-		);
-	}
-
-	ImGui::SameLine();
-
-	if (ImGui::Button("Save B"))
-	{
-		openAndSaveTrace(
-			false,
-			scannerAddress
-		);
-	}
-
-	ImGui::SameLine();
-
-	if (ImGui::Button("Prev Diff"))
-	{
-		selectPreviousDifference();
-	}
-
-	ImGui::SameLine();
-
-	if (ImGui::Button("Next Diff"))
-	{
-		selectNextDifference();
-	}
-
-	ImGui::SameLine();
-	// Keyboard shortcuts
-	ImGuiIO& io = ImGui::GetIO();
-	bool focusFilterRequested = false;
-	if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F))
-		focusFilterRequested = true;
-
-	handleKeyboardNavigation(
-		scannerAddress
-	);
-
-	static char filter[256] = {};
-	if (focusFilterRequested)
-		ImGui::SetKeyboardFocusHere();
-
-	if (ImGui::Checkbox(
-		"Collapse identical",
-		&m_collapseIdentical
-	))
-	{
-		m_scrollToSelectedTrace =
-			true;
-	}
-
-	ImGui::NewLine();
-
-	if (ImGui::SmallButton(
-		"Add to Baseline"
-	))
-	{
-		m_differenceBaseline.add(
-			m_traceA,
-			m_traceB
-		);
-
-		m_differenceBaseline.save(
-			baselinePath
-		);
-	}
-
-	ImGui::SameLine();
-
-	if (ImGui::SmallButton(
-		"Clear Baseline"
-	))
-	{
-		m_differenceBaseline.clear();
-
-		m_differenceBaseline.save(
-			baselinePath
-		);
-	}
-
-	ImGui::SameLine();
-
-	ImGui::Text(
-		"Baseline: %zu",
-		m_differenceBaseline.size()
-	);
-
-	ImGui::SameLine();
-
-	ImGui::Checkbox(
-		"Ignore Baseline",
-		&m_ignoreDifferenceBaseline
-	);
-
-	ImGui::SameLine();
-	ImGui::SetNextItemWidth(200);
-	ImGui::InputTextWithHint("##filter", "Filter (addr or text)", filter, sizeof(filter));
-
-	ImGui::Separator();
-
 	// Make toolbar fixed: place the scrolling content into its own child so the toolbar above does not scroll away
 	ImGui::BeginChild("TraceContentScroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 

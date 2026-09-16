@@ -1,30 +1,40 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
 
 namespace DosBoxMemoryTools
 {
-	class TraceComparisonToolbar
-	{
-	public:
-		using Action = std::function<void()>;
+    class TraceComparisonToolbar
+    {
+    public:
+        using Action = std::function<void()>;
 
-		TraceComparisonToolbar() = default;
+        struct State
+        {
+            std::function<const char*()> traceAFilename;
+            std::function<const char*()> traceBFilename;
+            std::function<size_t()> traceACount;
+            std::function<size_t()> traceBCount;
+            std::function<size_t()> baselineCount;
+            bool& collapseIdentical;
+            bool& ignoreBaseline;
+        };
 
-		void draw();
-		void setSave(Action a)
-		{
-			m_save =
-				std::move(a);
-		}
-		void setPrevDiff(Action a) { m_prevDiff = std::move(a); }
-		void setNextDiff(Action a) { m_nextDiff = std::move(a); }
-		void setFocusFilter(Action a) { m_focusFilter = std::move(a); }
+        struct Callbacks
+        {
+            Action loadA;
+            Action loadB;
+            Action saveA;
+            Action saveB;
+            Action previousDifference;
+            Action nextDifference;
+            Action keyboardNavigation;
+            Action collapseChanged;
+            Action addToBaseline;
+            Action clearBaseline;
+        };
 
-	private:
-		Action m_save;
-		Action m_prevDiff;
-		Action m_nextDiff;
-		Action m_focusFilter;
-	};
+        void draw(const State& state, const Callbacks& callbacks);
+    };
 }

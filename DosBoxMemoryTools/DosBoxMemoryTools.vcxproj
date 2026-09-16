@@ -64,6 +64,7 @@
     <ClCompile Include="TraceDifferenceNavigation.cpp" />
     <ClCompile Include="TraceListView.cpp" />
     <ClCompile Include="TraceRecordView.cpp" />
+    <ClCompile Include="TraceRegisterDivergenceFinder.cpp" />
     <ClCompile Include="TraceTracking.cpp" />
     <ClCompile Include="TrackingWindow.cpp" />
     <ClCompile Include="TransitionTracking.cpp" />
@@ -103,6 +104,7 @@
     <ClInclude Include="TraceDifferenceNavigation.h" />
     <ClInclude Include="TraceListView.h" />
     <ClInclude Include="TraceRecordView.h" />
+    <ClInclude Include="TraceRegisterDivergenceFinder.h" />
     <ClInclude Include="TraceTracking.h" />
     <ClInclude Include="TrackingWindow.h" />
     <ClInclude Include="TransitionTracking.h" />
