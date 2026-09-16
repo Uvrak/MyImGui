@@ -55,6 +55,21 @@ namespace DosBoxMemoryTools
                     entry.controlFlow =
                         true;
 
+                    entry.controlFlowEndAddressA =
+                        alignment.endIndexA < traceA.size()
+                        ? traceA[alignment.endIndexA].address
+                        : 0;
+
+                    entry.controlFlowStartAddressB =
+                        alignment.indexB < traceB.size()
+                        ? traceB[alignment.indexB].address
+                        : 0;
+
+                    entry.controlFlowEndAddressB =
+                        alignment.endIndexB < traceB.size()
+                        ? traceB[alignment.endIndexB].address
+                        : 0;
+
                     m_entries.push_back(
                         entry
                     );
@@ -63,6 +78,21 @@ namespace DosBoxMemoryTools
                 {
                     existing->controlFlow =
                         true;
+
+                    existing->controlFlowEndAddressA =
+                        alignment.endIndexA < traceA.size()
+                        ? traceA[alignment.endIndexA].address
+                        : 0;
+
+                    existing->controlFlowStartAddressB =
+                        alignment.indexB < traceB.size()
+                        ? traceB[alignment.indexB].address
+                        : 0;
+
+                    existing->controlFlowEndAddressB =
+                        alignment.endIndexB < traceB.size()
+                        ? traceB[alignment.endIndexB].address
+                        : 0;
                 }
 
                 continue;
@@ -231,24 +261,34 @@ namespace DosBoxMemoryTools
     }
 
     bool TraceDifferenceBaseline::containsControlFlow(
-        size_t address
+        size_t startAddressA,
+        size_t endAddressA,
+        size_t startAddressB,
+        size_t endAddressB
     ) const
     {
         const auto existing =
             std::find_if(
                 m_entries.begin(),
                 m_entries.end(),
-                [address](
+                [startAddressA,
+                endAddressA,
+                startAddressB,
+                endAddressB](
                     const TraceDifferenceBaselineEntry& entry
                     )
                 {
-                    return entry.address ==
-                        address;
+                    return
+                        entry.controlFlow &&
+                        entry.address == startAddressA &&
+                        entry.controlFlowEndAddressA == endAddressA &&
+                        entry.controlFlowStartAddressB == startAddressB &&
+                        entry.controlFlowEndAddressB == endAddressB;
                 }
             );
 
-        return existing != m_entries.end() &&
-            existing->controlFlow;
+        return existing !=
+            m_entries.end();
     }
 
     void TraceDifferenceBaseline::clear()
@@ -296,7 +336,11 @@ namespace DosBoxMemoryTools
                 << difference.sp << ' '
                 << difference.ds << ' '
                 << difference.es << ' '
-                << difference.ss << '\n';
+                << difference.ss << ' '
+                << entry.controlFlow << ' '
+                << entry.controlFlowEndAddressA << ' '
+                << entry.controlFlowStartAddressB << ' '
+                << entry.controlFlowEndAddressB << '\n';
         }
 
         return file.good();
@@ -361,7 +405,11 @@ namespace DosBoxMemoryTools
                 >> entry.difference.sp
                 >> entry.difference.ds
                 >> entry.difference.es
-                >> entry.difference.ss))
+                >> entry.difference.ss
+                >> entry.controlFlow
+                >> entry.controlFlowEndAddressA
+                >> entry.controlFlowStartAddressB
+                >> entry.controlFlowEndAddressB))
             {
                 return false;
             }

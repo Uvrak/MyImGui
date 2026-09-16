@@ -8,7 +8,8 @@ namespace DosBoxMemoryTools
     std::vector<TraceComparisonDisplayEntry>
         TraceComparisonFilter::build(
             const std::vector<RuntimeInstruction>& traceA,
-            const std::vector<RuntimeInstruction>& traceB
+            const std::vector<RuntimeInstruction>& traceB,
+            ControlFlowFilter controlFlowFilter
         )
     {
         std::vector<TraceComparisonDisplayEntry>
@@ -92,6 +93,15 @@ namespace DosBoxMemoryTools
                 {
                     ++indexB;
                 }
+            }
+
+            if (!alignment.synchronized &&
+                controlFlowFilter &&
+                !controlFlowFilter(
+                    alignment
+                ))
+            {
+                continue;
             }
         }
 

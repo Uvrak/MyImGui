@@ -2,8 +2,10 @@
 
 #include <cstddef>
 #include <vector>
+#include <functional>
 
 #include "MemoryScanner.h"
+#include "TraceAlignment.h"
 
 namespace DosBoxMemoryTools
 {
@@ -23,9 +25,15 @@ namespace DosBoxMemoryTools
     class TraceComparisonFilter
     {
     public:
+        using ControlFlowFilter =
+            std::function<bool(
+                const TraceAlignment&
+                )>;
+
         static std::vector<TraceComparisonDisplayEntry> build(
             const std::vector<RuntimeInstruction>& traceA,
-            const std::vector<RuntimeInstruction>& traceB
+            const std::vector<RuntimeInstruction>& traceB,
+            ControlFlowFilter controlFlowFilter
         );
     };
 }

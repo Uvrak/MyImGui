@@ -15,6 +15,10 @@ namespace DosBoxMemoryTools
         TraceInstructionDifference difference;
 
         bool controlFlow = false;
+
+        size_t controlFlowEndAddressA = 0;
+        size_t controlFlowStartAddressB = 0;
+        size_t controlFlowEndAddressB = 0;
     };
 
     class TraceDifferenceBaseline
@@ -31,7 +35,10 @@ namespace DosBoxMemoryTools
         ) const;
 
         bool containsControlFlow(
-            size_t address
+            size_t startAddressA,
+            size_t endAddressA,
+            size_t startAddressB,
+            size_t endAddressB
         ) const;
 
         void clear();

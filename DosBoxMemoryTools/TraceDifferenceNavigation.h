@@ -22,7 +22,7 @@ namespace DosBoxMemoryTools
 
         using ControlFlowComparer =
             std::function<bool(
-                size_t address
+                const TraceAlignment&
                 )>;
 
         static size_t findNextDifference(

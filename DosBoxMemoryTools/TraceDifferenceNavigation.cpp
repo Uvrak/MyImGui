@@ -26,7 +26,7 @@ namespace DosBoxMemoryTools
                 }
 
                 return controlFlowComparer(
-                    traceA[alignment.indexA].address
+                    alignment
                 );
             }
 

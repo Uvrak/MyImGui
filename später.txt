@@ -1,24 +1,176 @@
-Weiter mit TraceTracking-Refactor:
+DOSBoxMemoryTools – Notiz für später
+Stand: 16.09.2026
 
-- Normaler Trace wurde weitgehend aus TrackingWindow nach TraceTracking ausgelagert.
-- TrackingWindow::drawTrace(), loadTrace() und saveTraceToFile() wurden entfernt.
-- m_trace, m_recordButton und m_traceWasArmedOrActive wurden aus TrackingWindow entfernt.
-- Trace-Navigation für den normalen Trace wurde aus TrackingWindow entfernt.
-- drawTransitions() benutzt jetzt korrekt m_selectedHistoryInstruction statt m_selectedTraceIndex.
-- m_selectedTraceIndex und m_scrollToSelectedTrace bleiben vorerst, weil sie noch zur A/B-Trace-Comparison gehören.
-- m_compareTraces wurde entfernt, weil es nach Entfernung von drawTrace() nur noch gesetzt, aber nicht mehr gelesen wurde.
-- m_traceA / m_traceB und die Comparison-Funktionen bleiben erhalten.
-- Build ist aktuell sauber.
+ZIEL
+MM3 MouseCursor vs. LeftCursor vergleichen.
+Normale Lauf-zu-Lauf-Unterschiede sollen über die Baseline entfernt werden,
+damit nur cursorabhängige Unterschiede übrig bleiben.
 
-NÄCHSTER SCHRITT:
-In TrackingWindow.cpp nach
+HEUTIGER STAND
 
-    drawTraceComparison(
+1. Control-Flow-Baseline präzisiert
 
-suchen und die Treffer ansehen.
+Bisher wurde eine Control-Flow-Differenz praktisch nur über die Startadresse
+von Trace A erkannt. Das war zu ungenau.
 
-Ziel danach:
-Die komplette A/B-Vergleichsfunktionalität schrittweise aus TrackingWindow in eine eigene TraceComparisonWindow.h/.cpp auslagern.
+TraceDifferenceBaselineEntry wurde erweitert um:
+
+    bool controlFlow = false;
+
+    size_t controlFlowEndAddressA = 0;
+    size_t controlFlowStartAddressB = 0;
+    size_t controlFlowEndAddressB = 0;
+
+entry.address bleibt Startadresse A.
+
+Damit besteht eine Control-Flow-Signatur aus:
+
+    A Start
+    A End
+    B Start
+    B End
+
+
+2. Baseline speichern/laden erweitert
+
+Die drei neuen Control-Flow-Adressen werden jetzt zusammen mit
+controlFlow in der Baseline-Datei gespeichert und geladen.
+
+ACHTUNG:
+Das Dateiformat hat sich dadurch geändert.
+Die Baseline muss mit dem neuen Stand einmal neu aufgebaut werden.
+
+
+3. containsControlFlow() geändert
+
+Nicht mehr:
+
+    containsControlFlow(size_t address)
+
+sondern:
+
+    containsControlFlow(
+        size_t startAddressA,
+        size_t endAddressA,
+        size_t startAddressB,
+        size_t endAddressB
+    )
+
+Es wird jetzt die komplette vierteilige Signatur verglichen.
+
+
+4. TraceDifferenceNavigation geändert
+
+ControlFlowComparer bekommt jetzt:
+
+    const TraceAlignment&
+
+statt nur einer Adresse.
+
+isDifference() reicht das komplette Alignment an den Callback weiter.
+
+Die drei Aufrufer in TraceComparisonWindow wurden entsprechend angepasst.
+
+Build erfolgreich.
+
+
+5. TraceComparisonFilter erweitert
+
+Neue Callback-Art:
+
+    ControlFlowFilter =
+        std::function<bool(
+            const TraceAlignment&
+        )>;
+
+TraceComparisonFilter::build() bekommt diesen Callback als dritten Parameter.
+
+Bei einem unsynchronisierten Alignment:
+
+    if (!alignment.synchronized &&
+        controlFlowFilter &&
+        !controlFlowFilter(alignment))
+    {
+        continue;
+    }
+
+Dadurch wird ein bekannter Baseline-Control-Flow-Block als GANZES entfernt,
+bevor TraceComparisonFilter ihn in einzelne Display-Zeilen zerlegt.
 
 Wichtig:
-Nur kleine Schritte und nach jedem Schritt bauen.
+Nicht wieder einzelne Zeilen innerhalb des ImGuiListClipper mit continue
+ausblenden. Das hatte bereits einen ImGuiListClipper-Absturz verursacht.
+
+Build erfolgreich.
+
+
+6. Letzter Test / wichtige Beobachtung
+
+MouseCursor/LeftCursor wurden angezeigt.
+
+Im Screenshot standen z.B.:
+
+    A Record 9879
+    B Record 9551
+
+nebeneinander.
+
+WICHTIGE KORREKTUR:
+9879 und 9551 sind NICHT synchron.
+
+Die Side-by-Side-Anzeige bedeutet nicht automatisch, dass zwei sichtbare
+Zeilen ein synchronisiertes A/B-Paar darstellen.
+
+Deshalb beweist der letzte Screenshot NICHT, dass die neue
+Baseline-Control-Flow-Filterung fehlerhaft ist.
+
+
+NÄCHSTER SCHRITT
+
+KEINEN CODE ÄNDERN.
+
+Zuerst:
+
+    1. Baseline mit aktuellem Format korrekt neu erzeugen/laden.
+    2. MouseCursor und LeftCursor laden.
+    3. Ignore Baseline einschalten.
+    4. Mit "Next Diff" zum ERSTEN verbleibenden Unterschied springen.
+    5. Dort prüfen, welches TraceAlignment tatsächlich vorliegt:
+       - synchronized?
+       - oder unsynchronized?
+       - A start/end
+       - B start/end
+
+Erst danach entscheiden, ob die Filterung falsch ist.
+
+
+WICHTIGE MÖGLICHKEIT
+
+Es kann sein, dass nach korrekter Baseline-Filterung zwischen
+MouseCursor und LeftCursor überhaupt keine relevanten Trace-Unterschiede
+übrig bleiben.
+
+Das wäre ein wichtiges Ergebnis.
+
+Dann nicht weiter blind rückwärts durch den Control Flow suchen.
+Dann ist wahrscheinlich die Datenherkunft des Cursorwertes entscheidender
+als ein unterschiedlicher Codepfad.
+
+
+BEKANNTE CURSOR-FAKTEN NICHT WIEDERHOLEN
+
+- Cursoradresse: 0x87652
+- MemWr auf 0x87652: kein Hit.
+- MemRd auf 0x87652: Hit.
+- Read bei 9B23:1D99 / linear 0x9CFC9.
+- Instruktion: mov si,[si]
+- tatsächliche Read-Adresse: 0x87652.
+- Trace-Register sind PRE-INSTRUCTION.
+- Trace ist chronologisch:
+      Record 1 = ältester gehaltener Eintrag
+      letzter Record = Target.
+- Separate Exec-Captures aus verschiedenen Runs nicht zu einer Sequenz
+  zusammensetzen.
+- 0x9CFC9 ist nicht die Quelle der unterschiedlichen Zustände;
+  SI unterscheidet sich bereits vorher.
+- Keine erneuten Live-Tests an 0x9D77E / 0x9D783 / 0x9BD8A ohne neuen Grund.

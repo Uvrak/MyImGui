@@ -246,7 +246,27 @@ void TraceComparisonWindow::draw(
 			m_collapsedDisplayEntries =
 				TraceComparisonFilter::build(
 					m_traceA,
-					m_traceB
+					m_traceB,
+					[this](
+						const TraceAlignment& alignment
+						)
+					{
+						if (!m_ignoreDifferenceBaseline)
+						{
+							return true;
+						}
+
+						return !m_differenceBaseline.containsControlFlow(
+							m_traceA[alignment.indexA].address,
+							alignment.endIndexA < m_traceA.size()
+							? m_traceA[alignment.endIndexA].address
+							: 0,
+							m_traceB[alignment.indexB].address,
+							alignment.endIndexB < m_traceB.size()
+							? m_traceB[alignment.endIndexB].address
+							: 0
+						);
+					}
 				);
 
 			m_collapsedDisplayEntriesDirty =
@@ -265,7 +285,27 @@ void TraceComparisonWindow::draw(
 			m_collapsedDisplayEntries =
 				TraceComparisonFilter::build(
 					m_traceA,
-					m_traceB
+					m_traceB,
+					[this](
+						const TraceAlignment& alignment
+						)
+					{
+						if (!m_ignoreDifferenceBaseline)
+						{
+							return true;
+						}
+
+						return !m_differenceBaseline.containsControlFlow(
+							m_traceA[alignment.indexA].address,
+							alignment.endIndexA < m_traceA.size()
+							? m_traceA[alignment.endIndexA].address
+							: 0,
+							m_traceB[alignment.indexB].address,
+							alignment.endIndexB < m_traceB.size()
+							? m_traceB[alignment.endIndexB].address
+							: 0
+						);
+					}
 				);
 
 			m_collapsedDisplayEntriesDirty =
@@ -313,7 +353,7 @@ void TraceComparisonWindow::selectFirstDifference()
 				);
 			},
 			[this](
-				size_t address
+				const TraceAlignment& alignment
 				)
 			{
 				if (!m_ignoreDifferenceBaseline)
@@ -322,7 +362,14 @@ void TraceComparisonWindow::selectFirstDifference()
 				}
 
 				return !m_differenceBaseline.containsControlFlow(
-					address
+					m_traceA[alignment.indexA].address,
+					alignment.endIndexA < m_traceA.size()
+					? m_traceA[alignment.endIndexA].address
+					: 0,
+					m_traceB[alignment.indexB].address,
+					alignment.endIndexB < m_traceB.size()
+					? m_traceB[alignment.endIndexB].address
+					: 0
 				);
 			}
 		);
@@ -391,6 +438,7 @@ void TraceComparisonWindow::drawTraceRows(
 	bool scrollToSelected
 )
 {
+	
 	ImGuiListClipper clipper;
 
 	clipper.Begin(
@@ -522,7 +570,10 @@ void TraceComparisonWindow::drawDirectTraceRows(
 
 	int drawnRecords = 0;
 
-    ImGuiListClipper clipper;
+	ImGuiListClipper clipper;
+
+	std::vector<TraceComparisonDisplayEntry>
+		filteredEntries;
 
     clipper.Begin(
         static_cast<int>(count)
@@ -741,7 +792,7 @@ void TraceComparisonWindow::selectPreviousDifference()
 				);
 			},
 			[this](
-				size_t address
+				const TraceAlignment& alignment
 				)
 			{
 				if (!m_ignoreDifferenceBaseline)
@@ -750,7 +801,14 @@ void TraceComparisonWindow::selectPreviousDifference()
 				}
 
 				return !m_differenceBaseline.containsControlFlow(
-					address
+					m_traceA[alignment.indexA].address,
+					alignment.endIndexA < m_traceA.size()
+					? m_traceA[alignment.endIndexA].address
+					: 0,
+					m_traceB[alignment.indexB].address,
+					alignment.endIndexB < m_traceB.size()
+					? m_traceB[alignment.endIndexB].address
+					: 0
 				);
 			}
 		);
@@ -824,7 +882,7 @@ void TraceComparisonWindow::selectNextDifference()
 				);
 			},
 			[this](
-				size_t address
+				const TraceAlignment& alignment
 				)
 			{
 				if (!m_ignoreDifferenceBaseline)
@@ -833,7 +891,14 @@ void TraceComparisonWindow::selectNextDifference()
 				}
 
 				return !m_differenceBaseline.containsControlFlow(
-					address
+					m_traceA[alignment.indexA].address,
+					alignment.endIndexA < m_traceA.size()
+					? m_traceA[alignment.endIndexA].address
+					: 0,
+					m_traceB[alignment.indexB].address,
+					alignment.endIndexB < m_traceB.size()
+					? m_traceB[alignment.endIndexB].address
+					: 0
 				);
 			}
 		);
