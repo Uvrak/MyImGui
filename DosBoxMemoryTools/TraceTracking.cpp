@@ -269,6 +269,10 @@ namespace DosBoxMemoryTools
             {
                 m_trace.clear();
 
+                m_traceLoadPending = false;
+                m_traceLoadIndex = 0;
+                m_traceLoadCount = 0;
+
                 m_traceWasArmedOrActive =
                     false;
 

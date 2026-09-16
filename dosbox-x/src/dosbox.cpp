@@ -82,6 +82,7 @@
 
 #include "gridbuilder_ipc.h"
 #include "dosbox_memory_scanner_ipc.h"
+#include "memory_read_tracker.h"
 
 #if __APPLE__ && __MAC_OS_X_VERSION_MIN_REQUIRED < 101200
 /* FIX_ME: A workaround to avoid build error. Change version to 101300 if error occurs for Sierra (10.12) */
@@ -483,7 +484,14 @@ static Bitu Normal_Loop(void) {
 
                 saved_allow = dosbox_allow_nonrecursive_page_fault;
                 dosbox_allow_nonrecursive_page_fault = true;
-                ret = (*cpudecoder)();
+                if (MemoryReadTracker::readTraceActive() &&
+                    (cpudecoder == &CPU_Core_Dyn_X86_Run ||
+                     cpudecoder == &CPU_Core_Dynrec_Run ||
+                     cpudecoder == &CPU_Core_Full_Run ||
+                     cpudecoder == &CPU_Core_Simple_Run))
+                    ret = CPU_Core_Normal_Run();
+                else
+                    ret = (*cpudecoder)();
                 dosbox_allow_nonrecursive_page_fault = saved_allow;
 
                 if (GCC_UNLIKELY(ret<0))

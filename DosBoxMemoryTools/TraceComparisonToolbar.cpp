@@ -11,7 +11,7 @@ namespace DosBoxMemoryTools
             state.traceAFilename()[0] ? state.traceAFilename() : "<not loaded>",
             state.traceACount());
 
-        if (state.traceLoadPending())
+        if (state.traceLoadPending() || state.traceLoadCount() != 0)
         {
             ImGui::Text(
                 "Loaded: %zu / %zu datasets",
