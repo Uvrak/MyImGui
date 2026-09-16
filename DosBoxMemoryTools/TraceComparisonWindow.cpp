@@ -2,6 +2,7 @@
 #include "TraceComparisonPersistence.h"
 #include "TraceAlignment.h"
 #include "TraceDifferenceNavigation.h"
+#include "TraceRegisterDivergenceFinder.h"
 
 #include "imgui.h"
 
@@ -95,27 +96,42 @@ void TraceComparisonWindow::draw(
 )
 {
 	m_toolbar.draw(
-		{ [this]() { return traceAFilename(); }, [this]() { return traceBFilename(); },
-		  [this]() { return m_traceA.size(); }, [this]() { return m_traceB.size(); },
-		  [this]() { return m_differenceBaseline.size(); }, m_collapseIdentical, m_ignoreDifferenceBaseline },
 		{
-			[this]() { openAndLoadTrace(true); },
-			[this]() { openAndLoadTrace(false); },
-			[this, &scannerAddress]() { openAndSaveTrace(true, scannerAddress); },
-			[this, &scannerAddress]() { openAndSaveTrace(false, scannerAddress); },
-			[this]() { selectPreviousDifference(); },
-			[this]() { selectNextDifference(); },
-			[this, &scannerAddress]() { handleKeyboardNavigation(scannerAddress); },
-			[this]() { m_scrollToSelectedTrace = true; },
-			[this]() {
-				m_differenceBaseline.add(m_traceA, m_traceB);
-				m_differenceBaseline.save(baselinePath);
-			},
-			[this]() {
-				m_differenceBaseline.clear();
-				m_differenceBaseline.save(baselinePath);
-			}
+			[this]() { return traceAFilename(); },
+			[this]() { return traceBFilename(); },
+			[this]() { return m_traceA.size(); },
+			[this]() { return m_traceB.size(); },
+			[this]() { return m_differenceBaseline.size(); },
+			m_collapseIdentical,
+			m_ignoreDifferenceBaseline,
+			m_selectedRegister
+		},
+	{
+		[this]() { openAndLoadTrace(true); },
+		[this]() { openAndLoadTrace(false); },
+		[this, &scannerAddress]() { openAndSaveTrace(true, scannerAddress); },
+		[this, &scannerAddress]() { openAndSaveTrace(false, scannerAddress); },
+
+		[this]() { selectPreviousDifference(); },
+		[this]() { selectNextDifference(); },
+
+		[this]() { selectPreviousRegisterDifference(); },
+		[this]() { selectNextRegisterDifference(); },
+
+		[this, &scannerAddress]() { handleKeyboardNavigation(scannerAddress); },
+
+		[this]() { m_scrollToSelectedTrace = true; },
+
+		[this]() {
+			m_differenceBaseline.add(m_traceA, m_traceB);
+			m_differenceBaseline.save(baselinePath);
+		},
+
+		[this]() {
+			m_differenceBaseline.clear();
+			m_differenceBaseline.save(baselinePath);
 		}
+	}
 	);
 	// Make toolbar fixed: place the scrolling content into its own child so the toolbar above does not scroll away
 	ImGui::BeginChild("TraceContentScroll", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -811,6 +827,112 @@ void TraceComparisonWindow::selectNextDifference()
 			break;
 		}
 	}
+
+	setScrollToSelectedTrace(
+		true
+	);
+}
+
+void TraceComparisonWindow::selectNextRegisterDifference()
+{
+	if (m_traceA.empty() ||
+		m_traceB.empty())
+	{
+		return;
+	}
+
+	const std::vector<TraceAlignment> alignments =
+		TraceAligner::align(
+			m_traceA,
+			m_traceB
+		);
+
+	size_t startIndexA = m_selectedTraceIndex;
+	size_t startIndexB = m_selectedTraceIndexB;
+
+	if (startIndexA == static_cast<size_t>(-1) ||
+		startIndexB == static_cast<size_t>(-1))
+	{
+		startIndexA = 0;
+		startIndexB = 0;
+	}
+
+	size_t resultIndexA = 0;
+	size_t resultIndexB = 0;
+
+	if (!TraceRegisterDivergenceFinder::findNext(
+		m_traceA,
+		m_traceB,
+		alignments,
+		m_selectedRegister,
+		startIndexA,
+		startIndexB,
+		resultIndexA,
+		resultIndexB
+	))
+	{
+		return;
+	}
+
+	setSelectedTraceIndex(
+		resultIndexA
+	);
+
+	m_selectedTraceIndexB =
+		resultIndexB;
+
+	setScrollToSelectedTrace(
+		true
+	);
+}
+
+void TraceComparisonWindow::selectPreviousRegisterDifference()
+{
+	if (m_traceA.empty() ||
+		m_traceB.empty())
+	{
+		return;
+	}
+
+	const std::vector<TraceAlignment> alignments =
+		TraceAligner::align(
+			m_traceA,
+			m_traceB
+		);
+
+	size_t startIndexA = m_selectedTraceIndex;
+	size_t startIndexB = m_selectedTraceIndexB;
+
+	if (startIndexA == static_cast<size_t>(-1) ||
+		startIndexB == static_cast<size_t>(-1))
+	{
+		startIndexA = m_traceA.size();
+		startIndexB = m_traceB.size();
+	}
+
+	size_t resultIndexA = 0;
+	size_t resultIndexB = 0;
+
+	if (!TraceRegisterDivergenceFinder::findPrevious(
+		m_traceA,
+		m_traceB,
+		alignments,
+		m_selectedRegister,
+		startIndexA,
+		startIndexB,
+		resultIndexA,
+		resultIndexB
+	))
+	{
+		return;
+	}
+
+	setSelectedTraceIndex(
+		resultIndexA
+	);
+
+	m_selectedTraceIndexB =
+		resultIndexB;
 
 	setScrollToSelectedTrace(
 		true

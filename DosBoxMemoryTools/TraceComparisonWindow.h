@@ -209,7 +209,8 @@ namespace DosBoxMemoryTools
 
         void selectPreviousDifference();
         void selectNextDifference();
-
+        void selectPreviousRegisterDifference();
+        void selectNextRegisterDifference();
         void selectFirstDifference();
 
         bool m_hasLoadedTraceA =
@@ -268,6 +269,9 @@ namespace DosBoxMemoryTools
 
         bool
             m_collapsedDisplayEntriesDirty = true;
+
+        TraceRegister m_selectedRegister =
+            TraceRegister::AX;
     };
 
 }

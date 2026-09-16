@@ -1,4 +1,5 @@
 #pragma once
+#include "TraceRegisterDivergenceFinder.h"
 
 #include <cstddef>
 #include <functional>
@@ -19,6 +20,7 @@ namespace DosBoxMemoryTools
             std::function<size_t()> baselineCount;
             bool& collapseIdentical;
             bool& ignoreBaseline;
+            TraceRegister& selectedRegister;
         };
 
         struct Callbacks
@@ -29,6 +31,8 @@ namespace DosBoxMemoryTools
             Action saveB;
             Action previousDifference;
             Action nextDifference;
+            Action previousRegisterDifference;
+            Action nextRegisterDifference;
             Action keyboardNavigation;
             Action collapseChanged;
             Action addToBaseline;

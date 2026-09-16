@@ -32,5 +32,16 @@ namespace DosBoxMemoryTools
             size_t& resultIndexA,
             size_t& resultIndexB
         );
+
+        static bool findPrevious(
+            const std::vector<RuntimeInstruction>& traceA,
+            const std::vector<RuntimeInstruction>& traceB,
+            const std::vector<TraceAlignment>& alignment,
+            TraceRegister traceRegister,
+            size_t startIndexA,
+            size_t startIndexB,
+            size_t& resultIndexA,
+            size_t& resultIndexB
+        );
     };
 }

@@ -54,18 +54,12 @@ namespace DosBoxMemoryTools
         size_t& resultIndexB
     )
     {
-        bool previousEqual = true;
+        bool havePrevious = false;
+        bool previousEqual = false;
 
         for (const TraceAlignment& entry : alignment)
         {
             if (!entry.synchronized)
-            {
-                previousEqual = true;
-                continue;
-            }
-
-            if (entry.indexA <= startIndexA &&
-                entry.indexB <= startIndexB)
             {
                 continue;
             }
@@ -86,7 +80,14 @@ namespace DosBoxMemoryTools
                     traceRegister
                 );
 
-            if (previousEqual && !equal)
+            const bool afterStart =
+                entry.indexA > startIndexA ||
+                entry.indexB > startIndexB;
+
+            if (afterStart &&
+                havePrevious &&
+                previousEqual &&
+                !equal)
             {
                 resultIndexA = entry.indexA;
                 resultIndexB = entry.indexB;
@@ -95,8 +96,68 @@ namespace DosBoxMemoryTools
             }
 
             previousEqual = equal;
+            havePrevious = true;
         }
 
         return false;
+    }
+    
+    bool TraceRegisterDivergenceFinder::findPrevious(
+        const std::vector<RuntimeInstruction>& traceA,
+        const std::vector<RuntimeInstruction>& traceB,
+        const std::vector<TraceAlignment>& alignment,
+        TraceRegister traceRegister,
+        size_t startIndexA,
+        size_t startIndexB,
+        size_t& resultIndexA,
+        size_t& resultIndexB
+    )
+    {
+        bool havePrevious = false;
+        bool previousEqual = false;
+        bool found = false;
+
+        for (const TraceAlignment& entry : alignment)
+        {
+            if (!entry.synchronized)
+            {
+                continue;
+            }
+
+            if (entry.indexA >= traceA.size() ||
+                entry.indexB >= traceB.size())
+            {
+                continue;
+            }
+
+            const bool equal =
+                registerValue(
+                    traceA[entry.indexA],
+                    traceRegister
+                ) ==
+                registerValue(
+                    traceB[entry.indexB],
+                    traceRegister
+                );
+
+            const bool beforeStart =
+                entry.indexA < startIndexA ||
+                entry.indexB < startIndexB;
+
+            if (beforeStart &&
+                havePrevious &&
+                previousEqual &&
+                !equal)
+            {
+                resultIndexA = entry.indexA;
+                resultIndexB = entry.indexB;
+                found = true;
+            }
+
+            previousEqual = equal;
+            havePrevious = true;
+        }
+
+        return found;
     }
 }

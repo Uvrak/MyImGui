@@ -24,7 +24,51 @@ namespace DosBoxMemoryTools
         if (ImGui::Button("Prev Diff")) callbacks.previousDifference();
         ImGui::SameLine();
         if (ImGui::Button("Next Diff")) callbacks.nextDifference();
+        ImGui::NewLine();
+
+        const char* registerNames[] =
+        {
+            "AX",
+            "BX",
+            "CX",
+            "DX",
+            "SI",
+            "DI",
+            "BP",
+            "SP"
+        };
+
+        int selectedRegister =
+            static_cast<int>(state.selectedRegister);
+
+        ImGui::SetNextItemWidth(80.0f);
+
+        if (ImGui::Combo(
+            "Register",
+            &selectedRegister,
+            registerNames,
+            IM_ARRAYSIZE(registerNames)
+        ))
+        {
+            state.selectedRegister =
+                static_cast<TraceRegister>(
+                    selectedRegister
+                    );
+        }
+
         ImGui::SameLine();
+
+        if (ImGui::Button("Prev Register Diff"))
+        {
+            callbacks.previousRegisterDifference();
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Next Register Diff"))
+        {
+            callbacks.nextRegisterDifference();
+        }
 
         ImGuiIO& io = ImGui::GetIO();
         const bool focusFilterRequested = io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_F);
