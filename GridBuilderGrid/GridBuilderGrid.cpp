@@ -62,6 +62,11 @@ GridBuilderGrid::GridBuilderGrid(
 GridBuilderGrid::~GridBuilderGrid() =
 default;
 
+const ChunkManager& GridBuilderGrid::map() const
+{
+    return m_impl->worldViewWindow.map();
+}
+
 void GridBuilderGrid::draw(
     bool* isOpen
 )

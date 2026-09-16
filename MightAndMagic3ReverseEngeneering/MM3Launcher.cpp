@@ -68,54 +68,64 @@ namespace MightAndMagic3
                 m_gamePath +
                 "\"";
 
-            m_controller.sendDosText(
-                m_namedPipeClient,
-                command
-            );
-
-            m_controller.sendDosKey(
-                m_namedPipeClient,
-                "ENTER"
-            );
+            m_namedPipeClient.send("TYPE_TEXT:" + command + "\r");
 
             m_state =
-                State::ChangeDrive;
-
-            m_nextStep =
-                now + 2000;
-
-            break;
-        }
-
-        case State::ChangeDrive:
-            m_controller.sendDosText(
-                m_namedPipeClient,
-                "C:"
-            );
-
-            m_controller.sendDosKey(
-                m_namedPipeClient,
-                "ENTER"
-            );
-
-            m_state =
-                State::StartGame;
+                State::WaitForMount;
 
             m_nextStep =
                 now + 500;
 
             break;
+        }
+
+        case State::WaitForMount:
+        {
+            std::string driveStatus;
+            if(m_namedPipeClient.request("MM3_DRIVE_STATUS", driveStatus) &&
+                (driveStatus == "M" || driveStatus == "C"))
+            {
+                m_state = State::ChangeDrive;
+                m_nextStep = now + 500;
+            }
+            else
+            {
+                m_nextStep = now + 500;
+            }
+            break;
+        }
+
+        case State::ChangeDrive:
+            m_namedPipeClient.send("TYPE_TEXT:C:\r");
+
+            m_state =
+                State::WaitForDrive;
+
+            m_nextStep =
+                now + 1000;
+
+            break;
+
+        case State::WaitForDrive:
+        {
+            std::string driveStatus;
+            if(m_namedPipeClient.request("MM3_DRIVE_STATUS", driveStatus) &&
+                driveStatus == "C")
+            {
+                m_state = State::StartGame;
+                m_nextStep = now + 500;
+            }
+            else
+            {
+                m_state = State::ChangeDrive;
+                m_nextStep = now + 500;
+            }
+
+            break;
+        }
 
         case State::StartGame:
-            m_controller.sendDosText(
-                m_namedPipeClient,
-                "MM3"
-            );
-
-            m_controller.sendDosKey(
-                m_namedPipeClient,
-                "ENTER"
-            );
+            m_namedPipeClient.send("TYPE_TEXT:MM3\r");
 
             m_state =
                 State::Done;

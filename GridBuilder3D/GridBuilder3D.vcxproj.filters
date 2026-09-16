@@ -18,12 +18,18 @@
     <ClCompile Include="Camera3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="GridWorldAdapter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="World3D.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera3D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GridWorldAdapter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="World3D.h">

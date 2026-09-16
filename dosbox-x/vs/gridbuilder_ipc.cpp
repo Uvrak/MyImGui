@@ -13,11 +13,13 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 
 #include "keyboard.h"
 #include "mouse.h"
 #include "dosbox.h"
+#include "bios.h"
 #include "mem.h"
 #include <cstdio>
 
@@ -25,6 +27,9 @@
 #include "mightandmagic1.h"
 
 extern std::string RunningProgram;
+class DOS_Drive;
+extern DOS_Drive* Drives[];
+extern uint8_t DOS_GetDefaultDrive(void);
 
 extern Bitu DOS_SwitchKeyboardLayout(
     const char* new_layout,
@@ -39,6 +44,8 @@ g_gridBuilderRunningProgramMutex;
 
 static std::thread g_ipcThread;
 static std::atomic<bool> g_ipcRunning{ false };
+static std::atomic<bool> g_cDriveMounted{ false };
+static std::atomic<int> g_currentDrive{ -1 };
 
 static std::set<KBD_KEYS>
     g_gridBuilderPressedKeys;
@@ -140,6 +147,9 @@ static void GRIDBUILDER_IPC_SetKey(
 
 void GRIDBUILDER_IPC_ProcessCommands()
 {
+    g_cDriveMounted = Drives[2] != nullptr;
+    g_currentDrive = DOS_GetDefaultDrive();
+
     {
         std::lock_guard<std::mutex> lock(
             g_gridBuilderRunningProgramMutex
@@ -172,6 +182,36 @@ void GRIDBUILDER_IPC_ProcessCommands()
     g_mightAndMagic1StateValid =
         state.valid;
 
+    static std::string pendingText;
+    static size_t pendingTextOffset = 0;
+    static std::chrono::steady_clock::time_point nextTextCharacter{};
+
+    if(!pendingText.empty())
+    {
+        const auto now = std::chrono::steady_clock::now();
+        if(now >= nextTextCharacter)
+        {
+            const unsigned char ch = static_cast<unsigned char>(
+                pendingText[pendingTextOffset]
+            );
+            const uint16_t biosKey = ch == '\r'
+                ? 0x1c0d
+                : static_cast<uint16_t>(ch);
+
+            if(BIOS_AddKeyToBuffer(biosKey))
+            {
+                ++pendingTextOffset;
+                nextTextCharacter = now + std::chrono::milliseconds(30);
+                if(pendingTextOffset == pendingText.size())
+                {
+                    pendingText.clear();
+                    pendingTextOffset = 0;
+                }
+            }
+        }
+        return;
+    }
+
     std::queue<std::string> commands;
 
     {
@@ -191,6 +231,29 @@ void GRIDBUILDER_IPC_ProcessCommands()
             commands.front();
 
         commands.pop();
+
+        if(command.compare(0, 10, "TYPE_TEXT:") == 0)
+        {
+            pendingText = command.substr(10);
+            pendingTextOffset = 0;
+            nextTextCharacter = std::chrono::steady_clock::now();
+
+            // Preserve ordering with commands already received in this batch.
+            std::lock_guard<std::mutex> lock(g_gridBuilderCommandMutex);
+            std::queue<std::string> remaining;
+            std::swap(remaining, g_gridBuilderCommandQueue);
+            while(!commands.empty())
+            {
+                g_gridBuilderCommandQueue.push(commands.front());
+                commands.pop();
+            }
+            while(!remaining.empty())
+            {
+                g_gridBuilderCommandQueue.push(remaining.front());
+                remaining.pop();
+            }
+            return;
+        }
 
         printf(
             "GridBuilder main thread: %s\n",
@@ -1124,6 +1187,16 @@ static void GRIDBUILDER_IPC_Thread()
             }
 
             buffer[bytesRead] = '\0';
+
+            if(std::strcmp(buffer, "MM3_DRIVE_STATUS") == 0)
+            {
+                const char* response = g_currentDrive.load() == 2
+                    ? "C"
+                    : (g_cDriveMounted.load() ? "M" : "N");
+                DWORD bytesWritten = 0;
+                WriteFile(pipe, response, 1, &bytesWritten, nullptr);
+                continue;
+            }
 
             if(std::strcmp(
                 buffer,

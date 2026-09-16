@@ -425,48 +425,35 @@ namespace DosBoxMemoryTools
                 BytesPerRow
                 );
 
+        const ImGuiStyle& style = ImGui::GetStyle();
+        const float byteWidth = ImGui::CalcTextSize("FF").x;
+        const float byteStep = byteWidth + style.ItemSpacing.x;
+
         if (ImGui::BeginTable(
             "##MemoryViewer",
-            18,
+            3,
             ImGuiTableFlags_Borders |
             ImGuiTableFlags_RowBg |
+            ImGuiTableFlags_NoSavedSettings |
+            ImGuiTableFlags_Resizable |
+            ImGuiTableFlags_ScrollX |
             ImGuiTableFlags_ScrollY,
-            ImVec2(
-                0.0f,
-                0.0f
-            )
+            ImVec2(0.0f, 0.0f)
         ))
         {
             ImGui::TableSetupColumn(
                 "Address",
-                ImGuiTableColumnFlags_WidthFixed,
+                ImGuiTableColumnFlags_WidthFixed |
+                ImGuiTableColumnFlags_NoResize,
                 75.0f
             );
-
-            for (int column = 0;
-                column < 16;
-                ++column)
-            {
-                char label[3];
-
-                std::snprintf(
-                    label,
-                    sizeof(label),
-                    "%02X",
-                    column
-                );
-
-                ImGui::TableSetupColumn(
-                    label
-                );
-            }
-
-            
-
+            ImGui::TableSetupColumn(
+                "Hex", ImGuiTableColumnFlags_WidthStretch, 4.0f
+            );
             ImGui::TableSetupColumn(
                 "ASCII",
-                ImGuiTableColumnFlags_WidthFixed,
-                150.0f
+                ImGuiTableColumnFlags_WidthStretch,
+                1.0f
             );
             
             ImGui::TableSetupScrollFreeze(
@@ -474,7 +461,22 @@ namespace DosBoxMemoryTools
                 1
             );
 
-            ImGui::TableHeadersRow();
+            ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted("Address");
+            ImGui::TableSetColumnIndex(1);
+            const float headerX = ImGui::GetCursorPosX();
+            for (int column = 0; column < 16; ++column)
+            {
+                char label[3];
+                std::snprintf(label, sizeof(label), "%02X", column);
+                ImGui::SetCursorPosX(headerX + column * byteStep);
+                ImGui::TextUnformatted(label);
+                if (column < 15)
+                    ImGui::SameLine(0.0f, 0.0f);
+            }
+            ImGui::TableSetColumnIndex(2);
+            ImGui::TextUnformatted("ASCII");
 
             ImGuiListClipper clipper;
 
@@ -587,6 +589,9 @@ namespace DosBoxMemoryTools
                         address
                     );
 
+                    ImGui::TableSetColumnIndex(1);
+                    const float hexX = ImGui::GetCursorPosX();
+
                     for (size_t column = 0;
                         column < BytesPerRow;
                         ++column)
@@ -594,10 +599,8 @@ namespace DosBoxMemoryTools
                         const size_t byteAddress =
                             address + column;
 
-                        ImGui::TableSetColumnIndex(
-                            static_cast<int>(
-                                column + 1
-                                )
+                        ImGui::SetCursorPosX(
+                            hexX + static_cast<float>(column) * byteStep
                         );
 
                         if (byteAddress <
@@ -620,15 +623,16 @@ namespace DosBoxMemoryTools
 
                             if (selected)
                             {
-                                ImGui::TableSetBgColor(
-                                    ImGuiTableBgTarget_CellBg,
+                                const ImVec2 highlightPos =
+                                    ImGui::GetCursorScreenPos();
+                                ImGui::GetWindowDrawList()->AddRectFilled(
+                                    highlightPos,
+                                    ImVec2(
+                                        highlightPos.x + byteWidth,
+                                        highlightPos.y + ImGui::GetTextLineHeight()
+                                    ),
                                     ImGui::GetColorU32(
-                                        ImVec4(
-                                            1.0f,
-                                            1.0f,
-                                            1.0f,
-                                            0.65f
-                                        )
+                                        ImVec4(1.0f, 1.0f, 1.0f, 0.65f)
                                     )
                                 );
                             }
@@ -641,7 +645,9 @@ namespace DosBoxMemoryTools
 
                             if (ImGui::Selectable(
                                 byteText,
-                                selected
+                                selected,
+                                0,
+                                ImVec2(byteWidth, 0.0f)
                             ))
                             {
                                 m_selectedAddress =
@@ -656,10 +662,13 @@ namespace DosBoxMemoryTools
 
                             ImGui::PopID();
                         }
+
+                        if (column + 1 < BytesPerRow)
+                            ImGui::SameLine(0.0f, 0.0f);
                     }
                     
                     ImGui::TableSetColumnIndex(
-                        17
+                        2
                     );
 
                     char ascii[17] = {};

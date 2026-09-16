@@ -30,7 +30,9 @@ namespace MightAndMagic3
             Idle,
             Waiting,
             Mount,
+            WaitForMount,
             ChangeDrive,
+            WaitForDrive,
             StartGame,
             Done
         };

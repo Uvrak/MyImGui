@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 
+class ChunkManager;
+
 class GridBuilderGrid
 {
 public:
@@ -34,6 +36,8 @@ public:
     void setDebugCallback(
         DebugCallback callback
     );
+
+    const ChunkManager& map() const;
 
 private:
     class Impl;

@@ -36,6 +36,8 @@ public:
 
 	void newMap();
 
+	const ChunkManager& map() const;
+
 	void removeEdgeFromAllCells(
 		const std::string& edgeId
 	);

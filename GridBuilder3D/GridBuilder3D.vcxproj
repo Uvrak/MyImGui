@@ -20,10 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera3D.cpp" />
+    <ClCompile Include="GridWorldAdapter.cpp" />
     <ClCompile Include="World3D.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera3D.h" />
+    <ClInclude Include="GridWorldAdapter.h" />
     <ClInclude Include="World3D.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -78,6 +80,11 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)GridBuilderCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -158,6 +165,11 @@
       <EnableSegmentHeap>true</EnableSegmentHeap>
     </Manifest>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\GridBuilderCore\GridBuilderCore.vcxproj">
+      <Project>{f1e86453-4a0c-4062-a662-38e91def7ccd}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

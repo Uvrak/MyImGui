@@ -63,5 +63,7 @@ namespace DosBoxMemoryTools
 
         bool m_scrollToSelectedAddress = false;
         bool m_keepSelectedVisible = false;
+
+        float m_hexWidth = 0.0f;
     };
 }

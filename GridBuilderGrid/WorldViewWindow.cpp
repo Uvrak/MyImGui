@@ -18,6 +18,11 @@ WorldViewWindow::WorldViewWindow(int chunkSize)
     loadSettings();
 }
 
+const ChunkManager& WorldViewWindow::map() const
+{
+    return m_chunkManager;
+}
+
 void WorldViewWindow::draw(
     EditorTool activeTool,
     const std::string& activeEdgeId,
