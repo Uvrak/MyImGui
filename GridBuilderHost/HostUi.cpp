@@ -9,7 +9,12 @@
 
 namespace GridBuilderHost
 {
-    void HostUi::onLeftMouseButtonDown(
+    std::optional<GameButtonPoint> HostUi::dosBoxScreenPosition(GameButtonPoint point) const
+    {
+        return m_showDosBoxView ? m_dosBoxWindow.screenPosition(point) : std::nullopt;
+    }
+
+    std::optional<GameButtonPoint> HostUi::onLeftMouseButtonDown(
         float mouseX,
         float mouseY,
         DosBoxX::Mouse& dosBoxMouse,
@@ -17,8 +22,9 @@ namespace GridBuilderHost
     )
     {
         if (m_showDosBoxView)
-            m_dosBoxWindow.onLeftMouseButtonDown(
+            return m_dosBoxWindow.onLeftMouseButtonDown(
                 mouseX, mouseY, dosBoxMouse, dosBoxPipeClient);
+        return std::nullopt;
     }
 
     HostUi::HostUi(
@@ -42,12 +48,33 @@ namespace GridBuilderHost
         )
     {}
 
+    std::optional<GameButtonRect> HostUi::takeDrawnButton()
+    {
+        return m_dosBoxWindow.takeDrawnButton();
+    }
+
+    std::optional<std::size_t> HostUi::takeDeletedButton()
+    {
+        return m_dosBoxWindow.takeDeletedButton();
+    }
+
+    std::optional<GameButtonEdit> HostUi::takeModifiedButton()
+    {
+        return m_dosBoxWindow.takeModifiedButton();
+    }
+
     void HostUi::draw(
         DosBoxX::FrameTexture& frameTexture,
         uint32_t contentWidth,
         uint32_t contentHeight,
         DosBoxX::Mouse& dosBoxMouse,
-        DosBoxX::NamedPipeClient& dosBoxPipeClient
+        DosBoxX::NamedPipeClient& dosBoxPipeClient,
+        const std::vector<GameButtonRect>& buttonRects,
+        std::optional<GameButtonRect> selectedButton,
+        std::optional<GameButtonRect> selectedInventory,
+        bool buttonEditingActive,
+        bool buttonViewAvailable,
+        const std::string& buttonViewName
     )
     {
         m_hostFontSettings.update();
@@ -72,7 +99,14 @@ namespace GridBuilderHost
                 contentHeight,
                 m_mainMenu.showDosBoxCoordinates(),
                 dosBoxMouse,
-                dosBoxPipeClient
+                dosBoxPipeClient,
+                buttonRects,
+                selectedButton,
+                selectedInventory,
+                buttonEditingActive,
+                buttonViewAvailable,
+                buttonViewName,
+                m_buttonSaveFailed
             );
         }
     }

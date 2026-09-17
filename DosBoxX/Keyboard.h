@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <string>
+#include <unordered_map>
 
 #include "imgui.h"
 
@@ -25,7 +26,10 @@ namespace DosBoxX
         void update(
             NamedPipeClient& namedPipeClient,
             const DosBoxKeyCommandResolver&
-            commandResolver = {}
+            commandResolver = {},
+            bool enabled = true
         );
+    private:
+        std::unordered_map<int, std::string> m_downCommands;
     };
 }

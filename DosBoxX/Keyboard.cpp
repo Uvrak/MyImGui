@@ -10,7 +10,8 @@ namespace DosBoxX
     void Keyboard::update(
         NamedPipeClient& namedPipeClient,
         const DosBoxKeyCommandResolver&
-        commandResolver
+        commandResolver,
+        bool enabled
     )
     {
         struct KeyMapping
@@ -22,7 +23,9 @@ namespace DosBoxX
         const auto processKeys =
             [
                 &namedPipeClient,
-                &commandResolver
+                &commandResolver,
+                this,
+                enabled
             ](
                 const KeyMapping* mappings,
                 size_t count
@@ -34,6 +37,18 @@ namespace DosBoxX
                 {
                     const KeyMapping& mapping =
                         mappings[index];
+
+                    const int keyId = static_cast<int>(mapping.key);
+                    const auto down = m_downCommands.find(keyId);
+                    if (down != m_downCommands.end() &&
+                        (!enabled || ImGui::IsKeyReleased(mapping.key)))
+                    {
+                        namedPipeClient.send("KEYUP:" + down->second);
+                        m_downCommands.erase(down);
+                    }
+
+                    if (!enabled || !ImGui::IsKeyPressed(mapping.key, false))
+                        continue;
 
                     std::string resolvedCommand =
                         mapping.command;
@@ -52,10 +67,7 @@ namespace DosBoxX
                         continue;
                     }
 
-                    if (ImGui::IsKeyPressed(
-                        mapping.key,
-                        false
-                    ))
+                    if (m_downCommands.find(keyId) == m_downCommands.end())
                     {
                         std::string command =
                             "KEYDOWN:";
@@ -63,24 +75,8 @@ namespace DosBoxX
                         command +=
                             resolvedCommand;
 
-                        namedPipeClient.send(
-                            command
-                        );
-                    }
-
-                    if (ImGui::IsKeyReleased(
-                        mapping.key
-                    ))
-                    {
-                        std::string command =
-                            "KEYUP:";
-
-                        command +=
-                            resolvedCommand;
-
-                        namedPipeClient.send(
-                            command
-                        );
+                        if (namedPipeClient.send(command))
+                            m_downCommands.emplace(keyId, resolvedCommand);
                     }
                 }
             };

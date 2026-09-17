@@ -18,6 +18,8 @@
 
 #include "dosbox_memory_snapshot_writer.h"
 #include "memory_read_tracker.h"
+#include "../../MouseLatencyTrace.h"
+#include <chrono>
 
 namespace
 {
@@ -1772,8 +1774,12 @@ void DOSBOX_MEMORY_SCANNER_IPC_ProcessCommands()
         return;
     }
 
+    const auto copyStart = std::chrono::steady_clock::now();
     const bool published =
         g_snapshotWriter.publish();
+    const auto copyMicroseconds = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - copyStart).count();
+    TraceGridBuilderMouse("SNAPSHOT_COPY_US", copyMicroseconds);
 
     {
         std::lock_guard<std::mutex> lock(

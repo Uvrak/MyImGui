@@ -1246,13 +1246,19 @@ void Mouse_Select(int x1, int y1, int x2, int y2, int w, int h, bool select) {
 
 static unsigned long long g_gridBuilderPressTick = 0;
 static unsigned int g_gridBuilderPollCount = 0;
+static bool g_gridBuilderReleaseObserved = false;
 static MightAndMagic3::MouseLatch g_mm3Mouse;
+static void Mouse_GridBuilderApplyLeftPress();
 
 void Mouse_ButtonPressed(uint8_t button) {
     if (button == 0) {
         g_gridBuilderPressTick = GetTickCount64();
         g_gridBuilderPollCount = 0;
+        g_gridBuilderReleaseObserved = false;
         TraceGridBuilderMouse("GUEST_PRESS");
+        TraceGridBuilderMouse("GUEST_CLICK_XY",
+            (static_cast<unsigned long long>(static_cast<uint16_t>(POS_X)) << 32) |
+            static_cast<uint16_t>(POS_Y));
     }
     if (!IS_PC98_ARCH && KEYBOARD_AUX_Active()) {
         switch (button) {
@@ -1659,6 +1665,10 @@ static Bitu INT33_Handler(void) {
         }
         break;
     case 0x03: { /* MS MOUSE v1.0+ - RETURN POSITION AND BUTTON STATUS */
+        if (g_gridBuilderPressTick && !(mouse.buttons & 1) && !g_gridBuilderReleaseObserved) {
+            g_gridBuilderReleaseObserved = true;
+            TraceGridBuilderMouse("INT33_RELEASE_SEEN", GetTickCount64() - g_gridBuilderPressTick);
+        }
         if (g_gridBuilderPressTick && g_gridBuilderPollCount++ < 4)
             TraceGridBuilderMouse(mouse.buttons & 1 ? "INT33_DOWN" : "INT33_UP",
                 GetTickCount64() - g_gridBuilderPressTick);
@@ -1681,7 +1691,7 @@ static Bitu INT33_Handler(void) {
         if (action == MightAndMagic3::MouseLatch::Action::Release)
             Mouse_ButtonReleased(0);
         else if (action == MightAndMagic3::MouseLatch::Action::Press)
-            Mouse_ButtonPressed(0);
+            Mouse_GridBuilderApplyLeftPress();
         break;
     }
     case 0x04:  /* MS MOUSE v1.0+ - POSITION MOUSE CURSOR */
@@ -2964,10 +2974,23 @@ void Mouse_GridBuilderMove(
     Mouse_GridBuilderSetPosition(x, y);
 }
 
+static void Mouse_GridBuilderApplyLeftPress() {
+    const auto position = g_mm3Mouse.position();
+    if (position.valid)
+        Mouse_GridBuilderMove(position.x, position.y);
+    Mouse_ButtonPressed(0);
+}
+
+void Mouse_GridBuilderPressLeftAt(float x, float y) {
+    if (g_mm3Mouse.pressAt((mouse.buttons & 1) != 0, x, y) ==
+        MightAndMagic3::MouseLatch::Action::Press)
+        Mouse_GridBuilderApplyLeftPress();
+}
+
 void Mouse_GridBuilderPressLeft() {
     if (g_mm3Mouse.press((mouse.buttons & 1) != 0) ==
         MightAndMagic3::MouseLatch::Action::Press)
-        Mouse_ButtonPressed(0);
+        Mouse_GridBuilderApplyLeftPress();
 }
 
 void Mouse_GridBuilderReleaseLeft() {

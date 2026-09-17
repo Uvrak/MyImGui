@@ -1,6 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+#include "../GridBuilderCore/GameModule.h"
 
 namespace DosBoxX
 {
@@ -35,9 +39,20 @@ namespace GridBuilderHost
             uint32_t contentWidth,
             uint32_t contentHeight,
             DosBoxX::Mouse& dosBoxMouse,
-            DosBoxX::NamedPipeClient& dosBoxPipeClient
+            DosBoxX::NamedPipeClient& dosBoxPipeClient,
+            const std::vector<GameButtonRect>& buttonRects,
+            std::optional<GameButtonRect> selectedButton,
+            std::optional<GameButtonRect> selectedInventory,
+            bool buttonEditingActive,
+            bool buttonViewAvailable,
+            const std::string& buttonViewName
         );
-        void onLeftMouseButtonDown(
+        std::optional<GameButtonRect> takeDrawnButton();
+        std::optional<std::size_t> takeDeletedButton();
+        std::optional<GameButtonEdit> takeModifiedButton();
+        void setButtonSaveFailed(bool failed) { m_buttonSaveFailed = failed; }
+        std::optional<GameButtonPoint> dosBoxScreenPosition(GameButtonPoint point) const;
+        std::optional<GameButtonPoint> onLeftMouseButtonDown(
             float mouseX,
             float mouseY,
             DosBoxX::Mouse& dosBoxMouse,
@@ -50,6 +65,7 @@ namespace GridBuilderHost
 
         bool m_showDosBoxView =
             true;
+        bool m_buttonSaveFailed = false;
 
         MyImGui::SettingsWindow& m_settingsWindow;
         HostFontSettings& m_hostFontSettings;

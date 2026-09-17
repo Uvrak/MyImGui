@@ -10,22 +10,46 @@ namespace MightAndMagic3
     {
     public:
         enum class Action { None, Press, Release };
+        struct Position
+        {
+            float x = 0, y = 0;
+            bool valid = false;
+        };
 
         void reset() { *this = MouseLatch{}; }
 
         Action press(bool guestDown)
         {
+            return press(guestDown, Position{});
+        }
+
+        Action pressAt(bool guestDown, float x, float y)
+        {
+            Position position;
+            position.x = x;
+            position.y = y;
+            position.valid = true;
+            return press(guestDown, position);
+        }
+
+        Position position() const { return activePosition; }
+
+    private:
+        Action press(bool guestDown, Position position)
+        {
             reconcile(guestDown);
-            if (active)
+            if (active || awaitingReleasePoll)
             {
                 nextPress = true;
                 nextRelease = false;
+                nextPosition = position;
                 return Action::None;
             }
-            start(false);
+            start(false, position);
             return Action::Press;
         }
 
+    public:
         Action release(std::uint64_t now, bool guestDown)
         {
             reconcile(guestDown);
@@ -52,10 +76,12 @@ namespace MightAndMagic3
                     ++polls;
                 return finish(now);
             }
+            // The current poll has returned an unpressed button to MM3.
+            awaitingReleasePoll = false;
             if (nextPress)
             {
                 const bool released = nextRelease;
-                start(released);
+                start(released, nextPosition);
                 return Action::Press;
             }
             return Action::None;
@@ -77,11 +103,12 @@ namespace MightAndMagic3
                 reset();
         }
 
-        void start(bool released)
+        void start(bool released, Position position)
         {
             reset();
             active = true;
             releaseRequested = released;
+            activePosition = position;
         }
 
         Action finish(std::uint64_t now)
@@ -90,6 +117,7 @@ namespace MightAndMagic3
                 return Action::None;
             active = false;
             releaseRequested = false;
+            awaitingReleasePoll = true;
             return Action::Release;
         }
 
@@ -97,6 +125,9 @@ namespace MightAndMagic3
         bool releaseRequested = false;
         bool nextPress = false;
         bool nextRelease = false;
+        bool awaitingReleasePoll = false;
+        Position activePosition;
+        Position nextPosition;
         unsigned polls = 0;
         std::uint64_t firstObserved = 0;
     };

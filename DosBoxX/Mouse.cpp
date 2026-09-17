@@ -247,10 +247,11 @@ namespace DosBoxX
             std::to_string(contentHeight);
 
         // Keep at most one queued retry while a click is already held.
+        const QueuedClick queued{command, {x, y}};
         if (m_clickQueue.empty())
-            m_clickQueue.push_back(command);
+            m_clickQueue.push_back(queued);
         else
-            m_clickQueue.back() = command;
+            m_clickQueue.back() = queued;
         updatePendingClick(namedPipeClient);
     }
 
@@ -278,15 +279,26 @@ namespace DosBoxX
                 ImGui::GetTime() - m_lastReleaseTime >= 0.01))
         {
             TraceGridBuilderMouse("HOST_DOWN_BEGIN");
-            const bool sent = namedPipeClient.send(m_clickQueue.front());
+            const bool sent = namedPipeClient.send(m_clickQueue.front().command);
             TraceGridBuilderMouse("HOST_DOWN_END", sent ? 1 : 0);
             if (sent)
             {
+                TraceGridBuilderMouse("HOST_CLICK_XY",
+                    (static_cast<unsigned long long>(m_clickQueue.front().position.x) << 32) |
+                    static_cast<unsigned int>(m_clickQueue.front().position.y));
+                m_emulatedClicks.push_back(m_clickQueue.front().position);
                 m_clickQueue.pop_front();
                 m_clickPending = true;
                 m_clickStartTime = ImGui::GetTime();
             }
         }
+    }
+
+    std::vector<EmulatedMouseClick> Mouse::takeEmulatedClicks()
+    {
+        std::vector<EmulatedMouseClick> result;
+        result.swap(m_emulatedClicks);
+        return result;
     }
 
     void Mouse::setLeftButtonDown(bool down)

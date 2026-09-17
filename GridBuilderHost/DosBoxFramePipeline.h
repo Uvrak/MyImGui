@@ -24,6 +24,7 @@ namespace GridBuilderHost
 
         uint32_t contentWidth() const;
         uint32_t contentHeight() const;
+        const DosBoxX::FrameReader& frameReader() const { return m_frameReader; }
 
     private:
         DosBoxX::FrameReader& m_frameReader;

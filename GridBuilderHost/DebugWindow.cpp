@@ -16,6 +16,7 @@ namespace GridBuilderHost
         m_lines.push_back(
             text
         );
+        m_scrollToEnd = true;
     }
 
     void DebugWindow::setLine(
@@ -32,7 +33,7 @@ namespace GridBuilderHost
     void DebugWindow::draw()
     {
         ImGui::Begin(
-            "Debug"
+            m_title.c_str()
         );
 
         for (const std::string& line : m_lines)
@@ -40,6 +41,12 @@ namespace GridBuilderHost
             ImGui::TextUnformatted(
                 line.c_str()
             );
+        }
+
+        if (m_scrollToEnd)
+        {
+            ImGui::SetScrollHereY(1.0f);
+            m_scrollToEnd = false;
         }
 
         ImGui::End();

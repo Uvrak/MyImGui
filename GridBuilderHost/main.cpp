@@ -30,14 +30,18 @@
 
 namespace
 {
-    std::optional<std::size_t> loadMapConfiguration(GridBuilderGrid& grid)
+    std::filesystem::path projectRoot()
     {
         wchar_t executablePath[MAX_PATH] = {};
         GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
-        const auto projectRoot =
-            std::filesystem::path(executablePath).parent_path().parent_path().parent_path();
-        grid.setMapDirectory((projectRoot / "resources/maps").string());
-        const auto configPath = projectRoot / "settings/mm3_maps.cfg";
+        return std::filesystem::path(executablePath).parent_path().parent_path().parent_path();
+    }
+
+    std::optional<std::size_t> loadMapConfiguration(GridBuilderGrid& grid)
+    {
+        const auto root = projectRoot();
+        grid.setMapDirectory((root / "resources/maps").string());
+        const auto configPath = root / "settings/mm3_maps.cfg";
         std::ifstream input(configPath);
         std::optional<std::size_t> address;
         std::string line;
@@ -61,7 +65,7 @@ namespace
                         for (unsigned char byte : value)
                             utf8Value.push_back(static_cast<char8_t>(byte));
                         grid.registerMap("mm3/" + std::to_string(id),
-                                         (projectRoot / std::filesystem::path(utf8Value)).string());
+                                         (root / std::filesystem::path(utf8Value)).string());
                     }
                 }
             }
@@ -136,7 +140,8 @@ int main()
     );
     MightAndMagic3::MM3GameModule mm3GameModule(
         dosBoxController, dosBoxPipeClient,
-        loadMapConfiguration(gridBuilderGrid)
+        loadMapConfiguration(gridBuilderGrid),
+        (projectRoot() / "settings/mm3_buttons.cfg").string()
     );
 
     DosBoxX::FrameTexture dosBoxFrameTexture(

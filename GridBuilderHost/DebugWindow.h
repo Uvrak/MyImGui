@@ -2,6 +2,7 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace GridBuilderHost
@@ -9,6 +10,7 @@ namespace GridBuilderHost
     class DebugWindow
     {
     public:
+        explicit DebugWindow(std::string title = "Debug") : m_title(std::move(title)) {}
         void clear();
 
         void addLine(
@@ -22,6 +24,8 @@ namespace GridBuilderHost
         void draw();
 
     private:
+        std::string m_title;
         std::vector<std::string> m_lines;
+        bool m_scrollToEnd = false;
     };
 }

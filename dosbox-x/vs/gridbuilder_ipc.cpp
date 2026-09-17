@@ -771,14 +771,17 @@ void GRIDBUILDER_IPC_ProcessCommands()
             ) == 4 && width > 1 && height > 1 &&
                 x >= 0 && x < width && y >= 0 && y < height)
             {
-                Mouse_GridBuilderMove(
-                    static_cast<float>(x) / static_cast<float>(width - 1),
-                    static_cast<float>(y) / static_cast<float>(height - 1)
-                );
                 if (RunningProgram == "MM3")
-                    Mouse_GridBuilderPressLeft();
+                    Mouse_GridBuilderPressLeftAt(
+                        static_cast<float>(x) / static_cast<float>(width - 1),
+                        static_cast<float>(y) / static_cast<float>(height - 1));
                 else
+                {
+                    Mouse_GridBuilderMove(
+                        static_cast<float>(x) / static_cast<float>(width - 1),
+                        static_cast<float>(y) / static_cast<float>(height - 1));
                     Mouse_ButtonPressed(0);
+                }
                 TraceGridBuilderMouse("DOSBOX_DOWN");
             }
 

@@ -2,9 +2,12 @@
 
 #include <deque>
 #include <string>
+#include <vector>
 
 namespace DosBoxX
 {
+    struct EmulatedMouseClick { int x = 0; int y = 0; };
+
     class NamedPipeClient;
     struct DosBoxFrameHeader;
 
@@ -37,6 +40,7 @@ namespace DosBoxX
             int contentHeight
         );
         void updatePendingClick(NamedPipeClient& namedPipeClient);
+        std::vector<EmulatedMouseClick> takeEmulatedClicks();
         void setLeftButtonDown(bool down);
     private:
         bool m_inputActive = false;
@@ -46,7 +50,13 @@ namespace DosBoxX
         double m_clickStartTime = 0.0;
         double m_lastReleaseTime = -1.0;
         bool m_leftButtonDown = false;
-        std::deque<std::string> m_clickQueue;
+        struct QueuedClick
+        {
+            std::string command;
+            EmulatedMouseClick position;
+        };
+        std::deque<QueuedClick> m_clickQueue;
+        std::vector<EmulatedMouseClick> m_emulatedClicks;
         
     };
 }
