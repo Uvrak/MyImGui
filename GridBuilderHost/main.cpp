@@ -17,11 +17,59 @@
 #include "SettingsWindow.h"
 #include "HostFontSettings.h"
 #include "HostSettings.h"
-#include "MM3Launcher.h"
+#include "MM3GameModule.h"
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "Memory.h"
 #include "GridBuilderGrid.h"
+#include <fstream>
+#include <filesystem>
+#include <optional>
+#include <string>
+#include <Windows.h>
+
+namespace
+{
+    std::optional<std::size_t> loadMapConfiguration(GridBuilderGrid& grid)
+    {
+        wchar_t executablePath[MAX_PATH] = {};
+        GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
+        const auto projectRoot =
+            std::filesystem::path(executablePath).parent_path().parent_path().parent_path();
+        grid.setMapDirectory((projectRoot / "resources/maps").string());
+        const auto configPath = projectRoot / "settings/mm3_maps.cfg";
+        std::ifstream input(configPath);
+        std::optional<std::size_t> address;
+        std::string line;
+        while (std::getline(input, line))
+        {
+            if (line.empty() || line[0] == '#') continue;
+            const auto separator = line.find('=');
+            if (separator == std::string::npos) continue;
+            const auto name = line.substr(0, separator);
+            const auto value = line.substr(separator + 1);
+            try
+            {
+                if (name == "map_id_address")
+                    address = static_cast<std::size_t>(std::stoull(value, nullptr, 0));
+                else if (name.rfind("map_", 0) == 0)
+                {
+                    const auto id = std::stoul(name.substr(4), nullptr, 0);
+                    if (id <= 255 && !value.empty())
+                    {
+                        std::u8string utf8Value;
+                        for (unsigned char byte : value)
+                            utf8Value.push_back(static_cast<char8_t>(byte));
+                        grid.registerMap("mm3/" + std::to_string(id),
+                                         (projectRoot / std::filesystem::path(utf8Value)).string());
+                    }
+                }
+            }
+            catch (const std::exception&) { /* Ignore malformed entries. */ }
+        }
+        return address;
+    }
+}
 
 int main()
 {
@@ -66,11 +114,6 @@ int main()
     DosBoxX::Mouse dosBoxMouse;
     DosBoxX::Memory dosBoxMemory;
 
-    MightAndMagic3::MM3Launcher mm3Launcher(
-        dosBoxController,
-        dosBoxPipeClient
-    );
-
     DosBoxX::FrameReader dosBoxFrameReader;
 
     if (!hostWindow.initialize(
@@ -90,6 +133,10 @@ int main()
     GridBuilderGrid gridBuilderGrid(
         hostRenderer.device(),
         16
+    );
+    MightAndMagic3::MM3GameModule mm3GameModule(
+        dosBoxController, dosBoxPipeClient,
+        loadMapConfiguration(gridBuilderGrid)
     );
 
     DosBoxX::FrameTexture dosBoxFrameTexture(
@@ -129,7 +176,7 @@ int main()
         imGuiHost,
         gridBuilderGrid,
         hostUi,
-        mm3Launcher,
+        mm3GameModule,
         dosBoxKeyboard,
         dosBoxMouse,
         dosBoxMemory,

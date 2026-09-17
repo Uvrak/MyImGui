@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- water jets -->
+    <path d="M32 18V7"/>
+    <path d="M29.5 18C28 11 25 9 22 11"/>
+    <path d="M34.5 18C36 11 39 9 42 11"/>
+    <path d="M27 20C20 17 17 13 15 9"/>
+    <path d="M37 20C44 17 47 13 49 9"/>
+
+    <!-- upper bowl -->
+    <path d="M22 21H42"/>
+    <path d="M23 21C24 27 28 29 32 29C36 29 40 27 41 21"/>
+    <path d="M27 29H37"/>
+    <path d="M29 29L28 34H36L35 29"/>
+
+    <!-- falling water -->
+    <path d="M24 25C20 28 20 34 19 38"/>
+    <path d="M40 25C44 28 44 34 45 38"/>
+
+    <!-- lower basin -->
+    <path d="M13 39C17 37 23 36 32 36C41 36 47 37 51 39"/>
+    <path d="M13 39C14 46 21 50 32 50C43 50 50 46 51 39"/>
+    <path d="M18 42C22 43 27 44 32 44C37 44 42 43 46 42"/>
+
+    <!-- pedestal -->
+    <path d="M28 50L27 55H37L36 50"/>
+    <path d="M25 55H39"/>
+    <path d="M23 59H41"/>
+    <path d="M25 55L23 59"/>
+    <path d="M39 55L41 59"/>
+
+    <!-- droplets -->
+    <path d="M15 20v2"/>
+    <path d="M49 20v2"/>
+  </g>
+</svg>

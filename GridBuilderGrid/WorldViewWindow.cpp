@@ -9,6 +9,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdio>
+#include <filesystem>
 
 #include "MapSerializer.h"
 
@@ -72,11 +73,8 @@ void WorldViewWindow::draw(
     m_toolSettings.m_openMiscColorMenu =
         openMiscColorMenu;
 
-    const bool windowVisible =
-    ImGui::Begin(
-        "Map Editor",
-        isOpen
-    );
+    const std::string windowTitle = m_mapName + "###Map Editor";
+    const bool windowVisible = ImGui::Begin(windowTitle.c_str(), isOpen);
 
     if (!windowVisible)
     {
@@ -146,12 +144,13 @@ void WorldViewWindow::draw(
         );
     }
 
-    if (m_viewport.m_followPlayer &&
+    if ((m_viewport.m_followPlayer || m_centerOnNextMarker) &&
         m_playerMarker.visible)
     {
         WorldView::centerOnPlayer(m_viewport, m_playerMarker,
             canvasSize
         );
+        m_centerOnNextMarker = false;
     }
 
     WorldView::updateGridView(m_viewport);
@@ -334,6 +333,7 @@ bool WorldViewWindow::saveMap(
 
     if (saved)
     {
+        m_mapName = std::filesystem::path(filename).stem().string();
         m_hasUnsavedChanges = false;
     }
 
@@ -354,6 +354,8 @@ bool WorldViewWindow::loadMap(
 
     if (loaded)
     {
+        m_mapName = std::filesystem::path(filename).stem().string();
+        m_centerOnNextMarker = true;
         m_hasUnsavedChanges = false;
     }
 
@@ -365,11 +367,18 @@ bool WorldViewWindow::hasUnsavedChanges() const
     return m_hasUnsavedChanges;
 }
 
+void WorldViewWindow::setMapName(const std::string& name)
+{
+    if (!name.empty()) m_mapName = name;
+}
+
 void WorldViewWindow::newMap()
 {
     WorldView::stopPainting(m_painter);
 
     m_chunkManager.clear();
+    m_mapName = "Map Editor";
+    m_centerOnNextMarker = true;
 
     m_viewport.m_cameraX = 0.0f;
     m_viewport.m_cameraY = 0.0f;

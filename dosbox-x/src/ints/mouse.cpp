@@ -26,6 +26,7 @@
 #include <vector>
 #include <algorithm>
 #include "../../../MouseLatencyTrace.h"
+#include "../../../MightAndMagic3ReverseEngeneering/MM3Mouse.h"
 
 #include "dosbox.h"
 #include "callback.h"
@@ -1245,13 +1246,7 @@ void Mouse_Select(int x1, int y1, int x2, int y2, int w, int h, bool select) {
 
 static unsigned long long g_gridBuilderPressTick = 0;
 static unsigned int g_gridBuilderPollCount = 0;
-static bool g_gridBuilderLeftActive = false;
-static bool g_gridBuilderLeftObserved = false;
-static bool g_gridBuilderLeftReleaseRequested = false;
-static unsigned long long g_gridBuilderFirstObservedTick = 0;
-static unsigned int g_gridBuilderObservedPollCount = 0;
-static bool g_gridBuilderNextPressQueued = false;
-static bool g_gridBuilderNextReleaseQueued = false;
+static MightAndMagic3::MouseLatch g_mm3Mouse;
 
 void Mouse_ButtonPressed(uint8_t button) {
     if (button == 0) {
@@ -1599,6 +1594,7 @@ static void Mouse_Reset(void) {
     mouse.mickey_accum_x = 0;
     mouse.mickey_accum_y = 0;
 
+    g_mm3Mouse.reset();
     mouse.buttons = 0;
 
     mouse.wheel           = 0; /* CuteMouse wheel extension */
@@ -1662,7 +1658,7 @@ static Bitu INT33_Handler(void) {
             if (usesystemcursor&&!MOUSE_IsLocked()) SDL_ShowCursor(SDL_DISABLE);
         }
         break;
-    case 0x03:  /* MS MOUSE v1.0+ - RETURN POSITION AND BUTTON STATUS */
+    case 0x03: { /* MS MOUSE v1.0+ - RETURN POSITION AND BUTTON STATUS */
         if (g_gridBuilderPressTick && g_gridBuilderPollCount++ < 4)
             TraceGridBuilderMouse(mouse.buttons & 1 ? "INT33_DOWN" : "INT33_UP",
                 GetTickCount64() - g_gridBuilderPressTick);
@@ -1681,33 +1677,13 @@ static Bitu INT33_Handler(void) {
         mouse.first_range_sety = false;
         if (en_int33_hide_if_polling) int33_last_poll = PIC_FullIndex();
         Mouse_Used();
-        if (g_gridBuilderLeftActive && (mouse.buttons & 1)) {
-            const auto now = GetTickCount64();
-            if (!g_gridBuilderLeftObserved)
-                g_gridBuilderFirstObservedTick = now;
-            g_gridBuilderLeftObserved = true;
-            ++g_gridBuilderObservedPollCount;
-            if (g_gridBuilderLeftReleaseRequested &&
-                g_gridBuilderObservedPollCount >= 3 &&
-                now - g_gridBuilderFirstObservedTick >= 60) {
-                TraceGridBuilderMouse("LATCH_OBSERVED",
-                    now - g_gridBuilderPressTick);
-                Mouse_ButtonReleased(0);
-                g_gridBuilderLeftActive = false;
-                g_gridBuilderLeftReleaseRequested = false;
-            }
-        } else if (!g_gridBuilderLeftActive && g_gridBuilderNextPressQueued) {
-            // Return one observed UP state before starting the next queued tap.
+        const auto action = g_mm3Mouse.observe(GetTickCount64(), (mouse.buttons & 1) != 0);
+        if (action == MightAndMagic3::MouseLatch::Action::Release)
+            Mouse_ButtonReleased(0);
+        else if (action == MightAndMagic3::MouseLatch::Action::Press)
             Mouse_ButtonPressed(0);
-            g_gridBuilderLeftActive = true;
-            g_gridBuilderLeftObserved = false;
-            g_gridBuilderFirstObservedTick = 0;
-            g_gridBuilderObservedPollCount = 0;
-            g_gridBuilderLeftReleaseRequested = g_gridBuilderNextReleaseQueued;
-            g_gridBuilderNextPressQueued = false;
-            g_gridBuilderNextReleaseQueued = false;
-        }
         break;
+    }
     case 0x04:  /* MS MOUSE v1.0+ - POSITION MOUSE CURSOR */
         /* If position isn't different from current position
          * don't change it then. (as position is rounded so numbers get
@@ -2989,48 +2965,20 @@ void Mouse_GridBuilderMove(
 }
 
 void Mouse_GridBuilderPressLeft() {
-    if (g_gridBuilderLeftActive) {
-        g_gridBuilderNextPressQueued = true;
-        g_gridBuilderNextReleaseQueued = false;
-        TraceGridBuilderMouse("LATCH_NEXT_QUEUED");
-        return;
-    }
-    g_gridBuilderLeftActive = true;
-    g_gridBuilderLeftObserved = false;
-    g_gridBuilderLeftReleaseRequested = false;
-    g_gridBuilderFirstObservedTick = 0;
-    g_gridBuilderObservedPollCount = 0;
-    Mouse_ButtonPressed(0);
+    if (g_mm3Mouse.press((mouse.buttons & 1) != 0) ==
+        MightAndMagic3::MouseLatch::Action::Press)
+        Mouse_ButtonPressed(0);
 }
 
 void Mouse_GridBuilderReleaseLeft() {
-    if (g_gridBuilderNextPressQueued && !g_gridBuilderNextReleaseQueued) {
-        g_gridBuilderNextReleaseQueued = true;
-        return;
-    }
-    if (!g_gridBuilderLeftActive)
-        return;
-    if (g_gridBuilderLeftObserved &&
-        g_gridBuilderObservedPollCount >= 3 &&
-        GetTickCount64() - g_gridBuilderFirstObservedTick >= 60) {
+    if (g_mm3Mouse.release(GetTickCount64(), (mouse.buttons & 1) != 0) ==
+        MightAndMagic3::MouseLatch::Action::Release)
         Mouse_ButtonReleased(0);
-        g_gridBuilderLeftActive = false;
-    } else {
-        g_gridBuilderLeftReleaseRequested = true;
-        TraceGridBuilderMouse("LATCH_WAIT");
-    }
 }
 
 void Mouse_GridBuilderCancelLeft() {
-    if (g_gridBuilderLeftActive)
+    if (g_mm3Mouse.cancel() == MightAndMagic3::MouseLatch::Action::Release)
         Mouse_ButtonReleased(0);
-    g_gridBuilderLeftActive = false;
-    g_gridBuilderLeftObserved = false;
-    g_gridBuilderLeftReleaseRequested = false;
-    g_gridBuilderFirstObservedTick = 0;
-    g_gridBuilderObservedPollCount = 0;
-    g_gridBuilderNextPressQueued = false;
-    g_gridBuilderNextReleaseQueued = false;
 }
 
 void Mouse_GridBuilderSetPosition(

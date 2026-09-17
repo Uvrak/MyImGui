@@ -33,6 +33,7 @@ public:
 	bool saveMap(const std::string& filename);
 	bool loadMap(const std::string& filename);
 	bool hasUnsavedChanges() const;
+	void setMapName(const std::string& name);
 
 	void newMap();
 
@@ -96,11 +97,13 @@ public:
 	);
 
 private:
+    std::string m_mapName = "Map Editor";
     ChunkManager m_chunkManager;
 
     int m_chunkSize;
 
     MapPlayerMarker m_playerMarker;
+    bool m_centerOnNextMarker = false;
 
     void handleInput(
 		const ImVec2& canvasPosition,

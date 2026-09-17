@@ -460,7 +460,7 @@ namespace DosBoxMemoryTools
         }
 
         ImGui::Text(
-            "%u",
+            "0x%X",
             static_cast<unsigned int>(
                 displayedCurrentValue
                 )

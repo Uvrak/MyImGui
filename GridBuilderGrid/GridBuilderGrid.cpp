@@ -4,8 +4,13 @@
 #include "EditorToolBox.h"
 #include "EditorEdgeBox.h"
 #include "EditorMiscBox.h"
+#include "ChunkManager.h"
+#include "MapSerializer.h"
 
 #include <utility>
+#include <unordered_map>
+#include <filesystem>
+#include <algorithm>
 
 #include "imgui.h"
 
@@ -38,6 +43,9 @@ public:
     };
 
     WorldViewWindow worldViewWindow;
+    std::unordered_map<std::string, std::string> mapFiles;
+    std::filesystem::path mapDirectory;
+    std::string currentMapKey;
     EditorToolbox toolBox;
     EditorEdgeBox edgeBox;
     EditorMiscBox miscBox;
@@ -61,6 +69,105 @@ GridBuilderGrid::GridBuilderGrid(
 
 GridBuilderGrid::~GridBuilderGrid() =
 default;
+
+void GridBuilderGrid::registerMap(const std::string& key,
+                                  const std::string& filename)
+{
+    m_impl->mapFiles[key] = filename;
+}
+
+void GridBuilderGrid::setMapDirectory(const std::string& directory)
+{
+    m_impl->mapDirectory = directory;
+}
+
+bool GridBuilderGrid::openMap(const std::string& key, const std::string& displayName)
+{
+    if (key == m_impl->currentMapKey)
+    {
+        m_impl->worldViewWindow.setMapName(displayName);
+        return true;
+    }
+
+    const auto found = m_impl->mapFiles.find(key);
+    std::filesystem::path target;
+    if (found != m_impl->mapFiles.end())
+        target = found->second;
+    else
+    {
+        if (m_impl->mapDirectory.empty() || key.empty() ||
+            !std::all_of(key.begin(), key.end(), [](unsigned char c) {
+                return (c >= 'a' && c <= 'z') ||
+                       (c >= 'A' && c <= 'Z') ||
+                       (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '/';
+            })) return false;
+        std::string filename = displayName.empty()
+            ? std::filesystem::path(key).filename().string()
+            : displayName;
+        for (char& character : filename)
+        {
+            if (static_cast<unsigned char>(character) < 32 ||
+                std::string("<>:\"/\\|?*").find(character) != std::string::npos)
+                character = '_';
+        }
+        while (!filename.empty() &&
+               (filename.back() == ' ' || filename.back() == '.'))
+            filename.pop_back();
+        if (filename.empty() || filename == "." || filename == "..") return false;
+
+        std::u8string utf8Filename;
+        for (unsigned char byte : filename)
+            utf8Filename.push_back(static_cast<char8_t>(byte));
+        utf8Filename += u8".map";
+        target = m_impl->mapDirectory / std::filesystem::path(key).parent_path() /
+            std::filesystem::path(utf8Filename);
+
+        // Preserve maps created by the earlier ID-based naming scheme.
+        const auto legacy = m_impl->mapDirectory / (key + ".map");
+        std::error_code lookupError;
+        if (!std::filesystem::exists(target, lookupError) && !lookupError &&
+            std::filesystem::exists(legacy, lookupError) && !lookupError)
+        {
+            std::filesystem::create_directories(target.parent_path(), lookupError);
+            if (lookupError) return false;
+            std::filesystem::rename(legacy, target, lookupError);
+            if (lookupError) target = legacy;
+        }
+    }
+
+    if (m_impl->worldViewWindow.hasUnsavedChanges())
+    {
+        if (m_impl->currentMapKey.empty()) return false;
+        const auto previous = m_impl->mapFiles.find(m_impl->currentMapKey);
+        if (previous == m_impl->mapFiles.end() ||
+            !m_impl->worldViewWindow.saveMap(previous->second)) return false;
+    }
+
+    std::error_code error;
+    const bool exists = std::filesystem::exists(target, error);
+    if (error) return false;
+    if (exists)
+    {
+        if (!m_impl->worldViewWindow.loadMap(target.string())) return false;
+    }
+    else
+    {
+        std::filesystem::create_directories(target.parent_path(), error);
+        if (error) return false;
+        ChunkManager emptyMap(m_impl->worldViewWindow.map().chunkSize());
+        if (!MapSerializer::save(emptyMap, target.string()) ||
+            !m_impl->worldViewWindow.loadMap(target.string())) return false;
+    }
+    m_impl->mapFiles[key] = target.string();
+    m_impl->currentMapKey = key;
+    m_impl->worldViewWindow.setMapName(displayName);
+    return true;
+}
+
+void GridBuilderGrid::setPlayerMarker(const MapPlayerMarker& marker)
+{
+    m_impl->worldViewWindow.setPlayerMarker(marker);
+}
 
 const ChunkManager& GridBuilderGrid::map() const
 {

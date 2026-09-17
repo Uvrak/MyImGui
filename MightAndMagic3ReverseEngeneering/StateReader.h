@@ -1,7 +1,7 @@
 #pragma once
 
 #include "GameState.h"
-#include "MemoryReader.h"
+#include "../DosBoxMemoryTools/MemoryReader.h"
 
 namespace MightAndMagic3
 {

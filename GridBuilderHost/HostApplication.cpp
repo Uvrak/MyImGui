@@ -6,7 +6,7 @@
 #include "DosBoxWindow.h"
 #include "MainMenu.h"
 #include "HostUi.h"
-#include "MM3Launcher.h"
+#include "../GridBuilderCore/GameModule.h"
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "NamedPipeClient.h"
@@ -40,7 +40,7 @@ namespace GridBuilderHost
         ImGuiHost& imGuiHost,
         GridBuilderGrid& gridBuilderGrid,
         HostUi& hostUi,
-        MightAndMagic3::MM3Launcher& mm3Launcher,
+        GameModule& gameModule,
         DosBoxX::Keyboard& dosBoxKeyboard,
         DosBoxX::Mouse& dosBoxMouse,
         DosBoxX::Memory& dosBoxMemory,
@@ -52,7 +52,7 @@ namespace GridBuilderHost
 
         DebugWindow debugWindow;
 
-        mm3Launcher.start();
+        gameModule.start();
         
         while (running)
         {
@@ -108,7 +108,35 @@ namespace GridBuilderHost
                 );
             }
 
-            mm3Launcher.update();
+            gameModule.update();
+            bool mapOpen = false;
+            if (const auto key = gameModule.currentMapKey())
+                mapOpen = gridBuilderGrid.openMap(
+                    *key, gameModule.currentMapName().value_or("")
+                );
+
+            MapPlayerMarker marker;
+            if (mapOpen)
+            {
+                if (const auto position = gameModule.currentPosition())
+                {
+                    marker.x = position->x;
+                    marker.y = position->y;
+                    marker.visible = true;
+                    switch (position->direction)
+                    {
+                    case GameFacingDirection::North:
+                        marker.direction = MapFacingDirection::North; break;
+                    case GameFacingDirection::East:
+                        marker.direction = MapFacingDirection::East; break;
+                    case GameFacingDirection::South:
+                        marker.direction = MapFacingDirection::South; break;
+                    case GameFacingDirection::West:
+                        marker.direction = MapFacingDirection::West; break;
+                    }
+                }
+            }
+            gridBuilderGrid.setPlayerMarker(marker);
 
             dosBoxFramePipeline.update();
 

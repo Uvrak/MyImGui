@@ -14,10 +14,7 @@ namespace DosBoxX
     class Memory;
 }
 
-namespace MightAndMagic3
-{
-    class MM3Launcher;
-}
+class GameModule;
 
 class GridBuilderGrid;
 
@@ -43,7 +40,7 @@ namespace GridBuilderHost
             ImGuiHost& imGuiHost,
             GridBuilderGrid& gridBuilderGrid,
             HostUi& hostUi,
-            MightAndMagic3::MM3Launcher& mm3Launcher,
+            GameModule& gameModule,
             DosBoxX::Keyboard& dosBoxKeyboard,
             DosBoxX::Mouse& dosBoxMouse,
             DosBoxX::Memory& dosBoxMemory,
