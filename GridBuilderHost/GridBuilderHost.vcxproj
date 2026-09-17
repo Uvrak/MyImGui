@@ -188,6 +188,11 @@
     <ClInclude Include="Process.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopySDL3Runtime" AfterTargets="Build"
+          Condition="Exists('$(SolutionDir)ThirdParty\SDL3\lib\$(Platform)\SDL3.dll')">
+    <Copy SourceFiles="$(SolutionDir)ThirdParty\SDL3\lib\$(Platform)\SDL3.dll"
+          DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

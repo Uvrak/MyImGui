@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- long, low curved lid -->
+    <path d="M4 29V24C4 17 15 14 32 14C49 14 60 17 60 24V29"/>
+    <path d="M4 29H60"/>
+    <path d="M10 29V24C10 20 18 17 32 17C46 17 54 20 54 24V29"/>
+
+    <!-- iron straps and latch -->
+    <path d="M18 29V17"/>
+    <path d="M46 29V17"/>
+    <path d="M28 29V35H36V29"/>
+    <path d="M31 32H33"/>
+
+    <!-- chest body -->
+    <path d="M4 29V47C4 50 7 52 10 52H54C57 52 60 50 60 47V29"/>
+    <path d="M10 29V52"/>
+    <path d="M54 29V52"/>
+    <path d="M10 44H54"/>
+    <path d="M16 52V55H23V52"/>
+    <path d="M41 52V55H48V52"/>
+  </g>
+</svg>

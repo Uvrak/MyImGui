@@ -20,6 +20,7 @@
 #include <cstdio>
 #include <Windows.h>
 #include <cstdint>
+#include <cmath>
 
 #include <SDL3/SDL.h>
 #include "imgui.h"
@@ -57,6 +58,17 @@ namespace GridBuilderHost
         std::size_t emulatedClickCount = 0;
         bool mapWasAvailable = false;
         bool mapSaveFailed = false;
+        std::optional<GameButtonPoint> pendingModeClick;
+        float modeClickX = 0.0f;
+        float modeClickY = 0.0f;
+        bool modeClickDragged = false;
+
+        const auto sendDosBoxClick = [&](GameButtonPoint click) {
+            if (!gameModule.onDosBoxMouseClick(click))
+                dosBoxMouse.click(dosBoxPipeClient, click.x, click.y,
+                    static_cast<int>(dosBoxFramePipeline.contentWidth()),
+                    static_cast<int>(dosBoxFramePipeline.contentHeight()));
+        };
 
         gameModule.start();
         
@@ -72,6 +84,8 @@ namespace GridBuilderHost
             {
                 if (event.type == SDL_EVENT_KEY_DOWN && !event.key.repeat)
                 {
+                    if (SDL_GetKeyboardFocus() == nullptr)
+                        dosBoxKeyboard.recordBackgroundEvent(event.key);
                     int key = static_cast<int>(event.key.key);
                     switch (event.key.scancode)
                     {
@@ -86,7 +100,11 @@ namespace GridBuilderHost
                         !gameModule.inventoryMenuTitle().empty();
                 }
                 else if (event.type == SDL_EVENT_KEY_UP)
+                {
+                    if (SDL_GetKeyboardFocus() == nullptr)
+                        dosBoxKeyboard.recordBackgroundEvent(event.key);
                     gameModule.keyUp(static_cast<int>(event.key.key));
+                }
 
                 if (event.type ==
                     SDL_EVENT_QUIT)
@@ -116,22 +134,44 @@ namespace GridBuilderHost
                 if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
                     event.button.button == SDL_BUTTON_LEFT)
                 {
-                    if (!gameModule.buttonEditingActive())
+                    TraceGridBuilderMouse("SDL_DOWN",
+                        static_cast<unsigned long long>(
+                            (SDL_GetTicksNS() - event.button.timestamp) / 1000000));
+                    pendingModeClick.reset();
+                    if (const auto click = hostUi.onLeftMouseButtonDown(
+                        event.button.x, event.button.y,
+                        dosBoxMouse, dosBoxPipeClient))
                     {
-                        TraceGridBuilderMouse("SDL_DOWN",
-                            static_cast<unsigned long long>(
-                                (SDL_GetTicksNS() - event.button.timestamp) / 1000000));
                         dosBoxMouse.setLeftButtonDown(true);
-                        if (const auto click = hostUi.onLeftMouseButtonDown(
-                            event.button.x, event.button.y,
-                            dosBoxMouse, dosBoxPipeClient))
-                            gameModule.onDosBoxMouseClick(*click);
+                        if (gameModule.buttonEditingActive())
+                        {
+                            pendingModeClick = click;
+                            modeClickX = event.button.x;
+                            modeClickY = event.button.y;
+                            modeClickDragged = false;
+                        }
+                        else sendDosBoxClick(*click);
                     }
                 }
-                else if ((event.type == SDL_EVENT_MOUSE_BUTTON_UP &&
-                    event.button.button == SDL_BUTTON_LEFT) ||
-                    event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+                else if (event.type == SDL_EVENT_MOUSE_MOTION && pendingModeClick)
                 {
+                    if (std::abs(event.motion.x - modeClickX) > 4.0f ||
+                        std::abs(event.motion.y - modeClickY) > 4.0f)
+                        modeClickDragged = true;
+                }
+                else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP &&
+                    event.button.button == SDL_BUTTON_LEFT)
+                {
+                    if (pendingModeClick && !modeClickDragged &&
+                        std::abs(event.button.x - modeClickX) <= 4.0f &&
+                        std::abs(event.button.y - modeClickY) <= 4.0f)
+                        sendDosBoxClick(*pendingModeClick);
+                    pendingModeClick.reset();
+                    dosBoxMouse.setLeftButtonDown(false);
+                }
+                else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+                {
+                    pendingModeClick.reset();
                     dosBoxMouse.setLeftButtonDown(false);
                 }
 
@@ -203,7 +243,8 @@ namespace GridBuilderHost
                           !gameModule.inventoryMenuTitle().empty()))) return "";
                     return command;
                 },
-                !gameModule.blockDirectDosBoxKeyboard() && !menuHandledKeyboard
+                !gameModule.blockDirectDosBoxKeyboard() && !menuHandledKeyboard,
+                SDL_GetKeyboardFocus() == nullptr
             );
 
             if (!gameModule.buttonEditingActive())
@@ -232,11 +273,14 @@ namespace GridBuilderHost
             if (const auto modified = hostUi.takeModifiedButton())
                 hostUi.setButtonSaveFailed(!gameModule.modifyButton(*modified));
 
-            if (const auto click = gameModule.takeButtonClick())
+            // Let an earlier click finish, including physical button release,
+            // before the module observes its result and advances a click sequence.
+            if (!dosBoxMouse.clickPending())
             {
-                dosBoxMouse.click(dosBoxPipeClient, click->x, click->y,
-                    static_cast<int>(dosBoxFramePipeline.contentWidth()),
-                    static_cast<int>(dosBoxFramePipeline.contentHeight()));
+                if (const auto click = gameModule.takeButtonClick())
+                    dosBoxMouse.click(dosBoxPipeClient, click->x, click->y,
+                        static_cast<int>(dosBoxFramePipeline.contentWidth()),
+                        static_cast<int>(dosBoxFramePipeline.contentHeight()));
             }
 
             dosBoxMouse.updatePendingClick(

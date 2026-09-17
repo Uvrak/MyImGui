@@ -1,19 +1,95 @@
 #include "Keyboard.h"
 
+#include <algorithm>
 #include <string>
+#include <utility>
 
 #include "NamedPipeClient.h"
 #include "imgui.h"
 
 namespace DosBoxX
 {
+    namespace
+    {
+        ImGuiKey keyFromScancode(SDL_Scancode scancode)
+        {
+            if (scancode >= SDL_SCANCODE_A && scancode <= SDL_SCANCODE_Z)
+                return static_cast<ImGuiKey>(ImGuiKey_A + scancode - SDL_SCANCODE_A);
+            if (scancode >= SDL_SCANCODE_1 && scancode <= SDL_SCANCODE_9)
+                return static_cast<ImGuiKey>(ImGuiKey_1 + scancode - SDL_SCANCODE_1);
+            if (scancode >= SDL_SCANCODE_F1 && scancode <= SDL_SCANCODE_F12)
+                return static_cast<ImGuiKey>(ImGuiKey_F1 + scancode - SDL_SCANCODE_F1);
+            switch (scancode)
+            {
+            case SDL_SCANCODE_0: return ImGuiKey_0;
+            case SDL_SCANCODE_RETURN: return ImGuiKey_Enter;
+            case SDL_SCANCODE_ESCAPE: return ImGuiKey_Escape;
+            case SDL_SCANCODE_BACKSPACE: return ImGuiKey_Backspace;
+            case SDL_SCANCODE_TAB: return ImGuiKey_Tab;
+            case SDL_SCANCODE_SPACE: return ImGuiKey_Space;
+            case SDL_SCANCODE_MINUS: return ImGuiKey_Minus;
+            case SDL_SCANCODE_EQUALS: return ImGuiKey_Equal;
+            case SDL_SCANCODE_LEFTBRACKET: return ImGuiKey_LeftBracket;
+            case SDL_SCANCODE_RIGHTBRACKET: return ImGuiKey_RightBracket;
+            case SDL_SCANCODE_BACKSLASH: return ImGuiKey_Backslash;
+            case SDL_SCANCODE_SEMICOLON: return ImGuiKey_Semicolon;
+            case SDL_SCANCODE_APOSTROPHE: return ImGuiKey_Apostrophe;
+            case SDL_SCANCODE_COMMA: return ImGuiKey_Comma;
+            case SDL_SCANCODE_PERIOD: return ImGuiKey_Period;
+            case SDL_SCANCODE_SLASH: return ImGuiKey_Slash;
+            case SDL_SCANCODE_CAPSLOCK: return ImGuiKey_CapsLock;
+            case SDL_SCANCODE_INSERT: return ImGuiKey_Insert;
+            case SDL_SCANCODE_HOME: return ImGuiKey_Home;
+            case SDL_SCANCODE_PAGEUP: return ImGuiKey_PageUp;
+            case SDL_SCANCODE_DELETE: return ImGuiKey_Delete;
+            case SDL_SCANCODE_END: return ImGuiKey_End;
+            case SDL_SCANCODE_PAGEDOWN: return ImGuiKey_PageDown;
+            case SDL_SCANCODE_UP: return ImGuiKey_UpArrow;
+            case SDL_SCANCODE_DOWN: return ImGuiKey_DownArrow;
+            case SDL_SCANCODE_LEFT: return ImGuiKey_LeftArrow;
+            case SDL_SCANCODE_RIGHT: return ImGuiKey_RightArrow;
+            case SDL_SCANCODE_LCTRL: return ImGuiKey_LeftCtrl;
+            case SDL_SCANCODE_RCTRL: return ImGuiKey_RightCtrl;
+            case SDL_SCANCODE_LSHIFT: return ImGuiKey_LeftShift;
+            case SDL_SCANCODE_RSHIFT: return ImGuiKey_RightShift;
+            case SDL_SCANCODE_LALT: return ImGuiKey_LeftAlt;
+            case SDL_SCANCODE_RALT: return ImGuiKey_RightAlt;
+            default: return ImGuiKey_None;
+            }
+        }
+    }
+
+    void Keyboard::recordBackgroundEvent(const SDL_KeyboardEvent& event)
+    {
+        if (event.repeat) return;
+        const ImGuiKey key = keyFromScancode(event.scancode);
+        if (key != ImGuiKey_None)
+            m_backgroundEvents.push_back({key, event.type == SDL_EVENT_KEY_DOWN});
+    }
+
     void Keyboard::update(
         NamedPipeClient& namedPipeClient,
         const DosBoxKeyCommandResolver&
         commandResolver,
-        bool enabled
+        bool enabled,
+        bool background
     )
     {
+        if (background != m_background)
+        {
+            for (const auto& [key, command] : m_downCommands)
+                namedPipeClient.send("KEYUP:" + command);
+            m_downCommands.clear();
+            m_background = background;
+        }
+        if (!enabled)
+        {
+            for (const auto& [key, command] : m_downCommands)
+                namedPipeClient.send("KEYUP:" + command);
+            m_downCommands.clear();
+            m_backgroundEvents.clear();
+            return;
+        }
         struct KeyMapping
         {
             ImGuiKey key;
@@ -193,6 +269,50 @@ namespace DosBoxX
             { ImGuiKey_CapsLock, "CAPSLOCK" }
         };
 
+        if (background)
+        {
+            const std::pair<const KeyMapping*, size_t> groups[] = {
+                {letterKeys, std::size(letterKeys)},
+                {digitKeys, std::size(digitKeys)},
+                {functionKeys, std::size(functionKeys)},
+                {navigationKeys, std::size(navigationKeys)},
+                {symbolKeys, std::size(symbolKeys)},
+                {modifierKeys, std::size(modifierKeys)},
+                {basicKeys, std::size(basicKeys)},
+                {specialKeys, std::size(specialKeys)}
+            };
+            for (const auto& event : m_backgroundEvents)
+            {
+                for (const auto& [mappings, count] : groups)
+                {
+                    const auto* match = std::find_if(mappings, mappings + count,
+                        [&](const KeyMapping& mapping) { return mapping.key == event.key; });
+                    if (match == mappings + count) continue;
+                    const int keyId = static_cast<int>(event.key);
+                    const auto down = m_downCommands.find(keyId);
+                    if (!event.down)
+                    {
+                        if (down != m_downCommands.end())
+                        {
+                            namedPipeClient.send("KEYUP:" + down->second);
+                            m_downCommands.erase(down);
+                        }
+                    }
+                    else if (down == m_downCommands.end())
+                    {
+                        std::string command = commandResolver
+                            ? commandResolver(event.key, match->command)
+                            : match->command;
+                        if (!command.empty() && namedPipeClient.send("KEYDOWN:" + command))
+                            m_downCommands.emplace(keyId, std::move(command));
+                    }
+                    break;
+                }
+            }
+            m_backgroundEvents.clear();
+            return;
+        }
+
         processKeys(
             letterKeys,
             std::size(letterKeys)
@@ -232,5 +352,6 @@ namespace DosBoxX
             specialKeys,
             std::size(specialKeys)
         );
+        m_backgroundEvents.clear();
     }
 }

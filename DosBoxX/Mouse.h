@@ -42,6 +42,10 @@ namespace DosBoxX
         void updatePendingClick(NamedPipeClient& namedPipeClient);
         std::vector<EmulatedMouseClick> takeEmulatedClicks();
         void setLeftButtonDown(bool down);
+        bool clickPending() const
+        {
+            return m_clickPending || m_leftButtonDown || !m_clickQueue.empty();
+        }
     private:
         bool m_inputActive = false;
         int m_lastX = -1;

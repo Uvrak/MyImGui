@@ -162,8 +162,11 @@ bool GridBuilderGrid::saveCurrentMap()
 {
     if (!m_impl->worldViewWindow.hasUnsavedChanges()) return true;
     const auto current = m_impl->mapFiles.find(m_impl->currentMapKey);
-    return current != m_impl->mapFiles.end() &&
-        m_impl->worldViewWindow.saveMap(current->second);
+    if (current == m_impl->mapFiles.end()) return true;
+    std::error_code error;
+    const bool exists = std::filesystem::exists(current->second, error);
+    if (error) return false;
+    return !exists || m_impl->worldViewWindow.saveMap(current->second);
 }
 
 void GridBuilderGrid::setPlayerMarker(const MapPlayerMarker& marker)

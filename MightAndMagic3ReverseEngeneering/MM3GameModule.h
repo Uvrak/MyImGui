@@ -8,6 +8,7 @@
 #include "MM3KeyBindings.h"
 #include "ScreenSignatures.h"
 #include "InventoryClickRetry.h"
+#include "InventoryPortraitSwitch.h"
 #include "MightAndMagic3Inventory.h"
 #include <vector>
 #include <array>
@@ -26,7 +27,7 @@ namespace MightAndMagic3
         void start() override;
         void update() override;
         void keyDown(int key) override;
-        void onDosBoxMouseClick(GameButtonPoint point) override;
+        bool onDosBoxMouseClick(GameButtonPoint point) override;
         bool blockDirectDosBoxKeyboard() const override;
         bool blockDirectDosBoxVerticalKeys() const override { return m_inventoryVisible || m_spellsVisible; }
         bool blockDirectDosBoxInventoryKeys() const override { return m_inventoryVisible || m_spellsVisible; }
@@ -78,6 +79,8 @@ namespace MightAndMagic3
         std::vector<std::string> m_otherButtonConfigLines;
         std::string m_buttonConfigPath;
         bool m_pendingButtonClick = false;
+        InventoryPortraitSwitch m_portraitSwitch;
+        GameButtonPoint m_portraitSwitchPoint;
         struct InventoryActionSelection
         {
             int character;
@@ -113,8 +116,12 @@ namespace MightAndMagic3
         void loadButtons(const std::string& path);
         bool saveButtons() const;
         void rememberInventorySelection();
+        bool beginPortraitSwitch(GameButtonPoint point);
+        std::optional<GameButtonPoint> advancePortraitSwitch();
         std::string characterName(int slot) const;
         void queueInventorySelection(int index, bool restore);
+        void queueItemActionSelection(int index);
+        void trackInventoryActionClick(GameButtonPoint point);
         bool selectedInventoryItemActive() const;
         void initializeSpellSelection();
         void materializeSpellButtons();

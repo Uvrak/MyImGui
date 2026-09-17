@@ -19,4 +19,14 @@ namespace MightAndMagic3
     };
 
     using CharacterInventories = std::array<CharacterInventory, 8>;
+
+    template <class IsOccupied>
+    int resolveInventoryIndex(int preferred, const IsOccupied& occupied)
+    {
+        if (preferred >= 0 && preferred < CharacterInventory::SlotCount && occupied(preferred))
+            return preferred;
+        for (int slot = CharacterInventory::SlotCount - 1; slot >= 0; --slot)
+            if (occupied(slot)) return slot;
+        return -1;
+    }
 }

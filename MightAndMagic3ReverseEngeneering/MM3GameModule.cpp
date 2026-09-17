@@ -43,7 +43,10 @@ namespace MightAndMagic3
 
     void MM3GameModule::start() { m_launcher.start(); }
 
-    bool MM3GameModule::blockDirectDosBoxKeyboard() const { return buttonEditingActive(); }
+    bool MM3GameModule::blockDirectDosBoxKeyboard() const
+    {
+        return buttonEditingActive() || m_portraitSwitch.active();
+    }
 
     std::string MM3GameModule::buttonViewName() const
     {
@@ -260,6 +263,7 @@ namespace MightAndMagic3
     std::optional<GameButtonPoint> MM3GameModule::takeButtonClick()
     {
         const auto now = std::chrono::steady_clock::now();
+        if (m_portraitSwitch.active()) return advancePortraitSwitch();
         if (m_spellsVisible && !m_portraitMode && m_pendingSpellClick &&
             now >= m_spellReadyAt)
         {
@@ -272,20 +276,16 @@ namespace MightAndMagic3
         {
             const auto click = m_pendingInventoryClicks.front();
             m_pendingInventoryClicks.pop_front();
-            if (m_inventorySelectionClick &&
-                click.x == m_inventorySelectionClick->x &&
-                click.y == m_inventorySelectionClick->y &&
-                selectedInventoryItemActive())
-            {
-                m_inventorySelectionClickPending = false;
-                m_inventoryClickRetry.reset();
-                return std::nullopt;
-            }
             m_inventoryClickRetry.reset();
+            int itemActionIndex = -1;
             if (m_inventoryActionSelection && !m_inventoryActionSelection->dispatched)
             {
                 m_inventoryActionSelection->dispatched = true;
                 m_inventoryActionSelection->snapshot = m_memoryReader.snapshotId();
+                if ((click.x == 202 && click.y == 241) ||
+                    (click.x == 277 && click.y == 238) ||
+                    (click.x == 350 && click.y == 239))
+                    itemActionIndex = m_inventoryActionSelection->index;
             }
             const bool changesPage = (click.x == 127 || click.x == 53) && click.y == 236;
             if (click.x == 127 && click.y == 236)
@@ -305,9 +305,10 @@ namespace MightAndMagic3
             // Keep that click queued instead of requiring another key press.
             m_nextInventoryClickTime = now + (changesPage ?
                 InventoryTransitionDelay : std::chrono::milliseconds(150));
+            if (itemActionIndex >= 0) queueItemActionSelection(itemActionIndex);
             return click;
         }
-        if (m_inventoryVisible && !buttonEditingActive() &&
+        if (m_inventoryVisible &&
             m_inventoryCharacter >= 0 && m_inventorySelectionClick &&
             m_pendingInventoryClicks.empty() && !m_inventoryActionSelection &&
             m_inventoryMenu == InventoryMenu::None)
@@ -332,10 +333,13 @@ namespace MightAndMagic3
         m_pendingButtonClick = false;
         const auto rect = selectedButtonRect();
         if (!rect) return std::nullopt;
-        return GameButtonPoint{
+        const GameButtonPoint point{
             static_cast<int>(rect->x + rect->width * 0.5f),
             static_cast<int>(rect->y + rect->height * 0.5f)
         };
+        if (beginPortraitSwitch(point)) return std::nullopt;
+        trackInventoryActionClick(point);
+        return point;
     }
 
     void MM3GameModule::setFrame(const uint8_t* pixels, uint32_t width,
@@ -380,7 +384,6 @@ namespace MightAndMagic3
             m_inventoryClickRetry.reset();
             m_inventoryActionSelection.reset();
             m_buttonMode = !m_buttonMode;
-            m_inventoryMenu = InventoryMenu::None;
             m_pendingInventoryClicks.clear();
             m_inventorySelectionClickPending = false;
             if (m_buttonMode) m_portraitMode = false;
@@ -395,15 +398,26 @@ namespace MightAndMagic3
             m_inventoryClickRetry.reset();
             m_inventoryActionSelection.reset();
             m_portraitMode = !m_portraitMode;
-            m_inventoryMenu = InventoryMenu::None;
             m_pendingInventoryClicks.clear();
             m_inventorySelectionClickPending = false;
             if (m_portraitMode) m_buttonMode = false;
-            m_selectedButton = m_portraitMode && !buttons().empty() ? 0 : -1;
+            m_selectedButton = -1;
+            if (m_portraitMode && !m_portraitControls.empty())
+            {
+                constexpr std::size_t characterAddress = 0x2068E;
+                const auto& memory = m_memoryReader.memory();
+                const int character = memory.size() > characterAddress
+                    ? memory[characterAddress] : -1;
+                m_selectedButton = character >= 0 &&
+                    character < static_cast<int>(m_portraitControls.size())
+                    ? character : 0;
+            }
             if (!m_portraitMode) m_showButtonOutlines = false;
             m_pendingButtonClick = false;
             return;
         }
+        // A second Return must not restart a switch that is already in flight.
+        if (m_portraitSwitch.active()) return;
         if (m_spellsVisible && !m_portraitMode && matches(KeyAction::ActivateButton))
         {
             // Cast retains control, but Return confirms the spell-list dialog.
@@ -413,16 +427,7 @@ namespace MightAndMagic3
             m_spellReadyAt = std::chrono::steady_clock::now();
             return;
         }
-        if ((buttonEditingActive() || castSpellListActive()) && matches(KeyAction::ActivateButton))
-        {
-            m_pendingSpellClick.reset();
-            m_restoreReadySpell = false;
-            m_inventoryActionSelection.reset();
-            m_pendingButtonClick = true;
-            return;
-        }
-        if (m_inventoryVisible && !buttonEditingActive() &&
-            m_inventoryMenu != InventoryMenu::None)
+        if (m_inventoryVisible && m_inventoryMenu != InventoryMenu::None)
         {
             const auto entries = inventoryMenuEntries();
             if (matches(KeyAction::ButtonUp) && m_menuSelection > 0) --m_menuSelection;
@@ -498,6 +503,29 @@ namespace MightAndMagic3
             }
             return;
         }
+        if (m_inventoryVisible && m_portraitMode && !m_portraitSwitch.active() &&
+            matches(KeyAction::ActivateButton) &&
+            m_selectedButton == m_inventoryCharacter &&
+            m_selectedButton >= 0 &&
+            m_selectedButton < static_cast<int>(m_portraitControls.size()))
+        {
+            if (selectedInventoryItemActive())
+            {
+                m_inventoryMenu = InventoryMenu::Actions;
+                m_menuSelection = 0;
+            }
+            m_pendingButtonClick = false;
+            return;
+        }
+        if ((buttonEditingActive() || castSpellListActive()) && matches(KeyAction::ActivateButton))
+        {
+            m_portraitSwitch.reset();
+            m_pendingSpellClick.reset();
+            m_restoreReadySpell = false;
+            m_inventoryActionSelection.reset();
+            m_pendingButtonClick = true;
+            return;
+        }
         if (m_inventoryVisible && !buttonEditingActive() &&
             matches(KeyAction::ActivateButton))
         {
@@ -508,7 +536,7 @@ namespace MightAndMagic3
             }
             return;
         }
-        if (m_inventoryVisible && !buttonEditingActive() &&
+        if (m_inventoryVisible &&
             (matches(KeyAction::ButtonUp) || matches(KeyAction::ButtonDown)))
         {
             if (m_inventoryCharacter < 0) return;
@@ -624,8 +652,10 @@ namespace MightAndMagic3
         m_selectedButton = best;
     }
 
-    void MM3GameModule::onDosBoxMouseClick(GameButtonPoint point)
+    bool MM3GameModule::onDosBoxMouseClick(GameButtonPoint point)
     {
+        if (beginPortraitSwitch(point)) return true;
+        m_portraitSwitch.reset();
         m_inventoryClickRetry.reset();
         if (m_spellsVisible)
         {
@@ -644,8 +674,9 @@ namespace MightAndMagic3
                     m_selectedButton = i;
             }
         }
-        if (!m_inventoryVisible || m_inventoryCharacter < 0) return;
+        if (!m_inventoryVisible || m_inventoryCharacter < 0) return false;
         m_inventoryActionSelection.reset();
+        trackInventoryActionClick(point);
         const auto& inventoryButtons = m_buttons[5];
         const auto hitsButton = [&](std::size_t index) {
             if (index >= inventoryButtons.size()) return false;
@@ -659,22 +690,22 @@ namespace MightAndMagic3
             m_inventorySelectionClickPending = false;
             m_inventoryPage = (m_inventoryPage +
                 (hitsButton(1) ? 1 : InventoryPageCount - 1)) % InventoryPageCount;
-            return;
+            return false;
         }
 
         // The nine visible item rows form one inventory page.
         if (point.x < 30 || point.x > 320 || point.y < 36 || point.y >= 198)
-            return;
+            return false;
         const int visibleRow = (point.y - 36) / 18;
         const int absoluteIndex = m_inventoryPage * InventoryRowsPerPage + visibleRow;
-        if (absoluteIndex >= CharacterInventory::SlotCount) return;
+        if (absoluteIndex >= CharacterInventory::SlotCount) return false;
         constexpr std::size_t firstItemIds = 0x2BFEE;
         constexpr std::size_t characterRecordSize = 0x12F;
         const auto itemAddress = firstItemIds +
             static_cast<std::size_t>(m_inventoryCharacter) * characterRecordSize +
             absoluteIndex;
         const auto& memory = m_memoryReader.memory();
-        if (itemAddress >= memory.size() || memory[itemAddress] == 0) return;
+        if (itemAddress >= memory.size() || memory[itemAddress] == 0) return false;
 
         m_pendingInventoryClicks.clear();
         m_inventorySelectionClick = point;
@@ -687,6 +718,64 @@ namespace MightAndMagic3
             std::chrono::milliseconds(1000);
         m_inventoryClickRetry.arm(std::chrono::steady_clock::now(), m_memoryReader.snapshotId());
         saveButtons();
+        return false;
+    }
+
+    bool MM3GameModule::beginPortraitSwitch(GameButtonPoint point)
+    {
+        if (!m_inventoryVisible) return false;
+        for (std::size_t slot = 0;
+             slot < m_portraitControls.size() && slot < m_characterInventories.size(); ++slot)
+        {
+            const auto& rect = m_portraitControls[slot];
+            if (point.x < rect.x || point.x >= rect.x + rect.width ||
+                point.y < rect.y || point.y >= rect.y + rect.height) continue;
+            if (m_inventoryCharacter < 0 || static_cast<int>(slot) == m_inventoryCharacter ||
+                characterName(static_cast<int>(slot)).empty()) return true;
+            // Consume normal portrait input before it can give away an item.
+            // Explicit "Give to" actions use m_pendingInventoryClicks instead.
+            m_portraitSwitch.reset();
+            m_inventoryClickRetry.reset();
+            m_inventoryActionSelection.reset();
+            m_pendingInventoryClicks.clear();
+            m_inventorySelectionClick.reset();
+            m_inventorySelectionClickPending = false;
+            m_pendingButtonClick = false;
+            m_inventoryMenu = InventoryMenu::None;
+            m_portraitSwitchPoint = point;
+            m_portraitSwitch.begin(m_inventoryCharacter);
+            return true;
+        }
+        return false;
+    }
+
+    std::optional<GameButtonPoint> MM3GameModule::advancePortraitSwitch()
+    {
+        std::optional<InventoryPortraitSwitch::Selection> selection;
+        const auto& memory = m_memoryReader.memory();
+        if (memory.size() > 0x304D3 && memory[0x2068E] < m_characterInventories.size())
+        {
+            const auto word = [&](std::size_t address) {
+                return static_cast<int>(memory[address]) |
+                    (static_cast<int>(memory[address + 1]) << 8);
+            };
+            selection = InventoryPortraitSwitch::Selection{
+                memory[0x2068E], word(0x304D0), word(0x304D2)};
+        }
+        const auto action = m_portraitSwitch.poll(std::chrono::steady_clock::now(),
+            m_memoryReader.snapshotId(), selection);
+        if (action == InventoryPortraitSwitch::Action::DeselectItem)
+            return GameButtonPoint{85, 45 + 18 * (selection->activeIndex % InventoryRowsPerPage)};
+        if (action == InventoryPortraitSwitch::Action::SelectCharacter)
+            return m_portraitSwitchPoint;
+        if (action == InventoryPortraitSwitch::Action::RestoreSelection &&
+            m_inventoryCharacter >= 0 && !selectedInventoryItemActive())
+        {
+            const int selected = m_characterInventories[m_inventoryCharacter].selectedIndex;
+            if (selected >= 0 && selected < CharacterInventory::SlotCount)
+                queueInventorySelection(selected, false);
+        }
+        return std::nullopt;
     }
 
     void MM3GameModule::rememberInventorySelection()
@@ -716,40 +805,29 @@ namespace MightAndMagic3
         if (character >= m_characterInventories.size()) return;
 
         auto& selected = m_characterInventories[character].selectedIndex;
+        constexpr std::size_t firstItemIds = 0x2BFEE;
+        constexpr std::size_t characterRecordSize = 0x12F;
+        const auto occupied = [&](int slot) {
+            if (slot < 0 || slot >= CharacterInventory::SlotCount) return false;
+            const auto address = firstItemIds +
+                static_cast<std::size_t>(character) * characterRecordSize + slot;
+            return address < memory.size() && memory[address] != 0;
+        };
         if (m_inventoryCharacter != character)
         {
+            m_portraitSwitch.reset();
             m_inventoryActionSelection.reset();
             m_inventoryCharacter = character;
             m_inventoryPage = 0;
             m_inventoryVisibleRow = 0;
             m_inventoryMenu = InventoryMenu::None;
             m_pendingInventoryClicks.clear();
-            constexpr std::size_t firstItemIds = 0x2BFEE;
-            constexpr std::size_t characterRecordSize = 0x12F;
-            const auto occupied = [&](int slot) {
-                if (slot < 0 || slot >= CharacterInventory::SlotCount) return false;
-                const auto address = firstItemIds +
-                    static_cast<std::size_t>(character) * characterRecordSize + slot;
-                return address < memory.size() && memory[address] != 0;
-            };
-            if (!occupied(selected))
-            {
-                selected = -1;
-                for (int slot = CharacterInventory::SlotCount - 1; slot >= 0; --slot)
-                    if (occupied(slot)) { selected = slot; break; }
-            }
+            selected = resolveInventoryIndex(selected, occupied);
             if (selected >= 0)
             {
-                if (!selectedInventoryItemActive())
-                    queueInventorySelection(selected, true);
-                else
-                {
-                    m_inventoryPage = selected / InventoryRowsPerPage;
-                    m_inventoryVisibleRow = selected % InventoryRowsPerPage;
-                    m_inventorySelectionClick.reset();
-                    m_inventorySelectionClickPending = false;
-                    m_inventoryClickRetry.reset();
-                }
+                // Item index fields may still describe the previous character.
+                // Always send this character's first selection click.
+                queueInventorySelection(selected, true);
                 saveButtons();
             }
             else
@@ -764,6 +842,9 @@ namespace MightAndMagic3
                 std::chrono::milliseconds(1000);
             return;
         }
+        // Keep the remembered source index and all automatic selection clicks
+        // paused while the deliberate deselection is needed for a safe switch.
+        if (m_portraitSwitch.active()) return;
         if (m_inventoryActionSelection)
         {
             // Do not copy MM3's temporary deselection into the remembered index.
@@ -809,10 +890,30 @@ namespace MightAndMagic3
             }
             return;
         }
+        if (!occupied(selected))
+        {
+            selected = resolveInventoryIndex(selected, occupied);
+            m_inventoryMenu = InventoryMenu::None;
+            if (selected >= 0)
+            {
+                queueInventorySelection(selected, false);
+                m_inventorySelectionPendingUntil = std::chrono::steady_clock::now() +
+                    std::chrono::milliseconds(1000);
+                saveButtons();
+            }
+            else
+            {
+                m_pendingInventoryClicks.clear();
+                m_inventorySelectionClick.reset();
+                m_inventorySelectionClickPending = false;
+                m_inventoryClickRetry.reset();
+            }
+            return;
+        }
         // The character mirror can remain on the previous party slot even
         // with a visibly selected item. Only the item selection fields agree.
         if (index < 0 || index >= CharacterInventory::SlotCount ||
-            index != readWord(indexMirrorAddress) || selected < 0) return;
+            index != readWord(indexMirrorAddress) || !occupied(index)) return;
         if (selected != index &&
             (m_inventoryClickRetry.active() || !m_pendingInventoryClicks.empty() ||
              std::chrono::steady_clock::now() < m_inventorySelectionPendingUntil)) return;
@@ -821,6 +922,37 @@ namespace MightAndMagic3
         const int previous = selected;
         selected = index;
         if (!saveButtons()) selected = previous;
+    }
+
+    void MM3GameModule::trackInventoryActionClick(GameButtonPoint point)
+    {
+        if (!m_inventoryVisible || m_inventoryCharacter < 0 ||
+            !selectedInventoryItemActive()) return;
+
+        const auto& inventoryButtons = m_buttons[5];
+        for (std::size_t index = 2; index < inventoryButtons.size() && index <= 5; ++index)
+        {
+            const auto& rect = inventoryButtons[index];
+            if (point.x < rect.x || point.x >= rect.x + rect.width ||
+                point.y < rect.y || point.y >= rect.y + rect.height) continue;
+
+            if (index >= 2 && index <= 4)
+            {
+                queueItemActionSelection(
+                    m_characterInventories[m_inventoryCharacter].selectedIndex);
+                return;
+            }
+
+            m_inventoryActionSelection = InventoryActionSelection{
+                m_inventoryCharacter,
+                m_characterInventories[m_inventoryCharacter].selectedIndex,
+                m_memoryReader.snapshotId(), true
+            };
+            m_pendingInventoryClicks.clear();
+            m_inventorySelectionClickPending = false;
+            m_inventoryClickRetry.reset();
+            return;
+        }
     }
 
     bool MM3GameModule::selectedInventoryItemActive() const
@@ -870,6 +1002,14 @@ namespace MightAndMagic3
             // Delay the first click; retry only while selection is unconfirmed.
             m_nextInventoryClickTime = std::chrono::steady_clock::now() +
                 InventoryTransitionDelay;
+    }
+
+    void MM3GameModule::queueItemActionSelection(int index)
+    {
+        m_inventoryActionSelection.reset();
+        queueInventorySelection(index, false);
+        m_nextInventoryClickTime = std::chrono::steady_clock::now() +
+            InventoryTransitionDelay;
     }
 
     std::string MM3GameModule::characterName(int slot) const
@@ -1021,6 +1161,7 @@ namespace MightAndMagic3
             initializeSpellSelection();
         if (!inventoryVisible)
         {
+            m_portraitSwitch.reset();
             m_inventoryClickRetry.reset();
             m_inventoryActionSelection.reset();
             m_inventoryCharacter = -1;

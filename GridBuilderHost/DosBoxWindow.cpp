@@ -58,9 +58,7 @@ namespace GridBuilderHost
             (mouseY - m_imageTop) / m_imageHeight * m_contentHeight);
 
         dosBoxMouse.setInputActive(dosBoxPipeClient, true);
-        dosBoxMouse.click(dosBoxPipeClient, x, y,
-            static_cast<int>(m_contentWidth),
-            static_cast<int>(m_contentHeight));
+        // The host lets the game module intercept this point before dispatch.
         return GameButtonPoint{x, y};
     }
 
@@ -374,7 +372,16 @@ if (buttonEditingActive && buttonViewAvailable)
         }
         if (m_editDragging && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
         {
-            if (!m_creatingButton) m_modifiedButton = m_editingButton;
+            const bool moved = std::abs(x - m_dragStartX) * scale > 4.0f ||
+                std::abs(y - m_dragStartY) * scale > 4.0f;
+            if (moved && !m_creatingButton &&
+                m_editingButton->index < buttonRects.size())
+            {
+                const auto& original = buttonRects[m_editingButton->index];
+                if (rect.x != original.x || rect.y != original.y ||
+                    rect.width != original.width || rect.height != original.height)
+                    m_modifiedButton = m_editingButton;
+            }
             m_editDragging = false;
         }
     }
@@ -508,7 +515,7 @@ if (mouseInsideImage)
 }
         }
 
-        if ((!mouseInsideImage || buttonEditingActive) && dosBoxMouse.inputActive())
+        if (!mouseInsideImage && dosBoxMouse.inputActive())
         {
             dosBoxMouse.setInputActive(
                 dosBoxPipeClient,

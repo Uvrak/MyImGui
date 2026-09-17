@@ -39,7 +39,8 @@ public:
     virtual void start() = 0;
     virtual void update() = 0;
     virtual void keyDown(int) {}
-    virtual void onDosBoxMouseClick(GameButtonPoint) {}
+    // Called before sending a direct click. True means the module consumed it.
+    virtual bool onDosBoxMouseClick(GameButtonPoint) { return false; }
     virtual void keyUp(int) {}
     virtual bool blockDirectDosBoxKeyboard() const { return false; }
     virtual bool blockDirectDosBoxVerticalKeys() const { return false; }

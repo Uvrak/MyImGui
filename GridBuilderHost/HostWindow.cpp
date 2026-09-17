@@ -29,6 +29,9 @@ namespace GridBuilderHost
         HostWindowState& windowState
     )
     {
+        // Keep receiving raw keyboard events while another window has focus.
+        SDL_SetHint(SDL_HINT_WINDOWS_RAW_KEYBOARD, "1");
+        SDL_SetHint(SDL_HINT_WINDOWS_RAW_KEYBOARD_INPUTSINK, "1");
         if (!SDL_Init(
             SDL_INIT_VIDEO
         ))

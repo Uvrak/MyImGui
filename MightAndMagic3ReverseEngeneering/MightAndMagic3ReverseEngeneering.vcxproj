@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="GameState.h" />
     <ClInclude Include="InventoryClickRetry.h" />
+    <ClInclude Include="InventoryPortraitSwitch.h" />
     <ClInclude Include="Item.h" />
     <ClInclude Include="ItemExplorerWindow.h" />
     <ClInclude Include="ItemSource.h" />
