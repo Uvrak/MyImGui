@@ -55,6 +55,8 @@ namespace GridBuilderHost
         DebugWindow clickLogWindow("Emulierte Mausklicks");
         std::optional<GameButtonPoint> lastEmulatedClick;
         std::size_t emulatedClickCount = 0;
+        bool mapWasAvailable = false;
+        bool mapSaveFailed = false;
 
         gameModule.start();
         
@@ -89,8 +91,13 @@ namespace GridBuilderHost
                 if (event.type ==
                     SDL_EVENT_QUIT)
                 {
-                    running =
-                        false;
+                    if (gridBuilderGrid.saveCurrentMap())
+                        running = false;
+                    else
+                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR,
+                            "Map speichern",
+                            "Die Map konnte nicht gespeichert werden. GridBuilder bleibt geoeffnet.",
+                            nullptr);
                 }
 
                 if (event.type ==
@@ -133,6 +140,7 @@ namespace GridBuilderHost
                 );
             }
 
+            if (!running) break;
             dosBoxFramePipeline.update();
             const auto* frameHeader = dosBoxFramePipeline.frameReader().header();
             gameModule.setFrame(dosBoxFramePipeline.frameReader().pixels(),
@@ -142,9 +150,18 @@ namespace GridBuilderHost
             gameModule.update();
             bool mapOpen = false;
             if (const auto key = gameModule.currentMapKey())
+            {
                 mapOpen = gridBuilderGrid.openMap(
                     *key, gameModule.currentMapName().value_or("")
                 );
+                mapWasAvailable = true;
+                mapSaveFailed = false;
+            }
+            else if (mapWasAvailable)
+            {
+                mapSaveFailed = !gridBuilderGrid.saveCurrentMap();
+                if (!mapSaveFailed) mapWasAvailable = false;
+            }
 
             MapPlayerMarker marker;
             if (mapOpen)
@@ -248,6 +265,8 @@ namespace GridBuilderHost
             debugWindow.setLine("Aktive Views: " +
                 (viewNames.empty() ? std::string("Unknown") : viewNames));
             debugWindow.addLine("Steuerung: " + gameModule.buttonViewName());
+            if (mapSaveFailed)
+                debugWindow.addLine("Map konnte nicht gespeichert werden; erneuter Versuch folgt.");
             debugWindow.addLine("Buttons in Steuerungs-View: " +
                 std::to_string(gameModule.buttonCount()));
             if (const auto inventory = gameModule.inventoryDebugLine())

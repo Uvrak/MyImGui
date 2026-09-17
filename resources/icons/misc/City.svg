@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <!-- central town tower -->
+    <path d="M26 34V20H38V34"/>
+    <path d="M24 20L32 8L40 20Z"/>
+    <path d="M32 26V29"/>
+
+    <!-- clustered town houses -->
+    <path d="M8 34V27H24V34"/>
+    <path d="M6 27L16 17L26 27"/>
+    <path d="M40 34V29H56V34"/>
+    <path d="M38 29L48 19L58 29"/>
+
+    <!-- city wall and gate -->
+    <path d="M8 55V34H14V38H20V34H26V38H38V34H44V38H50V34H56V55"/>
+    <path d="M26 55V47C26 39 38 39 38 47V55"/>
+    <path d="M16 45V48"/>
+    <path d="M48 45V48"/>
+    <path d="M5 55H59"/>
+  </g>
+</svg>

@@ -34,6 +34,7 @@ public:
     void registerMap(const std::string& key, const std::string& filename);
     void setMapDirectory(const std::string& directory);
     bool openMap(const std::string& key, const std::string& displayName = {});
+    bool saveCurrentMap();
     void setPlayerMarker(const MapPlayerMarker& marker);
 
     using DebugCallback =

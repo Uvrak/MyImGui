@@ -135,13 +135,7 @@ bool GridBuilderGrid::openMap(const std::string& key, const std::string& display
         }
     }
 
-    if (m_impl->worldViewWindow.hasUnsavedChanges())
-    {
-        if (m_impl->currentMapKey.empty()) return false;
-        const auto previous = m_impl->mapFiles.find(m_impl->currentMapKey);
-        if (previous == m_impl->mapFiles.end() ||
-            !m_impl->worldViewWindow.saveMap(previous->second)) return false;
-    }
+    if (!saveCurrentMap()) return false;
 
     std::error_code error;
     const bool exists = std::filesystem::exists(target, error);
@@ -162,6 +156,14 @@ bool GridBuilderGrid::openMap(const std::string& key, const std::string& display
     m_impl->currentMapKey = key;
     m_impl->worldViewWindow.setMapName(displayName);
     return true;
+}
+
+bool GridBuilderGrid::saveCurrentMap()
+{
+    if (!m_impl->worldViewWindow.hasUnsavedChanges()) return true;
+    const auto current = m_impl->mapFiles.find(m_impl->currentMapKey);
+    return current != m_impl->mapFiles.end() &&
+        m_impl->worldViewWindow.saveMap(current->second);
 }
 
 void GridBuilderGrid::setPlayerMarker(const MapPlayerMarker& marker)
