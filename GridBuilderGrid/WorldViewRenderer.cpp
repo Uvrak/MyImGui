@@ -582,7 +582,7 @@ void drawGrid(const Viewport& viewport, const RenderStyle& style, int chunkSize,
         float lineY = canvasPosition.y + y;
 
         bool isChunkBorder =
-            worldY % chunkSize == 0;
+            (worldY - 1) % chunkSize == 0;
 
         ImU32 color =
             isChunkBorder
