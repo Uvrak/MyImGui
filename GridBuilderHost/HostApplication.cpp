@@ -13,6 +13,7 @@
 #include "Memory.h"
 #include "GridBuilderGrid.h"
 #include "DebugWindow.h"
+#include "../MouseLatencyTrace.h"
 
 
 #include <cstdio>
@@ -81,6 +82,27 @@ namespace GridBuilderHost
                     );
                 }
 
+                if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN &&
+                    event.button.button == SDL_BUTTON_LEFT)
+                {
+                    TraceGridBuilderMouse("SDL_DOWN",
+                        static_cast<unsigned long long>(
+                            (SDL_GetTicksNS() - event.button.timestamp) / 1000000));
+                    dosBoxMouse.setLeftButtonDown(true);
+                    hostUi.onLeftMouseButtonDown(
+                        event.button.x,
+                        event.button.y,
+                        dosBoxMouse,
+                        dosBoxPipeClient
+                    );
+                }
+                else if ((event.type == SDL_EVENT_MOUSE_BUTTON_UP &&
+                    event.button.button == SDL_BUTTON_LEFT) ||
+                    event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+                {
+                    dosBoxMouse.setLeftButtonDown(false);
+                }
+
                 ImGui_ImplSDL3_ProcessEvent(
                     &event
                 );
@@ -97,10 +119,6 @@ namespace GridBuilderHost
             dosBoxKeyboard.update(
                 dosBoxPipeClient,
                 {}
-            );
-
-            dosBoxMouse.updatePendingClick(
-                dosBoxPipeClient
             );
 
             static uint8_t memoryValue = 0;
@@ -142,6 +160,10 @@ namespace GridBuilderHost
                 dosBoxFramePipeline.contentWidth(),
                 dosBoxFramePipeline.contentHeight(),
                 dosBoxMouse,
+                dosBoxPipeClient
+            );
+
+            dosBoxMouse.updatePendingClick(
                 dosBoxPipeClient
             );
 

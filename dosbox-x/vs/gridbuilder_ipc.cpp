@@ -1,4 +1,5 @@
 #include "gridbuilder_ipc.h"
+#include "../../MouseLatencyTrace.h"
 
 #ifdef WIN32
 
@@ -109,6 +110,8 @@ static void GRIDBUILDER_IPC_QueueCommand(
     const char* command
 )
 {
+    if (std::strncmp(command, "MOUSEDOWNAT:", 12) == 0)
+        TraceGridBuilderMouse("PIPE_RECEIVED");
     std::lock_guard<std::mutex> lock(
         g_gridBuilderCommandMutex
     );
@@ -172,6 +175,8 @@ static void GRIDBUILDER_IPC_SetKey(
 void GRIDBUILDER_IPC_ProcessCommands()
 {
     GRIDBUILDER_IPC_UpdateMM3Cursor();
+    if (RunningProgram != "MM3")
+        Mouse_GridBuilderCancelLeft();
     g_cDriveMounted = Drives[2] != nullptr;
     g_currentDrive = DOS_GetDefaultDrive();
 
@@ -279,11 +284,6 @@ void GRIDBUILDER_IPC_ProcessCommands()
             }
             return;
         }
-
-        printf(
-            "GridBuilder main thread: %s\n",
-            command.c_str()
-        );
 
         const char* text =
             command.c_str();
@@ -747,12 +747,53 @@ void GRIDBUILDER_IPC_ProcessCommands()
             }
         }
 
+        const char* mouseDownAtPrefix =
+            "MOUSEDOWNAT:";
+
+        if(std::strncmp(
+            text,
+            mouseDownAtPrefix,
+            std::strlen(mouseDownAtPrefix)
+        ) == 0)
+        {
+            int x = 0;
+            int y = 0;
+            int width = 0;
+            int height = 0;
+
+            if(std::sscanf(
+                text + std::strlen(mouseDownAtPrefix),
+                "%d:%d:%d:%d",
+                &x,
+                &y,
+                &width,
+                &height
+            ) == 4 && width > 1 && height > 1 &&
+                x >= 0 && x < width && y >= 0 && y < height)
+            {
+                Mouse_GridBuilderMove(
+                    static_cast<float>(x) / static_cast<float>(width - 1),
+                    static_cast<float>(y) / static_cast<float>(height - 1)
+                );
+                if (RunningProgram == "MM3")
+                    Mouse_GridBuilderPressLeft();
+                else
+                    Mouse_ButtonPressed(0);
+                TraceGridBuilderMouse("DOSBOX_DOWN");
+            }
+
+            continue;
+        }
+
         if(std::strcmp(
             text,
             "MOUSEDOWN:0"
         ) == 0)
         {
-            Mouse_ButtonPressed(0);
+            if (RunningProgram == "MM3")
+                Mouse_GridBuilderPressLeft();
+            else
+                Mouse_ButtonPressed(0);
 
             continue;
         }
@@ -772,7 +813,10 @@ void GRIDBUILDER_IPC_ProcessCommands()
             "MOUSEUP:0"
         ) == 0)
         {
-            Mouse_ButtonReleased(0);
+            if (RunningProgram == "MM3")
+                Mouse_GridBuilderReleaseLeft();
+            else
+                Mouse_ButtonReleased(0);
 
             continue;
         }

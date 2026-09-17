@@ -9,6 +9,18 @@
 
 namespace GridBuilderHost
 {
+    void HostUi::onLeftMouseButtonDown(
+        float mouseX,
+        float mouseY,
+        DosBoxX::Mouse& dosBoxMouse,
+        DosBoxX::NamedPipeClient& dosBoxPipeClient
+    )
+    {
+        if (m_showDosBoxView)
+            m_dosBoxWindow.onLeftMouseButtonDown(
+                mouseX, mouseY, dosBoxMouse, dosBoxPipeClient);
+    }
+
     HostUi::HostUi(
         MainMenu& mainMenu,
         DosBoxWindow& dosBoxWindow,

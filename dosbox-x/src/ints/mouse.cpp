@@ -24,6 +24,8 @@
 #include <string.h>
 #include <math.h>
 #include <vector>
+#include <algorithm>
+#include "../../../MouseLatencyTrace.h"
 
 #include "dosbox.h"
 #include "callback.h"
@@ -1241,7 +1243,22 @@ void Mouse_Select(int x1, int y1, int x2, int y2, int w, int h, bool select) {
 }
 #endif
 
+static unsigned long long g_gridBuilderPressTick = 0;
+static unsigned int g_gridBuilderPollCount = 0;
+static bool g_gridBuilderLeftActive = false;
+static bool g_gridBuilderLeftObserved = false;
+static bool g_gridBuilderLeftReleaseRequested = false;
+static unsigned long long g_gridBuilderFirstObservedTick = 0;
+static unsigned int g_gridBuilderObservedPollCount = 0;
+static bool g_gridBuilderNextPressQueued = false;
+static bool g_gridBuilderNextReleaseQueued = false;
+
 void Mouse_ButtonPressed(uint8_t button) {
+    if (button == 0) {
+        g_gridBuilderPressTick = GetTickCount64();
+        g_gridBuilderPollCount = 0;
+        TraceGridBuilderMouse("GUEST_PRESS");
+    }
     if (!IS_PC98_ARCH && KEYBOARD_AUX_Active()) {
         switch (button) {
             case 0:
@@ -1299,6 +1316,8 @@ void Mouse_ButtonPressed(uint8_t button) {
 }
 
 void Mouse_ButtonReleased(uint8_t button) {
+    if (button == 0)
+        TraceGridBuilderMouse("GUEST_RELEASE");
     if (!IS_PC98_ARCH && KEYBOARD_AUX_Active()) {
         switch (button) {
             case 0:
@@ -1644,6 +1663,9 @@ static Bitu INT33_Handler(void) {
         }
         break;
     case 0x03:  /* MS MOUSE v1.0+ - RETURN POSITION AND BUTTON STATUS */
+        if (g_gridBuilderPressTick && g_gridBuilderPollCount++ < 4)
+            TraceGridBuilderMouse(mouse.buttons & 1 ? "INT33_DOWN" : "INT33_UP",
+                GetTickCount64() - g_gridBuilderPressTick);
         if(pc98_nec_mouse) {
             /* NEC MOUSE - Buttons are in different states */
             reg_ax = (mouse.buttons & 1) ? 0xffff : 0;
@@ -1659,6 +1681,32 @@ static Bitu INT33_Handler(void) {
         mouse.first_range_sety = false;
         if (en_int33_hide_if_polling) int33_last_poll = PIC_FullIndex();
         Mouse_Used();
+        if (g_gridBuilderLeftActive && (mouse.buttons & 1)) {
+            const auto now = GetTickCount64();
+            if (!g_gridBuilderLeftObserved)
+                g_gridBuilderFirstObservedTick = now;
+            g_gridBuilderLeftObserved = true;
+            ++g_gridBuilderObservedPollCount;
+            if (g_gridBuilderLeftReleaseRequested &&
+                g_gridBuilderObservedPollCount >= 3 &&
+                now - g_gridBuilderFirstObservedTick >= 60) {
+                TraceGridBuilderMouse("LATCH_OBSERVED",
+                    now - g_gridBuilderPressTick);
+                Mouse_ButtonReleased(0);
+                g_gridBuilderLeftActive = false;
+                g_gridBuilderLeftReleaseRequested = false;
+            }
+        } else if (!g_gridBuilderLeftActive && g_gridBuilderNextPressQueued) {
+            // Return one observed UP state before starting the next queued tap.
+            Mouse_ButtonPressed(0);
+            g_gridBuilderLeftActive = true;
+            g_gridBuilderLeftObserved = false;
+            g_gridBuilderFirstObservedTick = 0;
+            g_gridBuilderObservedPollCount = 0;
+            g_gridBuilderLeftReleaseRequested = g_gridBuilderNextReleaseQueued;
+            g_gridBuilderNextPressQueued = false;
+            g_gridBuilderNextReleaseQueued = false;
+        }
         break;
     case 0x04:  /* MS MOUSE v1.0+ - POSITION MOUSE CURSOR */
         /* If position isn't different from current position
@@ -1675,6 +1723,8 @@ static Bitu INT33_Handler(void) {
         if (en_int33_hide_if_polling) int33_last_poll = PIC_FullIndex();
         break;
     case 0x05:  /* MS MOUSE v1.0+ - RETURN BUTTON PRESS DATA */
+        if (mouse.times_pressed[0])
+            TraceGridBuilderMouse("INT33_PRESS_COUNT", mouse.times_pressed[0]);
         if(pc98_nec_mouse) {
             /* NEC MOUSE - RETURN LEFT BUTTON PRESS DATA */
             reg_ax = (mouse.buttons & 1) ? 0xffff: 0;
@@ -2931,6 +2981,56 @@ void Mouse_GridBuilderMove(
         y,
         false
     );
+
+    // GridBuilder supplies a position across the displayed game image. The
+    // INT 33h maximum may be smaller than the video mode to keep MM3's cursor
+    // on screen; use the video dimensions first, then apply that limit.
+    Mouse_GridBuilderSetPosition(x, y);
+}
+
+void Mouse_GridBuilderPressLeft() {
+    if (g_gridBuilderLeftActive) {
+        g_gridBuilderNextPressQueued = true;
+        g_gridBuilderNextReleaseQueued = false;
+        TraceGridBuilderMouse("LATCH_NEXT_QUEUED");
+        return;
+    }
+    g_gridBuilderLeftActive = true;
+    g_gridBuilderLeftObserved = false;
+    g_gridBuilderLeftReleaseRequested = false;
+    g_gridBuilderFirstObservedTick = 0;
+    g_gridBuilderObservedPollCount = 0;
+    Mouse_ButtonPressed(0);
+}
+
+void Mouse_GridBuilderReleaseLeft() {
+    if (g_gridBuilderNextPressQueued && !g_gridBuilderNextReleaseQueued) {
+        g_gridBuilderNextReleaseQueued = true;
+        return;
+    }
+    if (!g_gridBuilderLeftActive)
+        return;
+    if (g_gridBuilderLeftObserved &&
+        g_gridBuilderObservedPollCount >= 3 &&
+        GetTickCount64() - g_gridBuilderFirstObservedTick >= 60) {
+        Mouse_ButtonReleased(0);
+        g_gridBuilderLeftActive = false;
+    } else {
+        g_gridBuilderLeftReleaseRequested = true;
+        TraceGridBuilderMouse("LATCH_WAIT");
+    }
+}
+
+void Mouse_GridBuilderCancelLeft() {
+    if (g_gridBuilderLeftActive)
+        Mouse_ButtonReleased(0);
+    g_gridBuilderLeftActive = false;
+    g_gridBuilderLeftObserved = false;
+    g_gridBuilderLeftReleaseRequested = false;
+    g_gridBuilderFirstObservedTick = 0;
+    g_gridBuilderObservedPollCount = 0;
+    g_gridBuilderNextPressQueued = false;
+    g_gridBuilderNextReleaseQueued = false;
 }
 
 void Mouse_GridBuilderSetPosition(
@@ -2938,14 +3038,17 @@ void Mouse_GridBuilderSetPosition(
     float y
 )
 {
-    OutputDebugStringA(
-        "MM3 MOUSE: SetPosition\n"
-    );
-    mouse.x =
-        x * mouse.max_x;
+    const float screenMaxX = CurMode && CurMode->swidth > 0
+        ? static_cast<float>(CurMode->swidth - 1)
+        : static_cast<float>(mouse.max_x);
+    const float screenMaxY = CurMode && CurMode->sheight > 0
+        ? static_cast<float>(CurMode->sheight - 1)
+        : static_cast<float>(mouse.max_y);
 
-    mouse.y =
-        y * mouse.max_y;
+    mouse.x = (std::min)((std::max)(x * screenMaxX,
+        static_cast<float>(mouse.min_x)), static_cast<float>(mouse.max_x));
+    mouse.y = (std::min)((std::max)(y * screenMaxY,
+        static_cast<float>(mouse.min_y)), static_cast<float>(mouse.max_y));
 }
 
 static void Mouse_GridBuilderReleaseClick(

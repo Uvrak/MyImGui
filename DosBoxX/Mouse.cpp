@@ -6,6 +6,7 @@
 #include "NamedPipeClient.h"
 #include "FrameReader.h"
 #include "imgui.h"
+#include "../MouseLatencyTrace.h"
 
 #include <cstdio>
 #include <windows.h>
@@ -31,6 +32,16 @@ namespace DosBoxX
         if (!active)
         {
             ClipCursor(nullptr);
+            m_clickQueue.clear();
+            m_leftButtonDown = false;
+            if (m_clickPending)
+            {
+                if (namedPipeClient.send("MOUSEUP:0"))
+                {
+                    m_clickPending = false;
+                    m_lastReleaseTime = ImGui::GetTime();
+                }
+            }
             namedPipeClient.send("RELEASE_ALL");
             m_lastX = -1;
             m_lastY = -1;
@@ -171,32 +182,6 @@ namespace DosBoxX
                 dosBoxMouseY;
         }
 
-        static bool leftMouseWasDown = false;
-
-        const bool leftMouseIsDown =
-            ImGui::IsMouseDown(
-                ImGuiMouseButton_Left
-            );
-
-        if (leftMouseIsDown &&
-            !leftMouseWasDown)
-        {
-            NamedPipeClient.send(
-                "MOUSEDOWN:0"
-            );
-        }
-
-        if (!leftMouseIsDown &&
-            leftMouseWasDown)
-        {
-            NamedPipeClient.send(
-                "MOUSEUP:0"
-            );
-        }
-
-        leftMouseWasDown =
-            leftMouseIsDown;
-
         static bool rightMouseWasDown = false;
 
         const bool rightMouseIsDown =
@@ -238,21 +223,6 @@ namespace DosBoxX
                 "MOUSEWHEEL:DOWN"
             );
         }
-        if (m_clickPending)
-        {
-            const double currentTime =
-                ImGui::GetTime();
-
-            if (currentTime -
-                m_clickStartTime >= 0.01)
-            {
-                NamedPipeClient.send(
-                    "MOUSEUP:0"
-                );
-
-                m_clickPending = false;
-            }
-        }
     }
 
     void Mouse::click(
@@ -263,8 +233,11 @@ namespace DosBoxX
         int contentHeight
     )
     {
-        std::string command =
-            "MOUSECLICK:" +
+        if (contentWidth <= 1 || contentHeight <= 1)
+            return;
+
+        const std::string command =
+            "MOUSEDOWNAT:" +
             std::to_string(x) +
             ":" +
             std::to_string(y) +
@@ -273,30 +246,52 @@ namespace DosBoxX
             ":" +
             std::to_string(contentHeight);
 
-        namedPipeClient.send(
-            command
-        );
+        // Keep at most one queued retry while a click is already held.
+        if (m_clickQueue.empty())
+            m_clickQueue.push_back(command);
+        else
+            m_clickQueue.back() = command;
+        updatePendingClick(namedPipeClient);
     }
 
     void Mouse::updatePendingClick(
         NamedPipeClient& namedPipeClient
     )
     {
-        if (!m_clickPending)
-            return;
-
-        const double currentTime =
-            ImGui::GetTime();
-
-        if (currentTime -
-            m_clickStartTime >= 0.05)
+        if (m_clickPending)
         {
-            namedPipeClient.send(
-                "MOUSEUP:0"
-            );
-
-            m_clickPending = false;
+            // Keep a brief tap pressed long enough for a guest that polls the
+            // current button state to observe it before forwarding release.
+            constexpr double minimumPressSeconds = 0.10;
+            if (!m_leftButtonDown &&
+                ImGui::GetTime() - m_clickStartTime >= minimumPressSeconds &&
+                namedPipeClient.send("MOUSEUP:0"))
+            {
+                TraceGridBuilderMouse("HOST_UP");
+                m_clickPending = false;
+                m_lastReleaseTime = ImGui::GetTime();
+            }
         }
+
+        if (!m_clickPending && !m_clickQueue.empty() &&
+            (m_lastReleaseTime < 0.0 ||
+                ImGui::GetTime() - m_lastReleaseTime >= 0.01))
+        {
+            TraceGridBuilderMouse("HOST_DOWN_BEGIN");
+            const bool sent = namedPipeClient.send(m_clickQueue.front());
+            TraceGridBuilderMouse("HOST_DOWN_END", sent ? 1 : 0);
+            if (sent)
+            {
+                m_clickQueue.pop_front();
+                m_clickPending = true;
+                m_clickStartTime = ImGui::GetTime();
+            }
+        }
+    }
+
+    void Mouse::setLeftButtonDown(bool down)
+    {
+        m_leftButtonDown = down;
     }
 
 

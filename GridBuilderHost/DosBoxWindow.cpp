@@ -7,6 +7,29 @@
 
 namespace GridBuilderHost
 {
+    void DosBoxWindow::onLeftMouseButtonDown(
+        float mouseX,
+        float mouseY,
+        DosBoxX::Mouse& dosBoxMouse,
+        DosBoxX::NamedPipeClient& dosBoxPipeClient
+    )
+    {
+        if (m_imageWidth <= 0.0f || m_imageHeight <= 0.0f ||
+            mouseX < m_imageLeft || mouseX >= m_imageLeft + m_imageWidth ||
+            mouseY < m_imageTop || mouseY >= m_imageTop + m_imageHeight)
+            return;
+
+        const int x = static_cast<int>(
+            (mouseX - m_imageLeft) / m_imageWidth * m_contentWidth);
+        const int y = static_cast<int>(
+            (mouseY - m_imageTop) / m_imageHeight * m_contentHeight);
+
+        dosBoxMouse.setInputActive(dosBoxPipeClient, true);
+        dosBoxMouse.click(dosBoxPipeClient, x, y,
+            static_cast<int>(m_contentWidth),
+            static_cast<int>(m_contentHeight));
+    }
+
     void DosBoxWindow::draw(
         DosBoxX::FrameTexture& frameTexture,
         uint32_t contentWidth,
@@ -16,6 +39,8 @@ namespace GridBuilderHost
         DosBoxX::NamedPipeClient& dosBoxPipeClient
     )
     {
+        m_imageWidth = 0.0f;
+        m_imageHeight = 0.0f;
         ImGui::Begin(
             "DOSBox"
         );
@@ -67,6 +92,13 @@ namespace GridBuilderHost
 
             const ImVec2 imageMin =
                 ImGui::GetCursorScreenPos();
+
+            m_imageLeft = imageMin.x;
+            m_imageTop = imageMin.y;
+            m_imageWidth = imageSize.x;
+            m_imageHeight = imageSize.y;
+            m_contentWidth = contentWidth;
+            m_contentHeight = contentHeight;
 
             ImGui::Image(
                 reinterpret_cast<ImTextureID>(
@@ -160,22 +192,6 @@ if (mouseInsideImage)
         static_cast<int>(contentHeight)
     );
 
-    if (ImGui::IsMouseClicked(
-        ImGuiMouseButton_Left
-    ))
-    {
-        dosBoxMouse.click(
-            dosBoxPipeClient,
-            contentX,
-            contentY,
-            static_cast<int>(
-                contentWidth
-            ),
-            static_cast<int>(
-                contentHeight
-            )
-        );
-    }
 }
         }
 
@@ -186,12 +202,6 @@ if (mouseInsideImage)
                 false
             );
         }
-
-        if (mouseInsideImage)
-        {
-            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
-        }
-
 
         ImGui::End();
     }

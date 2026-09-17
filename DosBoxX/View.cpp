@@ -7,6 +7,7 @@
 #include "NamedPipeClient.h"
 
 #include "imgui.h"
+#include <algorithm>
 
 namespace DosBoxX
 {
@@ -128,6 +129,7 @@ namespace DosBoxX
         const DosBoxFrameHeader* frameHeader =
             frameReader.header();
         
+        mouse.setLeftButtonDown(ImGui::IsMouseDown(ImGuiMouseButton_Left));
         mouse.updatePendingClick(
             NamedPipeClient
         );
@@ -274,9 +276,23 @@ namespace DosBoxX
                         );
                     }
 
-                    if (dosBoxImageClicked)
+                    if (dosBoxImageClicked &&
+                        frameHeader->contentWidth > 1 &&
+                        frameHeader->contentHeight > 1)
                     {
                         mouse.setInputActive(NamedPipeClient, true);
+                        const ImVec2 mousePos = ImGui::GetMousePos();
+                        const int contentX = std::clamp(static_cast<int>(
+                            (mousePos.x - imageMin.x) / imageSize.x *
+                            frameHeader->contentWidth), 0,
+                            static_cast<int>(frameHeader->contentWidth) - 1);
+                        const int contentY = std::clamp(static_cast<int>(
+                            (mousePos.y - imageMin.y) / imageSize.y *
+                            frameHeader->contentHeight), 0,
+                            static_cast<int>(frameHeader->contentHeight) - 1);
+                        mouse.click(NamedPipeClient, contentX, contentY,
+                            frameHeader->contentWidth,
+                            frameHeader->contentHeight);
                     }
                     else if (ImGui::IsMouseClicked(
                         ImGuiMouseButton_Left

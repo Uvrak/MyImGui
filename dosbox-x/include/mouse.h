@@ -59,6 +59,9 @@ void Mouse_GridBuilderSetPosition(
     float x,
     float y
 );
+void Mouse_GridBuilderPressLeft();
+void Mouse_GridBuilderReleaseLeft();
+void Mouse_GridBuilderCancelLeft();
 void Mouse_GridBuilderClick(float x, float y);
 void Mouse_GridBuilderDoubleClick(float x, float y);
 #endif

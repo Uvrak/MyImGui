@@ -1,5 +1,8 @@
 #pragma once
 
+#include <deque>
+#include <string>
+
 namespace DosBoxX
 {
     class NamedPipeClient;
@@ -34,12 +37,16 @@ namespace DosBoxX
             int contentHeight
         );
         void updatePendingClick(NamedPipeClient& namedPipeClient);
+        void setLeftButtonDown(bool down);
     private:
         bool m_inputActive = false;
         int m_lastX = -1;
         int m_lastY = -1;
         bool m_clickPending = false;
         double m_clickStartTime = 0.0;
+        double m_lastReleaseTime = -1.0;
+        bool m_leftButtonDown = false;
+        std::deque<std::string> m_clickQueue;
         
     };
 }

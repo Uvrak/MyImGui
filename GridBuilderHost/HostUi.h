@@ -37,6 +37,12 @@ namespace GridBuilderHost
             DosBoxX::Mouse& dosBoxMouse,
             DosBoxX::NamedPipeClient& dosBoxPipeClient
         );
+        void onLeftMouseButtonDown(
+            float mouseX,
+            float mouseY,
+            DosBoxX::Mouse& dosBoxMouse,
+            DosBoxX::NamedPipeClient& dosBoxPipeClient
+        );
 
     private:
         MainMenu& m_mainMenu;
