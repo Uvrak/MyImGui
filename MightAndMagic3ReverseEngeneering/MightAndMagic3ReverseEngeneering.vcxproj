@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="GameState.h" />
+    <ClInclude Include="InventoryClickRetry.h" />
     <ClInclude Include="Item.h" />
     <ClInclude Include="ItemExplorerWindow.h" />
     <ClInclude Include="ItemSource.h" />
@@ -33,6 +34,7 @@
     <ClInclude Include="Position.h" />
     <ClInclude Include="ScreenSignature.h" />
     <ClInclude Include="ScreenSignatures.h" />
+    <ClInclude Include="SpellSelection.h" />
     <ClInclude Include="StateReader.h" />
   </ItemGroup>
   <ItemGroup>

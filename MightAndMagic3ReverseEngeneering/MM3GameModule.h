@@ -7,6 +7,7 @@
 #include "StateReader.h"
 #include "MM3KeyBindings.h"
 #include "ScreenSignatures.h"
+#include "InventoryClickRetry.h"
 #include "MightAndMagic3Inventory.h"
 #include <vector>
 #include <array>
@@ -27,8 +28,8 @@ namespace MightAndMagic3
         void keyDown(int key) override;
         void onDosBoxMouseClick(GameButtonPoint point) override;
         bool blockDirectDosBoxKeyboard() const override;
-        bool blockDirectDosBoxVerticalKeys() const override { return m_inventoryVisible; }
-        bool blockDirectDosBoxInventoryKeys() const override { return m_inventoryVisible; }
+        bool blockDirectDosBoxVerticalKeys() const override { return m_inventoryVisible || m_spellsVisible; }
+        bool blockDirectDosBoxInventoryKeys() const override { return m_inventoryVisible || m_spellsVisible; }
         std::optional<std::string> inventoryDebugLine() const override;
         std::optional<std::string> inventoryClickDebugLine() const override;
         std::vector<std::string> inventoryMenuEntries() const override;
@@ -65,8 +66,14 @@ namespace MightAndMagic3
         bool m_showButtonOutlines = false;
         int m_selectedButton = -1;
         int m_activeButtons = 0;
-        std::array<std::vector<GameButtonRect>, 6> m_buttons;
+        std::array<std::vector<GameButtonRect>, 9> m_buttons;
+        std::vector<GameButtonRect> m_castSpellButtons;
         std::vector<GameButtonRect> m_portraitControls;
+        std::vector<GameButtonRect> m_spellButtons;
+        std::optional<GameButtonPoint> m_pendingSpellClick;
+        std::chrono::steady_clock::time_point m_spellReadyAt{};
+        bool m_restoreReadySpell = false;
+        bool m_spellsVisible = false;
         std::vector<std::string> m_detectedViews;
         std::vector<std::string> m_otherButtonConfigLines;
         std::string m_buttonConfigPath;
@@ -84,6 +91,7 @@ namespace MightAndMagic3
         std::optional<GameButtonPoint> m_inventorySelectionClick;
         bool m_inventorySelectionClickPending = false;
         bool m_inventorySelectionRestored = false;
+        InventoryClickRetry m_inventoryClickRetry;
         CharacterInventories m_characterInventories;
         int m_inventoryCharacter = -1;
         std::uint64_t m_inventorySelectionTraceState = ~std::uint64_t{0};
@@ -108,5 +116,11 @@ namespace MightAndMagic3
         std::string characterName(int slot) const;
         void queueInventorySelection(int index, bool restore);
         bool selectedInventoryItemActive() const;
+        void initializeSpellSelection();
+        void materializeSpellButtons();
+        bool castSpellListActive() const
+        {
+            return m_activeButtons == 7 && m_spellsVisible && !m_portraitMode;
+        }
     };
 }

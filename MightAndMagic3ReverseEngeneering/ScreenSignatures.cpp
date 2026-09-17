@@ -49,18 +49,18 @@ namespace MightAndMagic3
                         0
                     },
                     {
-                        330,
-                        80,
+                        176,
+                        34,
+                        235,
+                        235,
+                        235
+                    },
+                    {
+                        246,
+                        38,
                         255,
                         255,
                         255
-                    },
-                    {
-                        148,
-                        234,
-                        190,
-                        117,
-                        69
                     }
                 }
         };
@@ -73,9 +73,10 @@ namespace MightAndMagic3
         static const ScreenSignature signature 
         {
             {
-                { 9, 383, 215, 207,0 },
-                { 253,   5, 85, 85, 85 },
-                {  11, 347, 235, 235, 235 }
+                // Normal action buttons: middle left, middle center, lower right.
+                { 490, 214, 52, 52, 52 },
+                { 546, 214, 52, 52, 52 },
+                { 600, 254, 170, 170, 170 }
             }
         };
 
@@ -141,6 +142,61 @@ namespace MightAndMagic3
                         255
                     }
                 }
+        };
+
+        return signature;
+    }
+
+    const ScreenSignature& ScreenSignatures::element()
+    {
+        static const ScreenSignature signature{
+            {
+                // Fixed fire, electricity and cold icons in the element dialog.
+                { 144, 200, 255, 207, 178 },
+                { 204, 200, 134, 60, 0 },
+                { 264, 200, 255, 158, 97 }
+            }
+        };
+        return signature;
+    }
+
+    const ScreenSignature& ScreenSignatures::castSpellList()
+    {
+        static const ScreenSignature signature{
+            {
+                // Fixed "Sprueche fuer" heading and Cast icon; dialog chrome
+                // is shared with Load Game and cannot identify this view.
+                { 126, 34, 255, 255, 255 },
+                { 218, 40, 255, 255, 255 },
+                { 490, 234, 255, 199, 166 }
+            }
+        };
+
+        return signature;
+    }
+
+    const ScreenSignature& ScreenSignatures::cast()
+    {
+        static const ScreenSignature signature{
+            {
+                // Fixed icons in the Cast, New and Escape buttons.
+                { 490, 234, 255, 199, 166 },
+                { 546, 234, 134, 60, 0 },
+                { 600, 234, 134, 60, 0 }
+            }
+        };
+
+        return signature;
+    }
+
+    const ScreenSignature& ScreenSignatures::yesNo()
+    {
+        static const ScreenSignature signature{
+            {
+                { 480, 174, 52, 52, 52 },
+                { 572, 223, 93, 97, 255 },
+                { 516, 263, 207, 207, 255 }
+            }
         };
 
         return signature;

@@ -21,5 +21,17 @@ namespace MightAndMagic3
 
         static const ScreenSignature&
             inventory();
+
+        static const ScreenSignature&
+            yesNo();
+
+        static const ScreenSignature&
+            cast();
+
+        static const ScreenSignature&
+            castSpellList();
+
+        static const ScreenSignature&
+            element();
     };
 }
