@@ -159,6 +159,7 @@
     <ClInclude Include="FloatingWindow.h" />
     <ClInclude Include="FlowLayout.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="ImGuiSystem.h" />
     <ClInclude Include="ItemSource.h" />
     <ClInclude Include="MyImGui.h" />
     <ClInclude Include="MyImGuiSettings.h" />
@@ -169,6 +170,10 @@
     <ClInclude Include="WindowCapture.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\OpenWorld3D\ThirdParty\imgui\backends\imgui_impl_opengl3.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\ThirdParty\imgui\backends\imgui_impl_dx11.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
@@ -193,6 +198,7 @@
     <ClCompile Include="DragDropRecoder.cpp" />
     <ClCompile Include="FloatingWindow.cpp" />
     <ClCompile Include="FlowLayout.cpp" />
+    <ClCompile Include="ImGuiSystem.cpp" />
     <ClCompile Include="MyImGui.cpp" />
     <ClCompile Include="MyImGuiSettings.cpp" />
     <ClCompile Include="MyImGuiSettingsWindow.cpp" />
@@ -205,14 +211,6 @@
     <ClCompile Include="RecordButton.cpp" />
     <ClCompile Include="SettingsWindow.cpp" />
     <ClCompile Include="WindowCapture.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\dosbox-x\vs\dosbox-x.vcxproj">
-      <Project>{8a52284e-5115-453e-ad4b-87b8fcdb1244}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\DosBoxX\DosBoxX.vcxproj">
-      <Project>{c5542076-9232-495f-91c7-92cf22e2f0df}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
