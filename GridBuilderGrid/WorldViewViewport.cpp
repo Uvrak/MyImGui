@@ -17,6 +17,27 @@ int edgeTextureSize(const Viewport& viewport)
     );
 }
 
+void updateChunkFit(Viewport& viewport, ImVec2 canvasSize)
+{
+    if (viewport.m_fittedChunkSize <= 0 || canvasSize.x <= 0 || canvasSize.y <= 0) return;
+    const float size = float(viewport.m_fittedChunkSize);
+    viewport.m_cellSize = (std::min)(canvasSize.x, canvasSize.y) / size;
+    viewport.m_cameraX = (viewport.m_fittedChunkX * size + size * .5f) * viewport.m_cellSize - canvasSize.x * .5f;
+    viewport.m_cameraY = (viewport.m_fittedChunkY * size + viewport.m_fittedRowOffset + size * .5f) * viewport.m_cellSize - canvasSize.y * .5f;
+}
+
+void fitChunk(Viewport& viewport, int cellX, int cellY, int chunkSize, ImVec2 canvasSize, int rowOffset)
+{
+    if (chunkSize <= 0 || canvasSize.x <= 0 || canvasSize.y <= 0) return;
+    viewport.m_fittedChunkSize = chunkSize;
+    viewport.m_fittedChunkX = int(std::floor(double(cellX) / chunkSize));
+    viewport.m_fittedChunkY = int(std::floor((double(cellY) - rowOffset) / chunkSize));
+    viewport.m_fittedRowOffset = rowOffset;
+    viewport.m_followPlayer = false;
+    updateChunkFit(viewport, canvasSize);
+    updateGridView(viewport);
+}
+
 void updateGridView(Viewport& viewport)
 {
     viewport.m_gridView.startX =
@@ -84,6 +105,8 @@ void handleZoom(Viewport& viewport, const ToolSettings& toolSettings,
     }
     if (mouseWheel != 0.0f)
     {
+        viewport.m_fittedChunkSize = 0;
+        const float oldSize = viewport.m_cellSize;
         viewport.m_cellSize += mouseWheel * 2.0f;
 
         if (viewport.m_cellSize < 5.0f)
@@ -95,6 +118,9 @@ void handleZoom(Viewport& viewport, const ToolSettings& toolSettings,
         {
             viewport.m_cellSize = 100.0f;
         }
+        const float ratio = viewport.m_cellSize / oldSize;
+        viewport.m_cameraX = (viewport.m_cameraX + mouseCanvasPosition.x) * ratio - mouseCanvasPosition.x;
+        viewport.m_cameraY = (viewport.m_cameraY + mouseCanvasPosition.y) * ratio - mouseCanvasPosition.y;
     }
 }
 
@@ -169,6 +195,7 @@ void handlePan(Viewport& viewport)
 {
     if (ImGui::IsMouseDragging(ImGuiMouseButton_Left))
     {
+        viewport.m_fittedChunkSize = 0;
         viewport.m_followPlayer = false;
 
         ImVec2 delta = ImGui::GetIO().MouseDelta;

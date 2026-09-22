@@ -19,7 +19,7 @@
 
 using EdgeTextureResolver =
 std::function<
-	ID3D11ShaderResourceView* (
+	ImTextureID (
 		const std::string& edgeId,
 		int size
 		)
@@ -43,7 +43,7 @@ std::function<
 
 using MiscTextureResolver =
 std::function<
-	ID3D11ShaderResourceView* (
+	ImTextureID (
 		const std::string& miscId,
 		int size
 		)

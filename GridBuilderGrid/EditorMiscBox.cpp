@@ -11,11 +11,11 @@
 namespace
 {
     const std::filesystem::path
-        miscDirectory =
+        defaultDirectory =
         "../resources/icons/misc";
 
     std::vector<std::string>
-        loadMiscIds()
+        loadMiscIds(const std::filesystem::path& miscDirectory)
     {
         std::vector<std::string>
             miscIds;
@@ -70,7 +70,8 @@ namespace
 
     SvgButtonDefinition makeButtonDefinition(
         const std::string& miscId,
-        int miscIndex
+        int miscIndex,
+        const std::filesystem::path& miscDirectory
     )
     {
         SvgButtonDefinition definition;
@@ -96,7 +97,8 @@ namespace
     std::vector<SvgButtonDefinition>
         makeButtonDefinitions(
             const std::vector<std::string>&
-            miscIds
+            miscIds,
+            const std::filesystem::path& miscDirectory
         )
     {
         std::vector<SvgButtonDefinition>
@@ -113,7 +115,8 @@ namespace
             definitions.push_back(
                 makeButtonDefinition(
                     miscIds[index],
-                    static_cast<int>(index)
+                    static_cast<int>(index),
+                    miscDirectory
                 )
             );
         }
@@ -123,9 +126,9 @@ namespace
 }
 
 EditorMiscBox::EditorMiscBox(
-    ID3D11Device* device
+    ID3D11Device* device, const std::filesystem::path& iconDirectory
 )
-    : m_window(
+    : m_iconDirectory(iconDirectory.empty() ? defaultDirectory : iconDirectory), m_window(
         "Editor Misc Box",
         {
             .movable = true,
@@ -137,11 +140,11 @@ EditorMiscBox::EditorMiscBox(
         }
     ),
     m_miscIds(
-        loadMiscIds()
+        loadMiscIds(m_iconDirectory)
     ),
     m_buttonBar(
         device,
-        makeButtonDefinitions(m_miscIds)
+        makeButtonDefinitions(m_miscIds, m_iconDirectory)
     )
 {}
 
@@ -183,7 +186,7 @@ bool EditorMiscBox::draw(
     );
 
     ImGui::SetNextWindowSize(
-        ImVec2(150.0f, 105.0f),
+        ImVec2(m_externalTextures ? 270.0f : 150.0f, 105.0f),
         ImGuiCond_FirstUseEver
     );
 
@@ -421,7 +424,7 @@ void EditorMiscBox::openColorMenu(
     );
 }
 
-ID3D11ShaderResourceView*
+ImTextureID
 EditorMiscBox::miscTexture(
     const std::string& miscId,
     int size
@@ -438,7 +441,7 @@ EditorMiscBox::miscTexture(
 
     if (position == m_miscIds.end())
     {
-        return nullptr;
+        return 0;
     }
 
     const int miscIndex =
@@ -484,7 +487,7 @@ void EditorMiscBox::addOrRefreshMisc(
     SvgButtonDefinition definition =
         makeButtonDefinition(
             miscId,
-            miscIndex
+            miscIndex, m_iconDirectory
         );
 
     m_miscIds.push_back(
@@ -528,7 +531,7 @@ bool EditorMiscBox::renameMisc(
     SvgButtonDefinition definition =
         makeButtonDefinition(
             newMiscId,
-            miscIndex
+            miscIndex, m_iconDirectory
         );
 
     if (!m_buttonBar.replaceButton(

@@ -14,14 +14,58 @@
 #include "MapSerializer.h"
 
 WorldViewWindow::WorldViewWindow(int chunkSize)
-    : m_chunkSize(chunkSize)
+    : m_chunkManager(chunkSize), m_chunkSize(chunkSize)
 {
     loadSettings();
+}
+
+void WorldViewWindow::setGroundLayer(GroundLayer layer, const std::string& title)
+{
+    layer.validate();
+    m_ground = std::move(layer);
+    m_groundOnly = true;
+    m_style.m_chunkRowOffset = 0;
+    m_mapName = title;
+    m_viewport.m_followPlayer = false;
+}
+
+void WorldViewWindow::focusGroundCell(int x, int y)
+{
+    m_viewport.m_fittedChunkSize = 0;
+    m_viewport.m_cameraX = x * m_viewport.m_cellSize;
+    m_viewport.m_cameraY = y * m_viewport.m_cellSize;
 }
 
 const ChunkManager& WorldViewWindow::map() const
 {
     return m_chunkManager;
+}
+
+GroundViewState WorldViewWindow::groundView() const {
+    return {(m_viewport.m_cameraX+m_canvasSize.x*.5f)/m_viewport.m_cellSize,
+        (m_viewport.m_cameraY+m_canvasSize.y*.5f)/m_viewport.m_cellSize,
+        m_canvasSize.y/m_viewport.m_cellSize};
+}
+void WorldViewWindow::setGroundView(GroundViewState view) {
+    if(!std::isfinite(view.centerX) || !std::isfinite(view.centerY) ||
+        !std::isfinite(view.visibleHeight) || view.visibleHeight<=0)return;
+    m_pendingView=view;m_hasPendingView=true;
+}
+void WorldViewWindow::setGroundCell(int x,int y,GroundMaterial material) {
+    if(!m_ground.at(x,y))throw std::out_of_range("Ground cell");
+    size_t index=0;
+    for(;index<m_ground.materials.size();++index)
+        if(m_ground.materials[index].texture==material.texture && m_ground.materials[index].color==material.color)break;
+    if(index==m_ground.materials.size()) {
+        if(index>=65536)throw std::length_error("Too many ground materials");
+        m_ground.materials.push_back(material);
+    }
+    m_ground.cells[size_t(y)*m_ground.width+x]=static_cast<std::uint16_t>(index);
+}
+void WorldViewWindow::setGroundBorder(int x,int y,std::uint8_t border) {
+    if(!m_ground.at(x,y) || border>15)throw std::out_of_range("Ground border");
+    if(m_ground.borders.empty())m_ground.borders.resize(m_ground.cells.size());
+    m_ground.borders[size_t(y)*m_ground.width+x]=border;
 }
 
 void WorldViewWindow::draw(
@@ -73,6 +117,12 @@ void WorldViewWindow::draw(
     m_toolSettings.m_openMiscColorMenu =
         openMiscColorMenu;
 
+    if (m_groundOnly) {
+        const auto* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos({viewport->WorkPos.x + 10, viewport->WorkPos.y + 30}, ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize({(std::min)(920.f, (std::max)(580.f, viewport->WorkSize.x - 320.f)),
+            (std::min)(680.f, viewport->WorkSize.y - 50.f)}, ImGuiCond_FirstUseEver);
+    }
     const std::string windowTitle = m_mapName + "###Map Editor";
     const bool windowVisible = ImGui::Begin(windowTitle.c_str(), isOpen);
 
@@ -108,7 +158,10 @@ void WorldViewWindow::draw(
         ImGui::SameLine();
     }
 
-    drawLayerSelector();
+    if (m_groundOnly) ImGui::TextUnformatted(m_editorToolsEnabled
+        ? "Pan: Ziehen/Mausrad | Pencil: Zeichnen | Ctrl+Mausrad: Zoom"
+        : "Ziehen: Verschieben | Mausrad: Zoom | X rechts, Y unten");
+    if (!m_groundOnly || m_editorToolsEnabled) drawLayerSelector();
 
     if (toolbarBlocksMapInput ||
         m_blockMapInputFrames > 0)
@@ -126,7 +179,48 @@ void WorldViewWindow::draw(
     canvasSize.x -= m_viewport.m_rulerWidth;
     canvasSize.y -= m_viewport.m_rulerHeight;
 
+    if (canvasSize.x <= 0 || canvasSize.y <= 0) { ImGui::End(); return; }
+    m_canvasSize=canvasSize;
+    if(m_hasPendingView) {
+        m_viewport.m_fittedChunkSize=0;
+        m_viewport.m_cellSize=(std::clamp)(canvasSize.y/m_pendingView.visibleHeight,2.f,256.f);
+        m_viewport.m_cameraX=m_pendingView.centerX*m_viewport.m_cellSize-canvasSize.x*.5f;
+        m_viewport.m_cameraY=m_pendingView.centerY*m_viewport.m_cellSize-canvasSize.y*.5f;
+        m_hasPendingView=false;
+    }
+    const auto navigationBefore=groundView();
+    WorldView::updateChunkFit(m_viewport, canvasSize);
     ImDrawList* drawList = ImGui::GetWindowDrawList();
+    bool dropPreview=false;ImVec2 dropCell{};
+    {
+        // Every grid canvas owns its drag, including the ordinary editor without ground tiles.
+        // Otherwise ImGui treats a drag on the drawn raster as a window-move gesture.
+        const auto cursor = ImGui::GetCursorScreenPos();
+        ImGui::SetCursorScreenPos(canvasPosition);
+        ImGui::InvisibleButton("##GroundCanvas", canvasSize);
+        if(m_groundOnly && m_groundDrop && ImGui::BeginDragDropTarget()) {
+            const auto mouse=ImGui::GetMousePos();
+            const int x=int(std::floor((mouse.x-canvasPosition.x+m_viewport.m_cameraX)/m_viewport.m_cellSize));
+            const int y=int(std::floor((mouse.y-canvasPosition.y+m_viewport.m_cameraY)/m_viewport.m_cellSize));
+            if(m_ground.at(x,y)) {
+                if(const auto* payload=ImGui::AcceptDragDropPayload(GroundTilePayloadType,ImGuiDragDropFlags_AcceptBeforeDelivery)) {
+                    if(payload->DataSize==sizeof(std::uint32_t)) {
+                        dropPreview=true;dropCell={float(x),float(y)};
+                        if(payload->IsDelivery())m_groundDrop(x,y,*static_cast<const std::uint32_t*>(payload->Data));
+                    }
+                }
+            }
+            ImGui::EndDragDropTarget();
+        }
+        // IsWindowHovered() normally rejects any active item, including this canvas.
+        // Keep our captured drag alive; other windows/items still block new input.
+        const bool canvasActive = ImGui::IsItemActive();
+        inputBlocked = inputBlocked || (!canvasActive &&
+            !ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows));
+        if (inputBlocked) WorldView::stopPainting(m_painter);
+        ImGui::SetCursorScreenPos(cursor);
+    }
+
 
     if (!inputBlocked &&
         !toolbarBlocksMapInput &&
@@ -163,7 +257,18 @@ void WorldViewWindow::draw(
         canvasSize
     );
 
-    if (!inputBlocked &&
+    const bool fitClickedChunk = !inputBlocked && !toolbarBlocksMapInput &&
+        m_blockMapInputFrames == 0 && m_hover.m_hasHoveredCell &&
+        ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) &&
+        (!m_groundOnly || m_ground.at(m_hover.m_hoveredCellX, m_hover.m_hoveredCellY));
+    if (fitClickedChunk) {
+        WorldView::stopPainting(m_painter);
+        WorldView::fitChunk(m_viewport, m_hover.m_hoveredCellX, m_hover.m_hoveredCellY,
+            m_chunkSize, canvasSize, m_style.m_chunkRowOffset);
+        m_centerOnNextMarker = false;
+        WorldView::updateHover(m_viewport, m_hover, m_painter, canvasPosition, canvasSize);
+    }
+    if (!inputBlocked && !fitClickedChunk &&
         !toolbarBlocksMapInput &&
         m_blockMapInputFrames == 0)
     {
@@ -174,14 +279,19 @@ void WorldViewWindow::draw(
         );
     }
 
+    WorldView::updateGridView(m_viewport);
     WorldView::updateLongTickStep(
         m_viewport
     );
+    const auto navigationAfter=groundView();
+    if(m_groundNavigation && (navigationAfter.centerX!=navigationBefore.centerX ||
+        navigationAfter.centerY!=navigationBefore.centerY || navigationAfter.visibleHeight!=navigationBefore.visibleHeight))
+        m_groundNavigation(navigationAfter);
 
     if (m_hover.m_hasHoveredCell)
     {
         ImGui::SetMouseCursor(
-            ImGuiMouseCursor_Arrow
+            activeTool == EditorTool::Scroll ? ImGuiMouseCursor_Hand : ImGuiMouseCursor_Arrow
         );
     }
 
@@ -204,6 +314,33 @@ void WorldViewWindow::draw(
         true
     );
 
+    if (m_groundOnly) {
+        // Visit only visible cells, even for multi-million-cell layers.
+        const int firstX = (std::max)(0, m_viewport.m_gridView.firstVisibleCellX);
+        const int firstY = (std::max)(0, m_viewport.m_gridView.firstVisibleCellY);
+        const int endX = (std::min)(m_ground.width, m_viewport.m_gridView.firstVisibleCellX + int(canvasSize.x / m_viewport.m_cellSize) + 2);
+        const int endY = (std::min)(m_ground.height, m_viewport.m_gridView.firstVisibleCellY + int(canvasSize.y / m_viewport.m_cellSize) + 2);
+        for (int y = firstY; y < endY; ++y) for (int x = firstX; x < endX; ++x) {
+            const auto& material = *m_ground.at(x, y);
+            ImVec2 p(canvasPosition.x + x * m_viewport.m_cellSize - m_viewport.m_cameraX,
+                     canvasPosition.y + y * m_viewport.m_cellSize - m_viewport.m_cameraY);
+            ImVec2 q(p.x + m_viewport.m_cellSize, p.y + m_viewport.m_cellSize);
+            if (material.texture) drawList->AddImage(material.texture, p, q, {0,0}, {1,1}, material.color);
+            else drawList->AddRectFilled(p, q, material.color);
+            if (!m_ground.borders.empty() && m_ground.borderMaterial.texture) {
+                const auto borders = m_ground.borders[size_t(y) * m_ground.width + x];
+                const float thickness = m_viewport.m_cellSize * 0.18f;
+                auto strip = [&](ImVec2 a, ImVec2 b, ImVec2 c, ImVec2 d) {
+                    drawList->AddImageQuad(m_ground.borderMaterial.texture, a, b, c, d,
+                        {0,0}, {0,1}, {1,1}, {1,0}, m_ground.borderMaterial.color);
+                };
+                if (borders & 1) strip(p, {q.x,p.y}, {q.x,p.y+thickness}, {p.x,p.y+thickness});
+                if (borders & 2) strip({q.x,p.y}, q, {q.x-thickness,q.y}, {q.x-thickness,p.y});
+                if (borders & 4) strip(q, {p.x,q.y}, {p.x,q.y-thickness}, {q.x,q.y-thickness});
+                if (borders & 8) strip({p.x,q.y}, p, {p.x+thickness,p.y}, {p.x+thickness,q.y});
+            }
+        }
+    }
     WorldView::drawGrid(m_viewport, m_style, m_chunkSize,
         drawList,
         canvasPosition,
@@ -227,9 +364,18 @@ void WorldViewWindow::draw(
         canvasPosition
     );
 
+    WorldView::drawChunkCoordinates(m_viewport, m_style, m_chunkSize, drawList,
+        canvasPosition, canvasSize, m_groundOnly ? m_ground.width : 0, m_groundOnly ? m_ground.height : 0);
     WorldView::drawNoteTooltip(m_hover, m_chunkManager);
 
     drawList->PopClipRect();
+    if(dropPreview) {
+        const ImVec2 p{canvasPosition.x+dropCell.x*m_viewport.m_cellSize-m_viewport.m_cameraX,
+            canvasPosition.y+dropCell.y*m_viewport.m_cellSize-m_viewport.m_cameraY};
+        drawList->PushClipRect(canvasPosition,mapCanvasEnd,true);
+        drawList->AddRect(p,{p.x+m_viewport.m_cellSize,p.y+m_viewport.m_cellSize},IM_COL32(255,220,80,255),0.f,3.f);
+        drawList->PopClipRect();
+    }
 
     WorldView::drawRulers(m_viewport, m_style,
         drawList,
@@ -237,7 +383,7 @@ void WorldViewWindow::draw(
         canvasSize
     );
 
-    if (showCoordinates)
+    if (showCoordinates && !m_groundOnly)
     {
         WorldView::drawCoordinates(m_hover, m_chunkSize, drawList, canvasPosition);
     }
@@ -245,7 +391,7 @@ void WorldViewWindow::draw(
     if (!inputBlocked &&
         !toolbarBlocksMapInput &&
         m_blockMapInputFrames == 0 &&
-        activeTool == EditorTool::Pencil)
+        activeTool == EditorTool::Pencil && !fitClickedChunk)
     {
         if (m_toolSettings.m_paintMisc)
         {

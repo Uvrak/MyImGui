@@ -7,6 +7,7 @@
 #include "SvgButtonBar.h"
 
 #include <string>
+#include <filesystem>
 #include <vector>
 #include <functional>
 
@@ -30,7 +31,8 @@ public:
         >;
 
     explicit EditorMiscBox(
-        ID3D11Device* device
+        ID3D11Device* device,
+        const std::filesystem::path& iconDirectory = {}
     );
 
     using RemoveColorCallback =
@@ -74,11 +76,12 @@ public:
         assignColor
     );
 
-    ID3D11ShaderResourceView* miscTexture(
+    ImTextureID miscTexture(
         const std::string& miscId,
         int size
     );
 
+    void setTextureResolver(EditorTextureResolver resolver) { m_externalTextures = bool(resolver); m_buttonBar.setTextureResolver(std::move(resolver)); }
     void refreshTextures();
 
     void addOrRefreshMisc(
@@ -102,6 +105,8 @@ private:
     );
 
 private:
+    std::filesystem::path m_iconDirectory;
+    bool m_externalTextures = false;
     MyImGui::FloatingWindow m_window;
 
     std::vector<std::string>

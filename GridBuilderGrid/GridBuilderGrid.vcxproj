@@ -161,6 +161,8 @@
     <ClInclude Include="EditorMiscBox.h" />
     <ClInclude Include="EditorToolBox.h" />
     <ClInclude Include="GridBuilderGrid.h" />
+    <ClInclude Include="GroundLayer.h" />
+    <ClInclude Include="EditorTextureResolver.h" />
     <ClInclude Include="MapPlayerMarker.h" />
     <ClInclude Include="SvgButtonBar.h" />
     <ClInclude Include="SvGDx11TextureCache.h" />
@@ -195,6 +197,7 @@
       <Project>{f1e86453-4a0c-4062-a662-38e91def7ccd}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemDefinitionGroup><ClCompile><AdditionalIncludeDirectories>$(ProjectDir)..\ThirdParty\imgui;$(ProjectDir)..\ThirdParty\SDL3\include;$(ProjectDir)..\ThirdParty\SDL3_image\include;$(ProjectDir)..\MyImGui;$(ProjectDir)..\GridBuilderCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile></ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

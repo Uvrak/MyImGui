@@ -37,7 +37,7 @@ void EditorToolbox::draw(
 )
 {
         ImGui::SetNextWindowSize(
-        ImVec2(170.0f, 70.0f),
+        m_textLabels ? ImVec2(240.0f, 80.0f) : ImVec2(170.0f, 70.0f),
         ImGuiCond_FirstUseEver
     );
 
@@ -54,7 +54,7 @@ void EditorToolbox::draw(
             ++index)
         {
             m_flowLayout.beginItem(
-                ImVec2(40.0f, 40.0f),
+                ImVec2(m_textLabels ? 65.0f : 40.0f, 40.0f),
                 ImGui::GetStyle().ItemSpacing.x
             );
 
@@ -145,10 +145,14 @@ void EditorToolbox::drawToolButton(
         iconColor
     );
 
-    if (ImGui::Button(
-        button.icon,
-        ImVec2(40.0f, 40.0f)
-    ))
+    const bool pressed = ImGui::Button(
+        m_textLabels ? button.tooltip : button.icon,
+        ImVec2(m_textLabels ? 65.0f : 40.0f, 40.0f)
+    );
+    // Select on activation: a small pointer movement can start toolbar
+    // reordering and suppress Button's usual click-on-release result.
+    // Keep the normal result as well for keyboard/gamepad activation.
+    if (pressed || ImGui::IsItemActivated())
     {
         m_activeTool =
             button.tool;

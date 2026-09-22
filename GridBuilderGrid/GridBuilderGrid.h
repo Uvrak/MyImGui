@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 #include "MapPlayerMarker.h"
+#include "GroundLayer.h"
+#include "EditorTextureResolver.h"
 
 class ChunkManager;
 
@@ -14,7 +16,8 @@ class GridBuilderGrid
 public:
     GridBuilderGrid(
         ID3D11Device* device,
-        int chunkSize
+        int chunkSize,
+        const std::string& iconDirectory = {}
     );
 
     ~GridBuilderGrid();
@@ -30,6 +33,18 @@ public:
     void draw(
         bool* isOpen
     );
+
+    // Uses the existing viewport in navigation-only mode; no editor textures required.
+    void setGroundLayer(GroundLayer layer, const std::string& title);
+    void focusGroundCell(int x, int y);
+    GroundViewState groundView() const;
+    void setGroundView(GroundViewState view);
+    void setGroundCell(int x, int y, GroundMaterial material);
+    void setGroundBorder(int x, int y, std::uint8_t border);
+    void setGroundDropCallback(GroundDropCallback callback);
+    void setGroundNavigationCallback(GroundNavigationCallback callback);
+    void setEditorTextureResolver(EditorTextureResolver resolver);
+    void setEditorToolsEnabled(bool enabled);
 
     void registerMap(const std::string& key, const std::string& filename);
     void setMapDirectory(const std::string& directory);

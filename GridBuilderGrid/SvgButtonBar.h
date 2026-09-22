@@ -4,6 +4,7 @@
 
 #include "imgui.h"
 #include "SvgDx11TextureCache.h"
+#include "EditorTextureResolver.h"
 
 #include <string>
 #include <vector>
@@ -67,6 +68,8 @@ public:
         definitions
     );
 
+    void setTextureResolver(EditorTextureResolver resolver);
+
     void setButtonColor(
         int value,
         const ImVec4& color
@@ -77,7 +80,7 @@ public:
 		const OverlayCallback& overlayCallback = {}
     );
 
-    ID3D11ShaderResourceView* texture(
+    ImTextureID texture(
         int value
     ) const;
 
@@ -105,9 +108,11 @@ private:
 
         std::string id;
 
-        ID3D11ShaderResourceView* texture = nullptr;
+        ImTextureID texture = 0;
     };
 
+    ImTextureID resolveTexture(const std::string& path, int width, int height);
+    EditorTextureResolver m_textureResolver;
     SvgDx11TextureCache m_textureCache;
 
     std::vector<Button> m_buttons;

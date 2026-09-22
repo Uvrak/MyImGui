@@ -99,14 +99,14 @@ void drawMisc(const Viewport& viewport, const ToolSettings& toolSettings, const 
                 continue;
             }
 
-            ID3D11ShaderResourceView* texture =
+            ImTextureID texture =
                 cell->hasMisc() &&
                 toolSettings.m_miscTexture
                 ? toolSettings.m_miscTexture(
                     cell->miscId(),
                     WorldView::edgeTextureSize(viewport)
                 )
-                : nullptr;
+                : 0;
 
             const MapColor* mapColor =
                 map
@@ -185,7 +185,7 @@ void drawMisc(const Viewport& viewport, const ToolSettings& toolSettings, const 
 
             }
 
-            if (texture != nullptr)
+            if (texture != 0)
             {
 
                 const float margin =
@@ -314,8 +314,8 @@ void drawLayerWalls(const Viewport& viewport, const Hover& hover, const WallPain
                             direction
                         );
 
-                    ID3D11ShaderResourceView* texture =
-                        nullptr;
+                    ImTextureID texture =
+                        0;
 
                     if (toolSettings.m_edgeTexture)
                     {
@@ -582,7 +582,7 @@ void drawGrid(const Viewport& viewport, const RenderStyle& style, int chunkSize,
         float lineY = canvasPosition.y + y;
 
         bool isChunkBorder =
-            (worldY - 1) % chunkSize == 0;
+            (worldY - style.m_chunkRowOffset) % chunkSize == 0;
 
         ImU32 color =
             isChunkBorder
@@ -650,8 +650,8 @@ void drawWallPreview(const Viewport& viewport, const ToolSettings& toolSettings,
     ImU32 color
 )
 {
-    ID3D11ShaderResourceView* texture =
-        nullptr;
+    ImTextureID texture =
+        0;
 
     if (toolSettings.m_edgeTexture)
     {
@@ -662,7 +662,7 @@ void drawWallPreview(const Viewport& viewport, const ToolSettings& toolSettings,
             );
     }
 
-    if (texture == nullptr)
+    if (texture == 0)
     {
         return;
     }
@@ -728,15 +728,15 @@ void drawMiscPreview(const Viewport& viewport, const Hover& hover, const ToolSet
         return;
     }
 
-    ID3D11ShaderResourceView* texture =
+    ImTextureID texture =
         toolSettings.m_miscTexture
         ? toolSettings.m_miscTexture(
             toolSettings.m_activeMiscId,
             WorldView::edgeTextureSize(viewport)
         )
-        : nullptr;
+        : 0;
 
-    if (texture == nullptr)
+    if (texture == 0)
     {
         return;
     }
@@ -906,13 +906,13 @@ void drawHover(const Viewport& viewport, const Hover& hover, const WallPainting&
 
 void drawEdgeIcon(const Viewport& viewport,
      ImDrawList* drawList,
-     ID3D11ShaderResourceView* texture,
+     ImTextureID texture,
      ImVec2 center,
      bool horizontal,
      ImU32 color
  )
 {
-     if (texture == nullptr)
+     if (texture == 0)
      {
          return;
      }
@@ -1273,4 +1273,29 @@ void drawCoordinates(const Hover& hover, int chunkSize, ImDrawList* drawList, Im
             );
         }
     }
+}
+
+namespace WorldView {
+void drawChunkCoordinates(const Viewport& viewport, const RenderStyle& style, int chunkSize,
+    ImDrawList* drawList, ImVec2 canvasPosition, ImVec2 canvasSize, int width, int height)
+{
+    if (chunkSize <= 0 || viewport.m_fittedChunkSize != chunkSize) return;
+    const float span = chunkSize * viewport.m_cellSize;
+    if (span < 40) return;
+    const int firstX = int(std::floor(viewport.m_cameraX / span));
+    const int firstY = int(std::floor((viewport.m_cameraY / viewport.m_cellSize - style.m_chunkRowOffset) / chunkSize));
+    const int lastX = int(std::floor((viewport.m_cameraX + canvasSize.x) / span));
+    const int lastY = int(std::floor(((viewport.m_cameraY + canvasSize.y) / viewport.m_cellSize - style.m_chunkRowOffset) / chunkSize));
+    for (int y=firstY; y<=lastY; ++y) for (int x=firstX; x<=lastX; ++x) {
+        if (x != viewport.m_fittedChunkX || y != viewport.m_fittedChunkY) continue;
+        if (width > 0 && (x < 0 || y < 0 || x * chunkSize >= width || y * chunkSize >= height)) continue;
+        char label[64];std::snprintf(label,sizeof(label),"(%d, %d)",x,y);
+        const auto textSize = ImGui::CalcTextSize(label);
+        const float scale = (std::min)(1.f, (span - 12.f) / textSize.x);
+        const float right = canvasPosition.x + (x+1)*span - viewport.m_cameraX - 5.f;
+        const float top = canvasPosition.y + (y*chunkSize+style.m_chunkRowOffset)*viewport.m_cellSize - viewport.m_cameraY + 5.f;
+        const ImVec2 p(right-textSize.x*scale,top);
+        drawList->AddText(ImGui::GetFont(),ImGui::GetFontSize()*scale,p,IM_COL32_WHITE,label);
+    }
+}
 }

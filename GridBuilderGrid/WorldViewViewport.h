@@ -15,11 +15,18 @@ struct Viewport
     int m_longTickStep = 4;
     GridView m_gridView;
     bool m_followPlayer = false;
+    int m_fittedChunkSize = 0, m_fittedChunkX = 0, m_fittedChunkY = 0;
+    int m_fittedRowOffset = 0;
 };
 
 int edgeTextureSize(const Viewport& viewport);
 
 void updateGridView(Viewport& viewport);
+
+// Fit a complete square chunk into the drawable canvas, preserving square cells.
+void fitChunk(Viewport& viewport, int cellX, int cellY, int chunkSize,
+    ImVec2 canvasSize, int rowOffset = 0);
+void updateChunkFit(Viewport& viewport, ImVec2 canvasSize);
 
 bool isMouseInsideCanvas(
     ImVec2 canvasPosition,

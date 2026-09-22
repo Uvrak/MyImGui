@@ -7,6 +7,7 @@
 #include "SvgButtonBar.h"
 
 #include <string>
+#include <filesystem>
 #include <vector>
 #include <functional>
 
@@ -16,7 +17,8 @@ class EditorEdgeBox
 {
 public:
     explicit EditorEdgeBox(
-        ID3D11Device* device
+        ID3D11Device* device,
+        const std::filesystem::path& iconDirectory = {}
     );
 
     ~EditorEdgeBox() = default;
@@ -49,11 +51,12 @@ public:
 
     void clearActiveEdge();
 
-    ID3D11ShaderResourceView* edgeTexture(
+    ImTextureID edgeTexture(
         const std::string& edgeId,
         int size
     );
 
+    void setTextureResolver(EditorTextureResolver resolver) { m_externalTextures = bool(resolver); m_buttonBar.setTextureResolver(std::move(resolver)); }
     void refreshTextures();
 
     void cycleActiveEdge(
@@ -110,6 +113,8 @@ private:
     );
 
 private:
+    std::filesystem::path m_iconDirectory;
+    bool m_externalTextures = false;
     MyImGui::FloatingWindow m_window;
 
     std::vector<std::string>

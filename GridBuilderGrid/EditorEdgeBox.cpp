@@ -18,7 +18,7 @@ namespace
         "../settings/editor_edge_box.cfg";
 
     const std::filesystem::path
-        edgeDirectory =
+        defaultDirectory =
         "C:\\Projects\\MyImGui\\resources\\icons\\edges";
 
     struct EdgeBoxSetting
@@ -82,7 +82,7 @@ namespace
         return settings;
     }
     std::vector<std::string>
-        loadEdgeIds()
+        loadEdgeIds(const std::filesystem::path& edgeDirectory)
     {
         std::vector<std::string>
             edgeIds;
@@ -184,7 +184,8 @@ namespace
 
     SvgButtonDefinition makeButtonDefinition(
         const std::string& edgeId,
-        int edgeIndex
+        int edgeIndex,
+        const std::filesystem::path& edgeDirectory
     )
     {
         SvgButtonDefinition definition;
@@ -208,7 +209,8 @@ namespace
     std::vector<SvgButtonDefinition>
         makeButtonDefinitions(
             const std::vector<std::string>&
-            edgeIds
+            edgeIds,
+            const std::filesystem::path& edgeDirectory
         )
     {
         std::vector<SvgButtonDefinition>
@@ -225,7 +227,8 @@ namespace
             definitions.push_back(
                 makeButtonDefinition(
                     edgeIds[index],
-                    static_cast<int>(index)
+                    static_cast<int>(index),
+                    edgeDirectory
                 )
             );
         }
@@ -234,9 +237,9 @@ namespace
 }
 
 EditorEdgeBox::EditorEdgeBox(
-    ID3D11Device* device
+    ID3D11Device* device, const std::filesystem::path& iconDirectory
 )
-    : m_window(
+    : m_iconDirectory(iconDirectory.empty() ? defaultDirectory : iconDirectory), m_window(
         "Editor Edge Box",
         {
             .movable = true,
@@ -248,11 +251,11 @@ EditorEdgeBox::EditorEdgeBox(
         }
     ),
     m_edgeIds(
-        loadEdgeIds()
+        loadEdgeIds(m_iconDirectory)
     ),
     m_buttonBar(
         device,
-        makeButtonDefinitions(m_edgeIds)
+        makeButtonDefinitions(m_edgeIds, m_iconDirectory)
     )
 {
     
@@ -309,7 +312,7 @@ bool EditorEdgeBox::draw(
     );
 
     ImGui::SetNextWindowSize(
-        ImVec2(150.0f, 105.0f),
+        ImVec2(m_externalTextures ? 270.0f : 150.0f, 105.0f),
         ImGuiCond_FirstUseEver
     );
 
@@ -840,7 +843,7 @@ EditorEdgeBox::activeEdgeId() const
     ];
 }
 
-ID3D11ShaderResourceView*
+ImTextureID
 EditorEdgeBox::edgeTexture(
     const std::string& edgeId,
     int size
@@ -857,7 +860,7 @@ EditorEdgeBox::edgeTexture(
 
     if (position == m_edgeIds.end())
     {
-        return nullptr;
+        return 0;
     }
 
     const int edgeIndex =
@@ -901,7 +904,7 @@ void EditorEdgeBox::addOrRefreshEdge(
     SvgButtonDefinition definition =
         makeButtonDefinition(
             edgeId,
-            edgeIndex
+            edgeIndex, m_iconDirectory
         );
 
     m_edgeIds.push_back(
@@ -949,7 +952,7 @@ bool EditorEdgeBox::renameEdge(
     SvgButtonDefinition definition =
         makeButtonDefinition(
             newEdgeId,
-            edgeIndex
+            edgeIndex, m_iconDirectory
         );
 
     if (!m_buttonBar.replaceButton(

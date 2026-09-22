@@ -32,7 +32,7 @@ SvgButtonBar::SvgButtonBar(
             std::to_string(index);
 
         button.texture =
-            m_textureCache.texture(
+            resolveTexture(
                 button.definition.iconPath,
                 button.definition.style.textureWidth,
                 button.definition.style.textureHeight
@@ -84,7 +84,7 @@ bool SvgButtonBar::draw(
         Button& button =
             m_buttons[index];
 
-        if (button.texture == nullptr)
+        if (button.texture == 0)
         {
             continue;
         }
@@ -310,7 +310,7 @@ bool SvgButtonBar::draw(
 }
 
 
-ID3D11ShaderResourceView*
+ImTextureID
 SvgButtonBar::texture(
     int value
 ) const
@@ -324,7 +324,7 @@ SvgButtonBar::texture(
         }
     }
 
-    return nullptr;
+    return 0;
 }
 
 void SvgButtonBar::refreshTextures()
@@ -334,7 +334,7 @@ void SvgButtonBar::refreshTextures()
     for (Button& button : m_buttons)
     {
         button.texture =
-            m_textureCache.texture(
+            resolveTexture(
                 button.definition.iconPath,
                 button.definition.style.textureWidth,
                 button.definition.style.textureHeight
@@ -358,7 +358,7 @@ void SvgButtonBar::addButton(
         );
 
     button.texture =
-        m_textureCache.texture(
+        resolveTexture(
             button.definition.iconPath,
             button.definition.style.textureWidth,
             button.definition.style.textureHeight
@@ -396,7 +396,7 @@ bool SvgButtonBar::replaceButton(
             std::move(definition);
 
         button.texture =
-            m_textureCache.texture(
+            resolveTexture(
                 button.definition.iconPath,
                 button.definition.style.textureWidth,
                 button.definition.style.textureHeight
@@ -460,4 +460,16 @@ ImVec4 SvgButtonBar::buttonColor(
         1.0f,
         1.0f
     );
+}
+
+ImTextureID SvgButtonBar::resolveTexture(const std::string& path, int width, int height)
+{
+    if (m_textureResolver) return m_textureResolver(path, width, height);
+    return reinterpret_cast<ImTextureID>(m_textureCache.texture(path, width, height));
+}
+
+void SvgButtonBar::setTextureResolver(EditorTextureResolver resolver)
+{
+    m_textureResolver = std::move(resolver);
+    refreshTextures();
 }

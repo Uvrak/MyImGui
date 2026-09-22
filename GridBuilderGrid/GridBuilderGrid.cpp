@@ -19,7 +19,7 @@ class GridBuilderGrid::Impl
 public:
     Impl(
         ID3D11Device* device,
-        int chunkSize
+        int chunkSize, const std::string& iconDirectory
     )
         :
         worldViewWindow(
@@ -27,10 +27,10 @@ public:
         ),
         toolBox(),
         edgeBox(
-            device
+            device, iconDirectory.empty() ? std::filesystem::path{} : std::filesystem::path(iconDirectory)/"edges"
         ),
         miscBox(
-            device
+            device, iconDirectory.empty() ? std::filesystem::path{} : std::filesystem::path(iconDirectory)/"misc"
         )
     {
         miscBox.clearActiveMisc();
@@ -50,25 +50,60 @@ public:
     EditorEdgeBox edgeBox;
     EditorMiscBox miscBox;
 
+    bool groundOnly = false;
+    bool editorToolsEnabled = true;
     PaintTarget paintTarget =
         PaintTarget::Edge;
 };
 
 GridBuilderGrid::GridBuilderGrid(
     ID3D11Device* device,
-    int chunkSize
+    int chunkSize, const std::string& iconDirectory
 )
     :
     m_impl(
         std::make_unique<Impl>(
             device,
-            chunkSize
+            chunkSize, iconDirectory
         )
     )
 {}
 
 GridBuilderGrid::~GridBuilderGrid() =
 default;
+
+GroundViewState GridBuilderGrid::groundView() const { return m_impl->worldViewWindow.groundView(); }
+void GridBuilderGrid::setGroundView(GroundViewState view) { m_impl->worldViewWindow.setGroundView(view); }
+void GridBuilderGrid::setGroundCell(int x,int y,GroundMaterial material) { m_impl->worldViewWindow.setGroundCell(x,y,material); }
+void GridBuilderGrid::setGroundBorder(int x,int y,std::uint8_t border) { m_impl->worldViewWindow.setGroundBorder(x,y,border); }
+void GridBuilderGrid::setGroundDropCallback(GroundDropCallback callback) { m_impl->worldViewWindow.setGroundDropCallback(std::move(callback)); }
+void GridBuilderGrid::setGroundNavigationCallback(GroundNavigationCallback callback) { m_impl->worldViewWindow.setGroundNavigationCallback(std::move(callback)); }
+
+void GridBuilderGrid::setGroundLayer(GroundLayer layer, const std::string& title)
+{
+    m_impl->worldViewWindow.setGroundLayer(std::move(layer), title);
+    m_impl->groundOnly = true;
+    setEditorToolsEnabled(false);
+    m_impl->toolBox.setActiveTool(EditorTool::Scroll);
+}
+
+void GridBuilderGrid::setEditorTextureResolver(EditorTextureResolver resolver)
+{
+    m_impl->toolBox.setTextLabels(bool(resolver));
+    m_impl->edgeBox.setTextureResolver(resolver);
+    m_impl->miscBox.setTextureResolver(std::move(resolver));
+}
+
+void GridBuilderGrid::setEditorToolsEnabled(bool enabled)
+{
+    m_impl->editorToolsEnabled = enabled;
+    m_impl->worldViewWindow.setEditorToolsEnabled(enabled);
+}
+
+void GridBuilderGrid::focusGroundCell(int x, int y)
+{
+    m_impl->worldViewWindow.focusGroundCell(x, y);
+}
 
 void GridBuilderGrid::registerMap(const std::string& key,
                                   const std::string& filename)
@@ -183,6 +218,15 @@ void GridBuilderGrid::draw(
     bool* isOpen
 )
 {
+    if (isOpen && !*isOpen) return;
+    if (m_impl->groundOnly && !m_impl->editorToolsEnabled) {
+        m_impl->worldViewWindow.draw(EditorTool::Scroll, {}, {}, {}, {}, false,
+            {}, {}, {}, {}, {}, false, true, isOpen);
+        return;
+    }
+    const auto* viewport = ImGui::GetMainViewport();
+    const float sideX = viewport->WorkPos.x + (std::max)(600.f, viewport->WorkSize.x - 290.f);
+    if (m_impl->groundOnly) ImGui::SetNextWindowPos({sideX, viewport->WorkPos.y + 130}, ImGuiCond_FirstUseEver);
     // 1. EdgeBox zeichnen und Interaktionen verarbeiten
     if (m_impl->edgeBox.draw(
         m_impl->worldViewWindow.colorPalette(),
@@ -231,6 +275,7 @@ void GridBuilderGrid::draw(
         m_impl->edgeBox.handleMouseWheel();
     }
 
+    if (m_impl->groundOnly) ImGui::SetNextWindowPos({sideX, viewport->WorkPos.y + 430}, ImGuiCond_FirstUseEver);
     // 2. MiscBox zeichnen und Interaktionen verarbeiten
     if (m_impl->miscBox.draw(
         m_impl->worldViewWindow.colorPalette(),
@@ -272,6 +317,7 @@ void GridBuilderGrid::draw(
         );
     }
 
+    if (m_impl->groundOnly) ImGui::SetNextWindowPos({sideX, viewport->WorkPos.y + 30}, ImGuiCond_FirstUseEver);
     m_impl->toolBox.draw(
         m_impl->toolBox.activeTool()
     );
@@ -292,7 +338,7 @@ void GridBuilderGrid::draw(
         [this](
             const std::string& edgeId,
             int size
-            ) -> ID3D11ShaderResourceView*
+            ) -> ImTextureID
         {
             return m_impl->edgeBox.edgeTexture(
                 edgeId,
@@ -302,7 +348,7 @@ void GridBuilderGrid::draw(
         [this](
             const std::string& miscId,
             int size
-            ) -> ID3D11ShaderResourceView*
+            ) -> ImTextureID
         {
             return m_impl->miscBox.miscTexture(
                 miscId,
@@ -333,12 +379,10 @@ void GridBuilderGrid::draw(
                 assignColor
             );
         },
-        []()
-        {
-        },
+        {},
 
         m_impl->edgeBox.isColorMenuOpen(),
-        false,
+        m_impl->groundOnly,
         isOpen
     );
 }

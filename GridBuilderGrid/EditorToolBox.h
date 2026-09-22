@@ -29,6 +29,7 @@ public:
     ~EditorToolbox();
 
     void draw(EditorTool activeTool);
+    void setTextLabels(bool enabled) { m_textLabels = enabled; }
 
     EditorTool activeTool() const;
 
@@ -41,6 +42,7 @@ private:
 
     std::vector<ToolButton> m_buttons;
 
+    bool m_textLabels = false;
     EditorTool m_activeTool = EditorTool::Pencil;
 
     MyImGui::FloatingWindow m_window;

@@ -6,6 +6,7 @@ namespace WorldView
 {
 struct RenderStyle
 {
+    int m_chunkRowOffset = 1; // Legacy editor convention; finite ground layers use zero.
     ImU32 m_previewColor = IM_COL32(255, 255, 230, 40);
     ImU32 m_backgroundColor = IM_COL32(36, 78, 150, 255);
     ImU32 m_gridColor = IM_COL32(40, 68, 110, 255);
@@ -39,6 +40,10 @@ void drawLayerWalls(const Viewport& viewport, const Hover& hover, const WallPain
 
 void drawRulers(const Viewport& viewport, const RenderStyle& style, ImDrawList* drawList, ImVec2 canvasPosition, ImVec2 canvasSize);
 
+void drawChunkCoordinates(const Viewport& viewport, const RenderStyle& style, int chunkSize,
+    ImDrawList* drawList, ImVec2 canvasPosition, ImVec2 canvasSize,
+    int width = 0, int height = 0);
+
 void drawGrid(const Viewport& viewport, const RenderStyle& style, int chunkSize,
     ImDrawList* drawList,
     ImVec2 canvasPosition,
@@ -65,7 +70,7 @@ void drawHover(const Viewport& viewport, const Hover& hover, const WallPainting&
 void drawEdgeIcon(
     const Viewport& viewport,
     ImDrawList* drawList,
-    ID3D11ShaderResourceView* texture,
+    ImTextureID texture,
     ImVec2 center,
     bool horizontal,
     ImU32 color

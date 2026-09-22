@@ -1,6 +1,7 @@
 #pragma once
 
 #include "WorldViewViewport.h"
+#include "GroundLayer.h"
 #include "WorldViewHitTest.h"
 #include "WorldViewWallPainter.h"
 #include "WorldViewEraser.h"
@@ -30,6 +31,15 @@ public:
 		bool* isOpen
 	);
 
+    void setGroundLayer(GroundLayer layer, const std::string& title);
+    void focusGroundCell(int x, int y);
+    GroundViewState groundView() const;
+    void setGroundView(GroundViewState view);
+    void setGroundCell(int x, int y, GroundMaterial material);
+    void setGroundBorder(int x, int y, std::uint8_t border);
+    void setGroundDropCallback(GroundDropCallback callback) { m_groundDrop = std::move(callback); }
+    void setGroundNavigationCallback(GroundNavigationCallback callback) { m_groundNavigation = std::move(callback); }
+    void setEditorToolsEnabled(bool enabled) { m_editorToolsEnabled = enabled; }
 	bool saveMap(const std::string& filename);
 	bool loadMap(const std::string& filename);
 	bool hasUnsavedChanges() const;
@@ -97,6 +107,14 @@ public:
 	);
 
 private:
+    GroundLayer m_ground;
+    GroundDropCallback m_groundDrop;
+    GroundNavigationCallback m_groundNavigation;
+    ImVec2 m_canvasSize{};
+    GroundViewState m_pendingView;
+    bool m_hasPendingView = false;
+    bool m_groundOnly = false;
+    bool m_editorToolsEnabled = true;
     std::string m_mapName = "Map Editor";
     ChunkManager m_chunkManager;
 
