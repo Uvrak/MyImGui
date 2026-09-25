@@ -19,8 +19,20 @@ WorldViewWindow::WorldViewWindow(int chunkSize)
     loadSettings();
 }
 
+void WorldViewWindow::setWallTile(int x,int y,int side,const std::string& id,ImTextureID texture) {
+    if(!m_ground.at(x,y) || side<0 || side>3 || !texture)throw std::invalid_argument("Invalid wall tile");
+    m_wallTextures[id]=texture;
+    WorldView::setEdge(m_chunkManager,x,y,static_cast<EdgeDirection>(side),id,"");
+    m_hasUnsavedChanges=true;
+}
+void WorldViewWindow::removeWallTile(int x,int y,int side) {
+    if(!m_ground.at(x,y) || side<0 || side>3)return;
+    WorldView::removeEdge(m_chunkManager,x,y,static_cast<EdgeDirection>(side));m_hasUnsavedChanges=true;
+}
+
 void WorldViewWindow::setGroundLayer(GroundLayer layer, const std::string& title)
 {
+    selection.clear();cancelPainting();
     layer.validate();
     m_ground = std::move(layer);
     m_groundOnly = true;
@@ -44,7 +56,7 @@ const ChunkManager& WorldViewWindow::map() const
 GroundViewState WorldViewWindow::groundView() const {
     return {(m_viewport.m_cameraX+m_canvasSize.x*.5f)/m_viewport.m_cellSize,
         (m_viewport.m_cameraY+m_canvasSize.y*.5f)/m_viewport.m_cellSize,
-        m_canvasSize.y/m_viewport.m_cellSize};
+        m_canvasSize.y/m_viewport.m_cellSize,m_canvasSize.x/m_viewport.m_cellSize};
 }
 void WorldViewWindow::setGroundView(GroundViewState view) {
     if(!std::isfinite(view.centerX) || !std::isfinite(view.centerY) ||
@@ -105,8 +117,10 @@ void WorldViewWindow::draw(
     m_toolSettings.m_paintMisc =
         paintMisc;
 
-    m_toolSettings.m_edgeTexture =
-        edgeTexture;
+    m_toolSettings.m_edgeTexture = [this,edgeTexture](const std::string& id,int size){
+        const auto found=m_wallTextures.find(id);
+        return found!=m_wallTextures.end()?(m_editorStyle==GridEditorStyle::GraphicTiles?found->second:ImTextureID(0)):(edgeTexture?edgeTexture(id,size):ImTextureID(0));
+    };
 
     m_toolSettings.m_miscTexture =
         miscTexture;
@@ -128,6 +142,7 @@ void WorldViewWindow::draw(
 
     if (!windowVisible)
     {
+        cancelPainting();
         ImGui::End();
         return;
     }
@@ -158,9 +173,9 @@ void WorldViewWindow::draw(
         ImGui::SameLine();
     }
 
-    if (m_groundOnly) ImGui::TextUnformatted(m_editorToolsEnabled
-        ? "Pan: Ziehen/Mausrad | Pencil: Zeichnen | Ctrl+Mausrad: Zoom"
-        : "Ziehen: Verschieben | Mausrad: Zoom | X rechts, Y unten");
+    if (m_groundOnly) ImGui::TextUnformatted(m_editorStyle==GridEditorStyle::GraphicTiles
+        ? "Grafik-Tiles | LMB: Malen | RMB ziehen: Auswahl | RMB klicken: Aktionen | Pan: Verschieben | Ctrl+Mausrad: Zoom"
+        : "Schematisch | Pencil: Kanten zeichnen | Pan: Verschieben | Ctrl+Mausrad: Zoom");
     if (!m_groundOnly || m_editorToolsEnabled) drawLayerSelector();
 
     if (toolbarBlocksMapInput ||
@@ -169,6 +184,11 @@ void WorldViewWindow::draw(
         WorldView::stopPainting(m_painter);
     }
 
+    ImGui::TextUnformatted("Border Shape:");ImGui::SameLine();
+    if(ImGui::RadioButton("Rectangle",borderShape==GridBorderShape::Rectangular))borderShape=GridBorderShape::Rectangular;
+    toolbarBlocksMapInput=toolbarBlocksMapInput || ImGui::IsItemHovered();
+    ImGui::SameLine();if(ImGui::RadioButton("Diagonal",borderShape==GridBorderShape::Diagonal))borderShape=GridBorderShape::Diagonal;
+    toolbarBlocksMapInput=toolbarBlocksMapInput || ImGui::IsItemHovered();
     ImGui::Separator();
 
     ImVec2 canvasPosition = ImGui::GetCursorScreenPos();
@@ -180,9 +200,25 @@ void WorldViewWindow::draw(
     canvasSize.y -= m_viewport.m_rulerHeight;
 
     if (canvasSize.x <= 0 || canvasSize.y <= 0) { ImGui::End(); return; }
+    if(m_hasPendingView && m_pendingView.visibleWidth>0)
+        m_groundAspect=m_pendingView.visibleWidth/m_pendingView.visibleHeight;
+    if(m_groundOnly && m_groundAspect>0) {
+        const ImVec2 fitted{(std::min)(canvasSize.x,canvasSize.y*m_groundAspect),
+            (std::min)(canvasSize.y,canvasSize.x/m_groundAspect)};
+        canvasPosition.x+=(canvasSize.x-fitted.x)*.5f;
+        canvasPosition.y+=(canvasSize.y-fitted.y)*.5f;
+        canvasSize=fitted;
+    }
     m_canvasSize=canvasSize;
     if(m_hasPendingView) {
-        m_viewport.m_fittedChunkSize=0;
+        const auto current=groundView();
+        // Viewport synchronization echoes the just-fitted chunk back to the grid.
+        // Keep full-size mode (and its coordinate label) for that same view.
+        const bool sameView=std::abs(current.centerX-m_pendingView.centerX)<.05f &&
+            std::abs(current.centerY-m_pendingView.centerY)<.05f &&
+            std::abs(current.visibleHeight-m_pendingView.visibleHeight)<.05f &&
+            (m_pendingView.visibleWidth<=0 || std::abs(current.visibleWidth-m_pendingView.visibleWidth)<.05f);
+        if(!sameView)m_viewport.m_fittedChunkSize=0;
         m_viewport.m_cellSize=(std::clamp)(canvasSize.y/m_pendingView.visibleHeight,2.f,256.f);
         m_viewport.m_cameraX=m_pendingView.centerX*m_viewport.m_cellSize-canvasSize.x*.5f;
         m_viewport.m_cameraY=m_pendingView.centerY*m_viewport.m_cellSize-canvasSize.y*.5f;
@@ -191,38 +227,115 @@ void WorldViewWindow::draw(
     const auto navigationBefore=groundView();
     WorldView::updateChunkFit(m_viewport, canvasSize);
     ImDrawList* drawList = ImGui::GetWindowDrawList();
-    bool dropPreview=false;ImVec2 dropCell{};
+    bool dropPreview=false;ImVec2 dropCell{};int dropSide=-1,dropSpan=1;
     {
         // Every grid canvas owns its drag, including the ordinary editor without ground tiles.
         // Otherwise ImGui treats a drag on the drawn raster as a window-move gesture.
         const auto cursor = ImGui::GetCursorScreenPos();
         ImGui::SetCursorScreenPos(canvasPosition);
-        ImGui::InvisibleButton("##GroundCanvas", canvasSize);
-        if(m_groundOnly && m_groundDrop && ImGui::BeginDragDropTarget()) {
-            const auto mouse=ImGui::GetMousePos();
-            const int x=int(std::floor((mouse.x-canvasPosition.x+m_viewport.m_cameraX)/m_viewport.m_cellSize));
-            const int y=int(std::floor((mouse.y-canvasPosition.y+m_viewport.m_cameraY)/m_viewport.m_cellSize));
-            if(m_ground.at(x,y)) {
-                if(const auto* payload=ImGui::AcceptDragDropPayload(GroundTilePayloadType,ImGuiDragDropFlags_AcceptBeforeDelivery)) {
-                    if(payload->DataSize==sizeof(std::uint32_t)) {
-                        dropPreview=true;dropCell={float(x),float(y)};
-                        if(payload->IsDelivery())m_groundDrop(x,y,*static_cast<const std::uint32_t*>(payload->Data));
-                    }
+        ImGui::InvisibleButton("##GroundCanvas", canvasSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight);
+        const auto mouse=ImGui::GetMousePos();
+        const float tileX=(mouse.x-canvasPosition.x+m_viewport.m_cameraX)/m_viewport.m_cellSize;
+        const float tileY=(mouse.y-canvasPosition.y+m_viewport.m_cameraY)/m_viewport.m_cellSize;
+        const bool selectionAllowed=!inputBlocked && !toolbarBlocksMapInput && m_blockMapInputFrames==0 && !ImGui::GetDragDropPayload();
+        if(!selectionAllowed){selecting=false;selectionPending=false;}
+        const GridCellCoord pointed{int(std::floor(tileX)),int(std::floor(tileY))};
+        const bool validCell=!m_groundOnly || (pointed.x>=0 && pointed.y>=0 && pointed.x<m_ground.width && pointed.y<m_ground.height);
+        if(selectionAllowed && validCell && ImGui::IsItemHovered() && !ImGui::IsMouseDown(0) && ImGui::IsMouseClicked(1)){
+            selectionPending=true;selecting=false;selectionButton=1;selectionStart=pointed;
+            m_tileStroke.reset();WorldView::stopPainting(m_painter);
+        }
+        if(selectionAllowed && activeTool==EditorTool::Select && ImGui::IsItemClicked(0) && !ImGui::IsMouseDown(1) && validCell){
+            selectionPending=true;selecting=true;selectionButton=0;selectionStart=pointed;
+        }
+        if(selectionPending){
+            // Max distance also survives a fast drag ending between two frames.
+            const float threshold=ImGui::GetIO().MouseDragThreshold;
+            if(ImGui::GetIO().MouseDragMaxDistanceSqr[selectionButton]>=threshold*threshold)selecting=true;
+            if(selecting)selection.select(selectionStart,pointed,m_groundOnly?m_ground.width:0,m_groundOnly?m_ground.height:0);
+            if(!ImGui::IsMouseDown(selectionButton)){
+                if(!selecting && ImGui::IsMouseReleased(selectionButton) && ImGui::IsItemHovered() && selection.contains(pointed.x,pointed.y))
+                    ImGui::OpenPopup("Grid Selection Actions");
+                selectionPending=false;selecting=false;
+            }
+        }
+        if(ImGui::BeginPopup("Grid Selection Actions")){
+            for(const auto& action:selectionActions)if(!action.graphicOnly || m_editorStyle==GridEditorStyle::GraphicTiles){
+                if(ImGui::MenuItem(action.label.c_str(),nullptr,false,!selection.cells().empty())){
+                    const SelectionActionContext context{selection.cells(),borderShape};action.callback(context);
                 }
             }
+            ImGui::EndPopup();
+        }
+        inputBlocked=inputBlocked || selectionPending || ImGui::IsPopupOpen("Grid Selection Actions");
+        auto place=[&](GridPaintSelection selection,bool deliver,float x,float y,bool stroke=false,int axis=-1){
+            auto target=gridPaintTarget(x,y,m_viewport.m_cellSize,m_ground.width,m_ground.height,selection,m_edgeSpan);
+            PlacementAction action=PlacementAction::Place;
+            GridPlacementState state;
+            if(stroke && m_placementQuery){
+                auto probe=selection;probe.edgeSpan=1;
+                const auto hit=gridPaintTarget(x,y,m_viewport.m_cellSize,m_ground.width,m_ground.height,probe);
+                if(!hit.valid)return;
+                state=m_placementQuery(selection,hit);action=evaluatePlacement(state);
+                if(action==PlacementAction::Remove && state.instance.valid)target=state.instance;
+            }
+            if(!target.valid || (axis>=0 && target.side%2!=axis))return;
+            dropPreview=true;dropCell={float(target.x),float(target.y)};dropSide=target.side;dropSpan=target.span;
+            if(deliver && (!stroke || m_tileStroke.visit(target))){
+                if(stroke && m_placementApply)m_placementApply(selection,target,action);
+                else if(selection.kind==GridPaintKind::Ground && m_groundDrop)m_groundDrop(target.x,target.y,selection.index);
+                else if(selection.kind==GridPaintKind::Edge && m_wallDrop)m_wallDrop(target.x,target.y,target.side,selection.index);
+            }
+        };
+        const bool externalPaint=m_activeTile.kind==GridPaintKind::Ground || m_activeTile.kind==GridPaintKind::Edge;
+        const bool graphic=m_editorStyle==GridEditorStyle::GraphicTiles;
+        const bool allowed=m_groundOnly && graphic && externalPaint && activeTool==EditorTool::Pencil && !inputBlocked && !toolbarBlocksMapInput &&
+            m_blockMapInputFrames==0 && !ImGui::GetIO().KeyCtrl && !ImGui::GetDragDropPayload() && !ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
+        // Consume the last pointer position before ending a fast stroke on release.
+        const bool finishing=m_tileStroke.gesture.active && ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+        m_tileStroke.update(ImGui::IsItemClicked(ImGuiMouseButton_Left),ImGui::IsMouseDown(ImGuiMouseButton_Left) || finishing,allowed);
+        if(allowed && ImGui::IsItemHovered()){
+            place(m_activeTile,false,tileX,tileY);
+            m_tileStroke.sample(tileX,tileY,[&](float x,float y){
+                if(m_activeTile.kind!=GridPaintKind::Edge){place(m_activeTile,true,x,y,true);return;}
+                auto& line=m_tileStroke.edgeLine;
+                if(!line.active){
+                    auto probe=m_activeTile;probe.edgeSpan=1;
+                    const auto first=gridPaintTarget(x,y,m_viewport.m_cellSize,m_ground.width,m_ground.height,probe);
+                    if(!first.valid)return;
+                    line.begin(first,x,y);place(m_activeTile,true,x,y,true);return;
+                }
+                line.sample(x,y,[&](GridPaintTarget edge){
+                    // Sample just inside the locked physical edge; the common hit test
+                    // remains authoritative for bounds, spans and host metadata.
+                    const float px=edge.side==3?edge.x+.001f:edge.x+.5f;
+                    const float py=edge.side==0?edge.y+.001f:edge.y+.5f;
+                    place(m_activeTile,true,px>=m_ground.width?px-.002f:px,py>=m_ground.height?py-.002f:py,true);
+                });
+            });
+        }else m_tileStroke.breakPath();
+        if(finishing)m_tileStroke.reset();
+        if(m_groundOnly && graphic && (m_groundDrop || m_wallDrop) && ImGui::BeginDragDropTarget()) {
+            if(const auto* payload=ImGui::AcceptDragDropPayload(GroundTilePayloadType,ImGuiDragDropFlags_AcceptBeforeDelivery))
+                if(payload->DataSize==sizeof(std::uint32_t))place({GridPaintKind::Ground,*static_cast<const std::uint32_t*>(payload->Data)},payload->IsDelivery(),tileX,tileY);
+            if(const auto* payload=ImGui::AcceptDragDropPayload(WallTilePayloadType,ImGuiDragDropFlags_AcceptBeforeDelivery))
+                if(payload->DataSize==sizeof(WallTilePayload)){
+                    const auto& tile=*static_cast<const WallTilePayload*>(payload->Data);
+                    place({GridPaintKind::Edge,tile.index,tile.span},payload->IsDelivery(),tileX,tileY);
+                }
             ImGui::EndDragDropTarget();
         }
         // IsWindowHovered() normally rejects any active item, including this canvas.
         // Keep our captured drag alive; other windows/items still block new input.
         const bool canvasActive = ImGui::IsItemActive();
-        inputBlocked = inputBlocked || (!canvasActive &&
+        inputBlocked = inputBlocked || ImGui::GetDragDropPayload()!=nullptr || (!canvasActive &&
             !ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows));
         if (inputBlocked) WorldView::stopPainting(m_painter);
         ImGui::SetCursorScreenPos(cursor);
     }
 
 
-    if (!inputBlocked &&
+    if (activeTool!=EditorTool::Select && !inputBlocked &&
         !toolbarBlocksMapInput &&
         m_blockMapInputFrames == 0 &&
         (
@@ -257,11 +370,12 @@ void WorldViewWindow::draw(
         canvasSize
     );
 
-    const bool fitClickedChunk = !inputBlocked && !toolbarBlocksMapInput &&
+    const bool fitClickedChunk = activeTool!=EditorTool::Select && !inputBlocked && !toolbarBlocksMapInput &&
         m_blockMapInputFrames == 0 && m_hover.m_hasHoveredCell &&
         ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) &&
         (!m_groundOnly || m_ground.at(m_hover.m_hoveredCellX, m_hover.m_hoveredCellY));
     if (fitClickedChunk) {
+        m_tileStroke.reset();
         WorldView::stopPainting(m_painter);
         WorldView::fitChunk(m_viewport, m_hover.m_hoveredCellX, m_hover.m_hoveredCellY,
             m_chunkSize, canvasSize, m_style.m_chunkRowOffset);
@@ -284,7 +398,10 @@ void WorldViewWindow::draw(
         m_viewport
     );
     const auto navigationAfter=groundView();
-    if(m_groundNavigation && (navigationAfter.centerX!=navigationBefore.centerX ||
+    const bool userNavigation=fitClickedChunk || (!inputBlocked && !toolbarBlocksMapInput && m_blockMapInputFrames==0 && m_hover.m_hasHoveredCell &&
+        ((activeTool==EditorTool::Scroll && ImGui::IsMouseDragging(ImGuiMouseButton_Left)) ||
+         ((activeTool==EditorTool::Scroll || ImGui::GetIO().KeyCtrl) && ImGui::GetIO().MouseWheel!=0)));
+    if(userNavigation && m_groundNavigation && (navigationAfter.centerX!=navigationBefore.centerX ||
         navigationAfter.centerY!=navigationBefore.centerY || navigationAfter.visibleHeight!=navigationBefore.visibleHeight))
         m_groundNavigation(navigationAfter);
 
@@ -314,7 +431,10 @@ void WorldViewWindow::draw(
         true
     );
 
-    if (m_groundOnly) {
+    GroundCanvasImage groundImage;
+    if(m_groundOnly && m_editorStyle==GridEditorStyle::GraphicTiles && m_groundRenderer)groundImage=m_groundRenderer(groundView(),canvasSize);
+    if(groundImage.texture)drawList->AddImage(groundImage.texture,canvasPosition,mapCanvasEnd,groundImage.uvMin,groundImage.uvMax);
+    if (m_groundOnly && m_editorStyle==GridEditorStyle::GraphicTiles && !groundImage.texture) {
         // Visit only visible cells, even for multi-million-cell layers.
         const int firstX = (std::max)(0, m_viewport.m_gridView.firstVisibleCellX);
         const int firstY = (std::max)(0, m_viewport.m_gridView.firstVisibleCellY);
@@ -341,7 +461,7 @@ void WorldViewWindow::draw(
             }
         }
     }
-    WorldView::drawGrid(m_viewport, m_style, m_chunkSize,
+    if(gridLinesVisible)WorldView::drawGrid(m_viewport, m_style, m_chunkSize,
         drawList,
         canvasPosition,
         canvasSize
@@ -368,12 +488,30 @@ void WorldViewWindow::draw(
         canvasPosition, canvasSize, m_groundOnly ? m_ground.width : 0, m_groundOnly ? m_ground.height : 0);
     WorldView::drawNoteTooltip(m_hover, m_chunkManager);
 
+    for(const auto cell:selection.cells()){
+        const ImVec2 p{canvasPosition.x+cell.x*m_viewport.m_cellSize-m_viewport.m_cameraX,canvasPosition.y+cell.y*m_viewport.m_cellSize-m_viewport.m_cameraY};
+        const ImVec2 q{p.x+m_viewport.m_cellSize,p.y+m_viewport.m_cellSize};
+        if(q.x<canvasPosition.x || q.y<canvasPosition.y || p.x>mapCanvasEnd.x || p.y>mapCanvasEnd.y)continue;
+        drawList->AddRectFilled(p,q,IM_COL32(80,190,255,45));
+        const auto border=IM_COL32(100,210,255,240);
+        if(!selection.contains(cell.x,cell.y-1))drawList->AddLine(p,{q.x,p.y},border,2.f);
+        if(!selection.contains(cell.x+1,cell.y))drawList->AddLine({q.x,p.y},q,border,2.f);
+        if(!selection.contains(cell.x,cell.y+1))drawList->AddLine(q,{p.x,q.y},border,2.f);
+        if(!selection.contains(cell.x-1,cell.y))drawList->AddLine({p.x,q.y},p,border,2.f);
+    }
     drawList->PopClipRect();
     if(dropPreview) {
         const ImVec2 p{canvasPosition.x+dropCell.x*m_viewport.m_cellSize-m_viewport.m_cameraX,
             canvasPosition.y+dropCell.y*m_viewport.m_cellSize-m_viewport.m_cameraY};
         drawList->PushClipRect(canvasPosition,mapCanvasEnd,true);
-        drawList->AddRect(p,{p.x+m_viewport.m_cellSize,p.y+m_viewport.m_cellSize},IM_COL32(255,220,80,255),0.f,3.f);
+        if(dropSide<0)drawList->AddRect(p,{p.x+m_viewport.m_cellSize,p.y+m_viewport.m_cellSize},IM_COL32(255,220,80,255),0.f,3.f);
+        else {
+            const float s=m_viewport.m_cellSize;
+            ImVec2 a=p,b=p;
+            if(dropSide==0 || dropSide==2){a.y+=dropSide==2?s:0;b={a.x+s*dropSpan,a.y};}
+            else {a.x+=dropSide==1?s:0;b={a.x,a.y+s*dropSpan};}
+            drawList->AddLine(a,b,IM_COL32(255,220,80,255),5.f);
+        }
         drawList->PopClipRect();
     }
 
@@ -388,10 +526,10 @@ void WorldViewWindow::draw(
         WorldView::drawCoordinates(m_hover, m_chunkSize, drawList, canvasPosition);
     }
 
-    if (!inputBlocked &&
+    if (activeTool!=EditorTool::Select && !inputBlocked &&
         !toolbarBlocksMapInput &&
         m_blockMapInputFrames == 0 &&
-        activeTool == EditorTool::Pencil && !fitClickedChunk)
+        activeTool == EditorTool::Pencil && !fitClickedChunk && m_editorStyle==GridEditorStyle::Schematic)
     {
         if (m_toolSettings.m_paintMisc)
         {
@@ -411,7 +549,7 @@ void WorldViewWindow::draw(
 
     WorldView::drawNotePopup(m_cellInteraction, m_chunkManager, m_hasUnsavedChanges, m_blockMapInputFrames);
 
-    if (!inputBlocked &&
+    if (activeTool!=EditorTool::Select && !inputBlocked &&
         (
             activeTool == EditorTool::Pencil ||
             activeTool == EditorTool::Eraser
@@ -423,7 +561,7 @@ void WorldViewWindow::draw(
             true
         );
 
-        if (activeTool == EditorTool::Pencil)
+        if (activeTool == EditorTool::Pencil && m_editorStyle==GridEditorStyle::Schematic)
         {
             if (m_toolSettings.m_paintMisc)
             {
@@ -440,7 +578,7 @@ void WorldViewWindow::draw(
                 );
             }
         }
-        else
+        else if(activeTool==EditorTool::Eraser)
         {
             WorldView::drawEraserPreview(m_viewport, m_hover, m_eraser, m_toolSettings,
                 drawList
@@ -500,6 +638,7 @@ bool WorldViewWindow::loadMap(
 
     if (loaded)
     {
+        selection.clear();cancelPainting();
         m_mapName = std::filesystem::path(filename).stem().string();
         m_centerOnNextMarker = true;
         m_hasUnsavedChanges = false;
@@ -520,6 +659,7 @@ void WorldViewWindow::setMapName(const std::string& name)
 
 void WorldViewWindow::newMap()
 {
+    selection.clear();cancelPainting();
     WorldView::stopPainting(m_painter);
 
     m_chunkManager.clear();

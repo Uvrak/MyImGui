@@ -7,6 +7,9 @@
 #include <memory>
 #include "MapPlayerMarker.h"
 #include "GroundLayer.h"
+#include "GridPaintSelection.h"
+#include "GridCellSelection.h"
+#include "EditorTool.h"
 #include "EditorTextureResolver.h"
 
 class ChunkManager;
@@ -41,8 +44,37 @@ public:
     void setGroundView(GroundViewState view);
     void setGroundCell(int x, int y, GroundMaterial material);
     void setGroundBorder(int x, int y, std::uint8_t border);
+    void setEditorStyle(GridEditorStyle style);
+    void setGridLinesVisible(bool visible);
+    GridEditorStyle editorStyle() const;
+    bool graphicTilesVisible() const {return editorStyle()==GridEditorStyle::GraphicTiles;}
+    void setBorderShape(GridBorderShape shape);
+    GridSelectionGeometry selectionGeometry() const {return GridSelectionGeometry::Rectangle;}
+    GridBorderShape borderShape() const;
+    bool hasSelection() const;
+    void clearSelection();
+    const std::vector<GridCellCoord>& selectedCells() const;
+    void registerSelectionAction(const std::string& label,GridSelectionAction callback,bool graphicOnly=false);
+    void setActiveTool(EditorTool tool);
+    EditorTool activeTool() const;
+    void drawEditorStyleMenu();
+    void setGraphicCatalogsRenderer(std::function<void()> draw);
+    void drawGraphicCatalogs();
+    void setPlacementCallbacks(GridPlacementQuery query,GridPlacementCallback apply);
+    void setActiveGroundTile(std::uint32_t index);
+    void setActiveEdgeTile(std::uint32_t index,int span=1);
+    void clearActiveTile();
+    GridPaintSelection activeTile() const;
+    bool isActiveGroundTile(std::uint32_t index) const;
+    bool isActiveEdgeTile(std::uint32_t index) const;
+    void setEdgeSpanResolver(GridEdgeSpanResolver resolver);
     void setGroundDropCallback(GroundDropCallback callback);
+    void setWallDropCallback(WallDropCallback callback);
+    void setWallTile(int x,int y,int side,const std::string& id,ImTextureID texture);
+    void removeWallTile(int x,int y,int side);
     void setGroundNavigationCallback(GroundNavigationCallback callback);
+    void bindGroundView(GroundViewBinding binding);
+    void setGroundCanvasRenderer(GroundCanvasRenderer renderer);
     void setEditorTextureResolver(EditorTextureResolver resolver);
     void setEditorToolsEnabled(bool enabled);
 

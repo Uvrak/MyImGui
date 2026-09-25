@@ -51,6 +51,8 @@ public:
     EditorMiscBox miscBox;
 
     bool groundOnly = false;
+    GroundViewBinding groundBinding;
+    std::function<void()> graphicCatalogs;
     bool editorToolsEnabled = true;
     PaintTarget paintTarget =
         PaintTarget::Edge;
@@ -72,12 +74,73 @@ GridBuilderGrid::GridBuilderGrid(
 GridBuilderGrid::~GridBuilderGrid() =
 default;
 
+GridEditorStyle GridBuilderGrid::editorStyle() const{return m_impl->worldViewWindow.editorStyle();}
+void GridBuilderGrid::setGridLinesVisible(bool visible){m_impl->worldViewWindow.gridLinesVisible=visible;}
+void GridBuilderGrid::setEditorStyle(GridEditorStyle style){
+    if(style==editorStyle())return;
+    m_impl->worldViewWindow.setEditorStyle(style);
+    m_impl->toolBox.setActiveTool(EditorTool::Pencil);
+}
+void GridBuilderGrid::setGraphicCatalogsRenderer(std::function<void()> draw){m_impl->graphicCatalogs=std::move(draw);}
+void GridBuilderGrid::drawGraphicCatalogs(){if(graphicTilesVisible() && m_impl->graphicCatalogs)m_impl->graphicCatalogs();}
+void GridBuilderGrid::setBorderShape(GridBorderShape shape){m_impl->worldViewWindow.borderShape=shape;}
+GridBorderShape GridBuilderGrid::borderShape() const{return m_impl->worldViewWindow.borderShape;}
+bool GridBuilderGrid::hasSelection() const{return !selectedCells().empty();}
+void GridBuilderGrid::clearSelection(){m_impl->worldViewWindow.selection.clear();m_impl->worldViewWindow.cancelPainting();}
+const std::vector<GridCellCoord>& GridBuilderGrid::selectedCells() const{return m_impl->worldViewWindow.selection.cells();}
+void GridBuilderGrid::registerSelectionAction(const std::string& label,GridSelectionAction callback,bool graphicOnly){
+    auto& actions=m_impl->worldViewWindow.selectionActions;
+    for(auto& action:actions)if(action.label==label){action={label,std::move(callback),graphicOnly};return;}
+    actions.push_back({label,std::move(callback),graphicOnly});
+}
+void GridBuilderGrid::setActiveTool(EditorTool tool){m_impl->worldViewWindow.cancelPainting();m_impl->toolBox.setActiveTool(tool);}
+EditorTool GridBuilderGrid::activeTool() const{return m_impl->toolBox.activeTool();}
+void GridBuilderGrid::drawEditorStyleMenu(){
+    if(ImGui::BeginMenu("Editor")){
+        if(ImGui::BeginMenu("Darstellungsstil")){
+            if(ImGui::MenuItem("Grafik-Tiles",nullptr,graphicTilesVisible()))setEditorStyle(GridEditorStyle::GraphicTiles);
+            if(ImGui::MenuItem("Schematischer GridBuilder",nullptr,!graphicTilesVisible()))setEditorStyle(GridEditorStyle::Schematic);
+            ImGui::EndMenu();
+        }
+        if(ImGui::BeginMenu("Border Shape")){
+            if(ImGui::MenuItem("Rectangle",nullptr,borderShape()==GridBorderShape::Rectangular))setBorderShape(GridBorderShape::Rectangular);
+            if(ImGui::MenuItem("Diagonal",nullptr,borderShape()==GridBorderShape::Diagonal))setBorderShape(GridBorderShape::Diagonal);
+            ImGui::EndMenu();
+        }
+        if(ImGui::MenuItem("Select",nullptr,activeTool()==EditorTool::Select))setActiveTool(EditorTool::Select);
+        if(ImGui::MenuItem("Clear Selection",nullptr,false,hasSelection()))clearSelection();
+        ImGui::EndMenu();
+    }
+}
+void GridBuilderGrid::setPlacementCallbacks(GridPlacementQuery query,GridPlacementCallback apply){m_impl->worldViewWindow.setPlacementCallbacks(std::move(query),std::move(apply));}
+void GridBuilderGrid::setActiveGroundTile(std::uint32_t index){
+    m_impl->worldViewWindow.setActiveTile({GridPaintKind::Ground,index});m_impl->toolBox.setActiveTool(EditorTool::Pencil);
+}
+void GridBuilderGrid::setActiveEdgeTile(std::uint32_t index,int span){
+    m_impl->worldViewWindow.setActiveTile({GridPaintKind::Edge,index,span});m_impl->toolBox.setActiveTool(EditorTool::Pencil);
+}
+void GridBuilderGrid::clearActiveTile(){m_impl->worldViewWindow.setActiveTile({});}
+GridPaintSelection GridBuilderGrid::activeTile() const{return m_impl->worldViewWindow.activeTile();}
+bool GridBuilderGrid::isActiveGroundTile(std::uint32_t index) const {const auto s=activeTile();return s.kind==GridPaintKind::Ground && s.index==index;}
+bool GridBuilderGrid::isActiveEdgeTile(std::uint32_t index) const {const auto s=activeTile();return s.kind==GridPaintKind::Edge && s.index==index;}
+void GridBuilderGrid::setEdgeSpanResolver(GridEdgeSpanResolver resolver){m_impl->worldViewWindow.setEdgeSpanResolver(std::move(resolver));}
+
 GroundViewState GridBuilderGrid::groundView() const { return m_impl->worldViewWindow.groundView(); }
 void GridBuilderGrid::setGroundView(GroundViewState view) { m_impl->worldViewWindow.setGroundView(view); }
 void GridBuilderGrid::setGroundCell(int x,int y,GroundMaterial material) { m_impl->worldViewWindow.setGroundCell(x,y,material); }
 void GridBuilderGrid::setGroundBorder(int x,int y,std::uint8_t border) { m_impl->worldViewWindow.setGroundBorder(x,y,border); }
 void GridBuilderGrid::setGroundDropCallback(GroundDropCallback callback) { m_impl->worldViewWindow.setGroundDropCallback(std::move(callback)); }
+void GridBuilderGrid::setWallDropCallback(WallDropCallback callback) { m_impl->worldViewWindow.setWallDropCallback(std::move(callback)); }
+void GridBuilderGrid::setWallTile(int x,int y,int side,const std::string& id,ImTextureID texture) { m_impl->worldViewWindow.setWallTile(x,y,side,id,texture); }
+void GridBuilderGrid::removeWallTile(int x,int y,int side) { m_impl->worldViewWindow.removeWallTile(x,y,side); }
 void GridBuilderGrid::setGroundNavigationCallback(GroundNavigationCallback callback) { m_impl->worldViewWindow.setGroundNavigationCallback(std::move(callback)); }
+void GridBuilderGrid::bindGroundView(GroundViewBinding binding) {
+    m_impl->groundBinding=std::move(binding);
+    m_impl->worldViewWindow.setGroundNavigationCallback(m_impl->groundBinding.write);
+}
+void GridBuilderGrid::setGroundCanvasRenderer(GroundCanvasRenderer renderer) {
+    m_impl->worldViewWindow.setGroundCanvasRenderer(std::move(renderer));
+}
 
 void GridBuilderGrid::setGroundLayer(GroundLayer layer, const std::string& title)
 {
@@ -218,9 +281,13 @@ void GridBuilderGrid::draw(
     bool* isOpen
 )
 {
-    if (isOpen && !*isOpen) return;
-    if (m_impl->groundOnly && !m_impl->editorToolsEnabled) {
-        m_impl->worldViewWindow.draw(EditorTool::Scroll, {}, {}, {}, {}, false,
+    if (isOpen && !*isOpen) {m_impl->worldViewWindow.cancelPainting();return;}
+    GroundViewState linkedView;
+    if(m_impl->groundBinding.read && m_impl->groundBinding.read(linkedView))
+        m_impl->worldViewWindow.setGroundView(linkedView);
+    if (graphicTilesVisible()) {
+        if(m_impl->editorToolsEnabled)m_impl->toolBox.draw(m_impl->toolBox.activeTool());
+        m_impl->worldViewWindow.draw(m_impl->toolBox.activeTool(), {}, {}, {}, {}, false,
             {}, {}, {}, {}, {}, false, true, isOpen);
         return;
     }

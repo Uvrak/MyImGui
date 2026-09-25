@@ -162,10 +162,17 @@
     <ClInclude Include="EditorToolBox.h" />
     <ClInclude Include="GridBuilderGrid.h" />
     <ClInclude Include="GroundLayer.h" />
+    <ClInclude Include="GridPaintSelection.h" />
+    <ClInclude Include="GridPaintStroke.h" />
+    <ClInclude Include="GridEdgeLine.h" />
+    <ClInclude Include="GridCellSelection.h" />
+    <ClInclude Include="GridTileEntry.h" />
     <ClInclude Include="EditorTextureResolver.h" />
     <ClInclude Include="MapPlayerMarker.h" />
     <ClInclude Include="SvgButtonBar.h" />
     <ClInclude Include="SvGDx11TextureCache.h" />
+    <ClInclude Include="TileDefinition.h" />
+    <ClInclude Include="TileManager.h" />
     <ClInclude Include="WorldViewCellInteraction.h" />
     <ClInclude Include="WorldViewEraser.h" />
     <ClInclude Include="WorldViewHitTest.h" />
@@ -184,6 +191,7 @@
     <ClCompile Include="GridBuilderGrid.cpp" />
     <ClCompile Include="SvgButtonBar.cpp" />
     <ClCompile Include="SvGDx11TextureCache.cpp" />
+    <ClCompile Include="TileManager.cpp" />
     <ClCompile Include="WorldViewCellInteraction.cpp" />
     <ClCompile Include="WorldViewEraser.cpp" />
     <ClCompile Include="WorldViewHitTest.cpp" />
@@ -197,7 +205,11 @@
       <Project>{f1e86453-4a0c-4062-a662-38e91def7ccd}</Project>
     </ProjectReference>
   </ItemGroup>
-  <ItemDefinitionGroup><ClCompile><AdditionalIncludeDirectories>$(ProjectDir)..\ThirdParty\imgui;$(ProjectDir)..\ThirdParty\SDL3\include;$(ProjectDir)..\ThirdParty\SDL3_image\include;$(ProjectDir)..\MyImGui;$(ProjectDir)..\GridBuilderCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile></ItemDefinitionGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\ThirdParty\imgui;$(ProjectDir)..\ThirdParty\SDL3\include;$(ProjectDir)..\ThirdParty\SDL3_image\include;$(ProjectDir)..\MyImGui;$(ProjectDir)..\GridBuilderCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

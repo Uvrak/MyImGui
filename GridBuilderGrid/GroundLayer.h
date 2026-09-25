@@ -1,5 +1,6 @@
 #pragma once
 #include <imgui.h>
+#include "GridPaintSelection.h"
 #include <cstdint>
 #include <vector>
 #include <stdexcept>
@@ -7,10 +8,21 @@
 
 struct GroundViewState {
     float centerX = 0, centerY = 0, visibleHeight = 16;
+    float visibleWidth = 0; // Zero keeps the current canvas aspect ratio.
 };
 using GroundDropCallback = std::function<void(int, int, std::uint32_t)>;
 using GroundNavigationCallback = std::function<void(GroundViewState)>;
-inline constexpr const char* GroundTilePayloadType = "GRID_GROUND_TILE";
+struct GroundViewBinding {
+    std::function<bool(GroundViewState&)> read;
+    GroundNavigationCallback write;
+};
+struct GroundCanvasImage {
+    ImTextureID texture = 0;
+    ImVec2 uvMin{0,0},uvMax{1,1};
+};
+using GroundCanvasRenderer = std::function<GroundCanvasImage(GroundViewState,ImVec2)>;
+// Side order: north, east, south, west.
+using WallDropCallback = std::function<void(int,int,int,std::uint32_t)>;
 
 // Row-major, finite ground cells. Texture ownership stays with the caller.
 // Texture IDs must belong to the renderer used by the current ImGui context.

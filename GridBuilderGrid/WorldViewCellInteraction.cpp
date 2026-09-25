@@ -43,36 +43,13 @@ void handlePencil(Viewport& viewport, Hover& hover, WallPainting& painter, const
         return;
     }
 
-    if (ImGui::IsMouseClicked(
-        ImGuiMouseButton_Left
-    ))
-    {
-        WorldView::startPainting(painter, toolSettings, map, dirty,
-            hover.m_hoveredCellX,
-            hover.m_hoveredCellY,
-            hover.m_hoveredWall
-        );
-    }
+    const bool started=painter.gesture.update(ImGui::IsMouseClicked(ImGuiMouseButton_Left),
+        ImGui::IsMouseDown(ImGuiMouseButton_Left),ImGui::GetDragDropPayload()==nullptr);
+    if(started)WorldView::startPainting(painter,toolSettings,map,dirty,hover.m_hoveredCellX,hover.m_hoveredCellY,hover.m_hoveredWall);
+    if(painter.m_isPainting && painter.gesture.active)
+        WorldView::updatePainting(viewport,hover,painter,toolSettings,map,dirty,hover.m_hoveredCellX,hover.m_hoveredCellY,hover.m_hoverLocalX,hover.m_hoverLocalY);
+    if(!painter.gesture.active)WorldView::stopPainting(painter);
 
-    if (painter.m_isPainting &&
-        ImGui::IsMouseDown(
-            ImGuiMouseButton_Left
-        ))
-    {
-        WorldView::updatePainting(viewport, hover, painter, toolSettings, map, dirty,
-            hover.m_hoveredCellX,
-            hover.m_hoveredCellY,
-            hover.m_hoverLocalX,
-            hover.m_hoverLocalY
-        );
-    }
-
-    if (ImGui::IsMouseReleased(
-        ImGuiMouseButton_Left
-    ))
-    {
-        WorldView::stopPainting(painter);
-    }
 }
 
 void drawNotePopup(CellInteraction& cellInteraction, ChunkManager& map, bool& dirty, int& blockFrames)

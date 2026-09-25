@@ -31,6 +31,9 @@
     <Filter Include="Grid\Integration">
       <UniqueIdentifier>{69c41a49-250d-42c4-928a-c885237ad4f3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Grid\Tiles">
+      <UniqueIdentifier>{a8b2eaf2-1e45-4a2a-a4e3-999f01bceb89}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MapPlayerMarker.h">
@@ -84,6 +87,33 @@
     <ClInclude Include="SvGDx11TextureCache.h">
       <Filter>Grid\Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="GroundLayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GridPaintSelection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GridPaintStroke.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GridEdgeLine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GridCellSelection.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GridTileEntry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EditorTextureResolver.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TileDefinition.h">
+      <Filter>Grid\Tiles</Filter>
+    </ClInclude>
+    <ClInclude Include="TileManager.h">
+      <Filter>Grid\Tiles</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WorldViewViewport.cpp">
@@ -130,6 +160,9 @@
     </ClCompile>
     <ClCompile Include="SvGDx11TextureCache.cpp">
       <Filter>Grid\Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="TileManager.cpp">
+      <Filter>Grid\Tiles</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -4,5 +4,6 @@ enum class EditorTool
 {
     Pencil,
     Eraser,
-    Scroll
+    Scroll,
+    Select
 };

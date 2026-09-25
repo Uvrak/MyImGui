@@ -22,7 +22,8 @@ EditorToolbox::EditorToolbox()
     {
         { ICON_FA_PENCIL, "Pencil", EditorTool::Pencil },
         { ICON_FA_ERASER, "Eraser", EditorTool::Eraser },
-        { ICON_FA_HAND,   "Pan", EditorTool::Scroll }
+        { ICON_FA_HAND,   "Pan", EditorTool::Scroll },
+        { "[]", "Select", EditorTool::Select }
     };
 }
 
@@ -37,7 +38,7 @@ void EditorToolbox::draw(
 )
 {
         ImGui::SetNextWindowSize(
-        m_textLabels ? ImVec2(240.0f, 80.0f) : ImVec2(170.0f, 70.0f),
+        m_textLabels ? ImVec2(320.0f, 95.0f) : ImVec2(210.0f, 80.0f),
         ImGuiCond_FirstUseEver
     );
 
@@ -130,6 +131,7 @@ void EditorToolbox::drawToolButton(
         );
         break;
 
+    case EditorTool::Select:
     case EditorTool::Scroll:
         iconColor = ImVec4(
             0.4f,
