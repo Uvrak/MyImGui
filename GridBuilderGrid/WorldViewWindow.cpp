@@ -247,7 +247,10 @@ void WorldViewWindow::draw(
         }
         // Once a working selection exists, a short left click edits it cell by cell.
         // Dragging still replaces it with an inclusive rectangle.
-        if(selectionAllowed && (activeTool==EditorTool::Select || !selection.cells().empty()) && ImGui::IsItemClicked(0) && !ImGui::IsMouseDown(1) && validCell){
+        // An active graphic tile owns the left button. Selection cells remain
+        // editable with the Select tool, or after the tile brush is cleared.
+        const bool tileOwnsLeftButton=m_activeTile.kind==GridPaintKind::Ground || m_activeTile.kind==GridPaintKind::Edge;
+        if(selectionAllowed && (activeTool==EditorTool::Select || (!tileOwnsLeftButton && !selection.cells().empty())) && ImGui::IsItemClicked(0) && !ImGui::IsMouseDown(1) && validCell){
             selectionPending=true;selecting=false;selectionButton=0;selectionStart=pointed;
             selectionResizeEdges=0;selectionResizeOriginal.clear();
             if(selection.bounds(selectionOldLeft,selectionOldTop,selectionOldRight,selectionOldBottom) && selection.contains(pointed.x,pointed.y)){
@@ -259,6 +262,18 @@ void WorldViewWindow::draw(
                     !selection.contains(pointed.x,pointed.y-1),!selection.contains(pointed.x,pointed.y+1)};
                 float nearest=2.f;for(int side=0;side<4;++side)if(exposed[side])nearest=(std::min)(nearest,distances[side]);
                 for(int side=0;side<4;++side)if(exposed[side] && distances[side]<=nearest+.12f)selectionResizeEdges|=1<<side;
+                // Opposite sides only both qualify when the click is about equally far from
+                // each (e.g. mid-cell beside a hole). Dragging both would move instead of
+                // resize, so keep the side on the outer selection bounds, else the nearer.
+                const bool outer[]={pointed.x==selectionOldLeft,pointed.x==selectionOldRight,
+                    pointed.y==selectionOldTop,pointed.y==selectionOldBottom};
+                for(int first=0;first<4;first+=2){
+                    const int pair=3<<first;if((selectionResizeEdges&pair)!=pair)continue;
+                    int keep=first;
+                    if(outer[first]!=outer[first+1])keep=outer[first]?first:first+1;
+                    else if(distances[first+1]<distances[first])keep=first+1;
+                    selectionResizeEdges&=~pair;selectionResizeEdges|=1<<keep;
+                }
                 if(selectionResizeEdges)selectionResizeOriginal=selection.cells();
             }
             m_tileStroke.reset();WorldView::stopPainting(m_painter);
