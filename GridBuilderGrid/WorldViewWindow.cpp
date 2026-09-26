@@ -245,18 +245,51 @@ void WorldViewWindow::draw(
             selectionPending=true;selecting=false;selectionButton=1;selectionStart=pointed;
             m_tileStroke.reset();WorldView::stopPainting(m_painter);
         }
-        if(selectionAllowed && activeTool==EditorTool::Select && ImGui::IsItemClicked(0) && !ImGui::IsMouseDown(1) && validCell){
-            selectionPending=true;selecting=true;selectionButton=0;selectionStart=pointed;
+        // Once a working selection exists, a short left click edits it cell by cell.
+        // Dragging still replaces it with an inclusive rectangle.
+        if(selectionAllowed && (activeTool==EditorTool::Select || !selection.cells().empty()) && ImGui::IsItemClicked(0) && !ImGui::IsMouseDown(1) && validCell){
+            selectionPending=true;selecting=false;selectionButton=0;selectionStart=pointed;
+            selectionResizeEdges=0;selectionResizeOriginal.clear();
+            if(selection.bounds(selectionOldLeft,selectionOldTop,selectionOldRight,selectionOldBottom) && selection.contains(pointed.x,pointed.y)){
+                // Every exposed side is a resize handle.  This includes dents,
+                // holes and other user-modified edges inside the bounding box.
+                const float localX=tileX-std::floor(tileX),localY=tileY-std::floor(tileY);
+                const float distances[]={localX,1-localX,localY,1-localY};
+                const bool exposed[]={!selection.contains(pointed.x-1,pointed.y),!selection.contains(pointed.x+1,pointed.y),
+                    !selection.contains(pointed.x,pointed.y-1),!selection.contains(pointed.x,pointed.y+1)};
+                float nearest=2.f;for(int side=0;side<4;++side)if(exposed[side])nearest=(std::min)(nearest,distances[side]);
+                for(int side=0;side<4;++side)if(exposed[side] && distances[side]<=nearest+.12f)selectionResizeEdges|=1<<side;
+                if(selectionResizeEdges)selectionResizeOriginal=selection.cells();
+            }
+            m_tileStroke.reset();WorldView::stopPainting(m_painter);
         }
         if(selectionPending){
             // Max distance also survives a fast drag ending between two frames.
             const float threshold=ImGui::GetIO().MouseDragThreshold;
-            if(ImGui::GetIO().MouseDragMaxDistanceSqr[selectionButton]>=threshold*threshold)selecting=true;
-            if(selecting)selection.select(selectionStart,pointed,m_groundOnly?m_ground.width:0,m_groundOnly?m_ground.height:0);
+            if(ImGui::GetIO().MouseDragMaxDistanceSqr[selectionButton]>=threshold*threshold){
+                // A new rectangle is exclusively a right-button gesture.  The
+                // left button may drag only an existing outer selection edge.
+                if(selectionButton==1 || selectionResizeEdges)selecting=true;
+                else {selectionPending=false;selectionResizeOriginal.clear();}
+            }
+            if(selecting && selectionButton==0 && selectionResizeEdges){
+                int left=selectionOldLeft,top=selectionOldTop,right=selectionOldRight,bottom=selectionOldBottom;
+                const int shiftX=pointed.x-selectionStart.x,shiftY=pointed.y-selectionStart.y;
+                if(selectionResizeEdges&1)left=(std::min)(selectionOldLeft+shiftX,right);
+                if(selectionResizeEdges&2)right=(std::max)(selectionOldRight+shiftX,left);
+                if(selectionResizeEdges&4)top=(std::min)(selectionOldTop+shiftY,bottom);
+                if(selectionResizeEdges&8)bottom=(std::max)(selectionOldBottom+shiftY,top);
+                if(m_groundOnly){left=(std::clamp)(left,0,m_ground.width-1);right=(std::clamp)(right,0,m_ground.width-1);top=(std::clamp)(top,0,m_ground.height-1);bottom=(std::clamp)(bottom,0,m_ground.height-1);}
+                selection.resizePreservingShape(selectionResizeOriginal,selectionOldLeft,selectionOldTop,selectionOldRight,selectionOldBottom,left,top,right,bottom);
+            }else if(selecting)selection.select(selectionStart,pointed,m_groundOnly?m_ground.width:0,m_groundOnly?m_ground.height:0);
             if(!ImGui::IsMouseDown(selectionButton)){
-                if(!selecting && ImGui::IsMouseReleased(selectionButton) && ImGui::IsItemHovered() && selection.contains(pointed.x,pointed.y))
-                    ImGui::OpenPopup("Grid Selection Actions");
-                selectionPending=false;selecting=false;
+                if(!selecting && ImGui::IsMouseReleased(selectionButton) && ImGui::IsItemHovered()){
+                    if(selectionButton==0)
+                        selection.toggle(selectionStart,m_groundOnly?m_ground.width:0,m_groundOnly?m_ground.height:0);
+                    else if(selection.contains(pointed.x,pointed.y))
+                        ImGui::OpenPopup("Grid Selection Actions");
+                }
+                selectionPending=false;selecting=false;selectionResizeEdges=0;selectionResizeOriginal.clear();
             }
         }
         if(ImGui::BeginPopup("Grid Selection Actions")){

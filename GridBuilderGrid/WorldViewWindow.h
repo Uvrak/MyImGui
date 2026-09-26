@@ -42,6 +42,9 @@ public:
     int selectionButton=1;
     GridBorderShape borderShape=GridBorderShape::Rectangular;
     GridCellCoord selectionStart;
+    int selectionResizeEdges=0;
+    int selectionOldLeft=0,selectionOldTop=0,selectionOldRight=0,selectionOldBottom=0;
+    std::vector<GridCellCoord> selectionResizeOriginal;
     struct SelectionAction {std::string label;GridSelectionAction callback;bool graphicOnly=false;};
     std::vector<SelectionAction> selectionActions;
     void setGroundLayer(GroundLayer layer, const std::string& title);

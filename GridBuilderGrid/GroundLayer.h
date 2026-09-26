@@ -42,8 +42,7 @@ struct GroundLayer {
         if (width <= 0 || height <= 0 ||
             cells.size() != static_cast<size_t>(width) * height || materials.empty())
             throw std::invalid_argument("Invalid ground layer dimensions");
-        for (auto cell : cells) if (cell >= materials.size())
-            throw std::invalid_argument("Invalid ground material index");
+        for (auto cell : cells) if (cell >= materials.size())std::invalid_argument("Invalid ground material index");
         if (!borders.empty() && borders.size() != cells.size())
             throw std::invalid_argument("Invalid ground border dimensions");
         for (auto border : borders) if (border > 15)
