@@ -13,6 +13,7 @@
 //       renders the Britannia3d view of Trinsic as a bitmap, for checks: from above, the whole
 //       globe, or Sir Canegm's camera (after walking 3 s north with --walk; close up; placed).
 #include "Britannia3dView.h"
+#include <set>
 #include "Inventory/BackpackPanel.h"
 #include "U7Data.h"
 #include "U7GroundGrid.h"
@@ -43,6 +44,21 @@ bool layerOne(const U7::WorldObject& object, const std::string& name) {
 }
 bool layerThree(const U7::WorldObject& object, const std::string& name) {
     return object.source == U7::Source::Chunk && !U7ObjectLayer::isStructure(name);
+}
+
+// The movable things (neither structure nor part of the terrain), split for the U7 grid view:
+// furniture, and all the smaller things. Markers the game never shows are left out.
+bool movableThing(const U7::WorldObject& object, const std::string& name) {
+    return !layerOne(object, name) && !layerThree(object, name) && name != "egg" && name != "path" && name != "light source";
+}
+bool furniture(const U7::WorldObject& object, const std::string& name) {
+    static const std::set<std::string> kinds = {"table", "desk", "drawers", "seat", "bed", "bed ", "chair", "crate", "chest", "locked chest",
+                                                "sealed box", "unsealed box", "stove", "stove top", "podium", "pedestal", "water trough", "trough",
+                                                "anvil", "easel", "mirror", "cart", "barrel", "cupboard", "dresser", "cradle", "bench"};
+    return movableThing(object, name) && kinds.count(name) > 0;
+}
+bool smallThing(const U7::WorldObject& object, const std::string& name) {
+    return movableThing(object, name) && !furniture(object, name);
 }
 
 // Paints one decoded frame into an RGBA image, hot spot at (hx, hy), with alpha.
@@ -217,11 +233,13 @@ int main(int argc, char** argv) {
 
         {
             U7GroundGrid ground;
-            U7ObjectLayer structures, terrain;
+            U7ObjectLayer structures, terrain, furnishings, things;
             GridBuilderGrid grid(nullptr, U7::ChunkTiles);
             grid.setGroundLayer(ground.build(data), "U7 Original");
             const auto structureLayer = grid.addSpriteLayer(structures.build(data, "Ebene 1: Waende, Tueren, Fenster, Mauern, Fels", layerOne));
             const auto terrainLayer = grid.addSpriteLayer(terrain.build(data, "Ebene 3: Felsen, Pflanzen, Baeume", layerThree));
+            grid.addSpriteLayer(furnishings.build(data, "Ebene 2: Moebel", furniture));
+            grid.addSpriteLayer(things.build(data, "Ebene 4: Gegenstaende", smallThing));
             std::cout << "Layer 0: " << ground.materialCount() << " ground tiles; layer 1: "
                       << grid.spriteLayer(structureLayer).sprites.size() << " objects; layer 3: "
                       << grid.spriteLayer(terrainLayer).sprites.size() << " objects" << std::endl;
@@ -254,6 +272,23 @@ int main(int argc, char** argv) {
                 }
                 backpack.extraItems = [&](ImVec2 p, float size) { britannia3d.drawBagItems(p, size); };
                 britannia3d.equipmentKg = [&] { return backpack.carriedKg(); };
+                // Clothing found in Trinsic is Sir Canegm's own equipment when he puts it on.
+                auto equipmentOf = [&](int id) -> int {
+                    const auto& kind = britannia3d.itemKind(size_t(id));
+                    if (kind == "leather helm" || kind == "crested helm") return 0;          // helmet
+                    if (kind == "leather armour") return 1;                                  // armor
+                    if (kind == "leather leggings") return 2;                                // trousers
+                    if (kind == "boots" || kind == "swamp boots") return 3;                  // boots
+                    return -1;
+                };
+                backpack.wearableEquipment = equipmentOf;
+                backpack.wornFromWorld = [&](int id) { britannia3d.wearItem(size_t(id)); };
+                britannia3d.dropOnCharacter = [&](size_t id, ImVec2 mouse) {
+                    const int item = equipmentOf(int(id));
+                    if (item < 0 || !backpack.overCharacterAt(mouse)) return false;
+                    backpack.setEquipment(item, true);
+                    return true;
+                };
                 britannia3d.overlay = [&](ImVec2 a, ImVec2 b) { return backpack.draw(a, b); };
                 britannia3d.overBag = [&](ImVec2 m) {
                     const auto [p, size] = backpack.panel;

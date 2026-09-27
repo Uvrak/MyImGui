@@ -14,6 +14,7 @@
 #include "WellModel.h"
 #include "PropModels.h"
 #include "HalfTimber.h"
+#include "HalfTimberMaterial.h"
 #include "TextileArt.h"
 #include "TreeModel.h"
 #include "WoodMaterial.h"
@@ -134,6 +135,9 @@ uniform sampler2D woodAlbedo;
 uniform sampler2D woodNormal;
 uniform float woodSize;
 uniform float woodTile;          // metres per tile: the material is mapped in metres
+uniform sampler2D halfTimberAlbedo;
+uniform sampler2D halfTimberNormal;
+uniform float halfTimberWidth;   // metres along the wall per repeat; one storey (stoneHeight) high
 uniform vec3 eye;                // the camera in the flat world (x, z tiles; y metres)
 out vec4 color;
 const vec3 sun = normalize(vec3(-0.35, 1.0, 0.45));
@@ -166,6 +170,15 @@ void shadeFragment() {
         else if (abs(n.x) > 0.5) { uv = vec2(vFlat.z * woodTile, -vFlat.y); t = vec3(0, 0, 1); down = vec3(0, -1, 0); }
         else { uv = vec2(vFlat.x * woodTile, -vFlat.y); t = vec3(1, 0, 0); down = vec3(0, -1, 0); }
         if (planks == 2 && abs(n.y) <= 0.5) { uv = uv.yx; vec3 s = t; t = down; down = s; }
+        if (planks == 7) {
+            // Half-timbering: one storey per repeat, its sill on the floor.
+            uv = abs(n.y) > 0.5 ? uv / halfTimberWidth * 0.1 + vec2(0.5, 0.4) : vec2(uv.x / halfTimberWidth, uv.y / stoneHeight);
+            vec3 relief = texture(halfTimberNormal, uv).xyz * 2.0 - 1.0;
+            vec3 bumped = normalize(mat3(flatModel) * (t * relief.x + down * relief.y + n * relief.z));
+            float light = 0.45 + 0.62 * max(dot(bumped, sun), 0.0);
+            color = vec4(texture(halfTimberAlbedo, uv).rgb * light * vShade, 1.0);
+            return;
+        }
         const bool stone = planks == 4, ashlar = planks == 6;
         uv /= stone ? stoneSize : ashlar ? ashlarSize : woodSize;
         vec3 relief = (stone ? texture(stoneNormal, uv) : ashlar ? texture(ashlarNormal, uv) : texture(woodNormal, uv)).xyz * 2.0 - 1.0;
@@ -445,7 +458,7 @@ void Britannia3dView::addObject(const U7::Data& data, const U7::WorldObject& obj
 void Britannia3dView::loadModels(const U7::Data& data, const std::vector<std::pair<int, int>>& graphics) {
     // Model files are read (or generated) and their textures upscaled on all cores, in groups
     // so the upscaled images do not all wait in memory at once; the upload stays on this thread.
-    struct Prepared { U7ObjectModel model; bool created = false; std::vector<std::uint8_t> texels; int width = 0, height = 0; };
+    struct Prepared { U7ObjectModel model; bool created = false, halfTimber = false; std::vector<std::uint8_t> texels; int width = 0, height = 0; };
     constexpr int factor = TexelsPerTile / P;
     const unsigned workers = std::max(1u, std::thread::hardware_concurrency());
     for (size_t first = 0; first < graphics.size(); first += 96) {
@@ -480,6 +493,7 @@ void Britannia3dView::loadModels(const U7::Data& data, const std::vector<std::pa
                     p.height = p.model.textureHeight * f;
                     PixelArtScale::smoothEdges(p.texels, p.width, p.height, f / 2);
                     if (halfTimber) HalfTimber::render(p.texels, p.width, p.height, p.model.texture);
+                    p.halfTimber = halfTimber;
                 }
             });
         for (auto& thread : threads) thread.join();
@@ -490,6 +504,13 @@ void Britannia3dView::loadModels(const U7::Data& data, const std::vector<std::pa
             auto& model = m_models[graphics[first + i]];
             model.texture = makeTexture(p.width, p.height, p.texels.data(), true);
             model.kind = p.model.kind;
+            model.halfTimber = p.halfTimber;
+            if (p.halfTimber)
+                for (size_t k = 0; k + 3 < p.model.texture.size(); k += 4) {
+                    const auto* c = p.model.texture.data() + k;
+                    const float l = (c[0] * 0.3f + c[1] * 0.59f + c[2] * 0.11f) / 255.f;
+                    if (c[3] && l > 0.42f && c[0] >= c[2]) { m_plasterSum += glm::vec3(c[0], c[1], c[2]) / 255.f; ++m_plasterCount; }
+                }
             model.vertices = std::move(p.model.vertices);
             // Mean colour of the original graphic without its black outline.
             glm::vec3 sum(0);
@@ -713,6 +734,35 @@ void Britannia3dView::buildRoads() {
             for (int i = 0; i < 6; ++i) v[(size_t(y - y0) * w + (x - x0)) * 6 + i].y = RoadHeight;
         }
     }
+    // A paving tile of a path that sticks out as a lone corner (paving on two adjacent sides,
+    // lawn on the other two) becomes lawn with a diagonal kerb: the path's edge then runs
+    // straight on from the door kerbs into the diagonal, without a step between them.
+    for (int pass = 0; pass < 3; ++pass) {
+        const std::vector<std::pair<int, int>> tiles(doorCobbles.begin(), doorCobbles.end());
+        for (const auto& [x, y] : tiles) {
+            if (m_roofTiles.count({x, y})) continue;
+            auto pave = [&](int tx, int ty) { return road.count({tx, ty}) || (doorCobbles.count({tx, ty}) && !m_roofTiles.count({tx, ty})); };
+            auto grassAt = [&](int tx, int ty) {
+                if (tx < x0 || ty < y0 || tx >= x1 || ty >= y1 || pave(tx, ty) || m_solidTiles.count({tx, ty}) || m_roofTiles.count({tx, ty})) return -1;
+                const int l = m_tileLayer[size_t(ty - y0) * w + (tx - x0)];
+                return m_grassLayer[size_t(l)] || m_grassEdgeLayer[size_t(l)] ? l : -1;
+            };
+            bool threshold = false;
+            for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}})
+                threshold = threshold || m_roofTiles.count({x + dx, y + dy}) || m_solidTiles.count({x + dx, y + dy});
+            if (threshold) continue;
+            const bool n = pave(x, y - 1), e = pave(x + 1, y), s = pave(x, y + 1), wv = pave(x - 1, y);
+            if (n + e + s + wv != 2 || (n && s) || (e && wv)) continue;
+            int lawn = -1;
+            for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}})
+                if (!pave(x + dx, y + dy)) { const int l = grassAt(x + dx, y + dy); if (l < 0) { lawn = -2; break; } if (lawn == -1) lawn = l; }
+            if (lawn < 0) continue;
+            doorCobbles.erase({x, y});
+            raisedCobbles.erase({x, y});
+            auto* v = m_batches[m_groundBatch].vertices.data() + (size_t(y - y0) * w + (x - x0)) * 6;
+            for (int i = 0; i < 6; ++i) { v[i].y = 0.f; v[i].shade = float(lawn); }
+        }
+    }
     // House floors: under a roof, but not the lawn under the eaves.
     auto houseFloor = [&](int x, int y) {
         if (!m_roofTiles.count({x, y})) return false;
@@ -736,7 +786,7 @@ void Britannia3dView::buildRoads() {
             bool n = paving(x, y - 1), e = paving(x + 1, y), so = paving(x, y + 1), w = paving(x - 1, y);
             // Where a path meets a house wall: street on one side, the wall on an adjacent side,
             // lawn on the other two: a diagonal from the path's edge into the wall.
-            if (n + e + so + w == 1) {
+            if (n + e + so + w == 1 && !doorZone.count({x, y})) {   // (at doors the kerbs stay straight)
                 const bool sn = m_solidTiles.count({x, y - 1}) > 0, se = m_solidTiles.count({x + 1, y}) > 0,
                            ss = m_solidTiles.count({x, y + 1}) > 0, sw = m_solidTiles.count({x - 1, y}) > 0;
                 if (sn + se + ss + sw == 1 && !((n && ss) || (so && sn) || (e && sw) || (w && se))) {
@@ -1928,9 +1978,9 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
         glm::vec3 anchor = centred ? glm::vec3(centre.x, base, centre.y) : glm::vec3(o.x + 1.f, base, o.y + 1.f);
         if (wallAt.x >= 0) anchor = glm::vec3(wallAt.x, 0.f, wallAt.y);
         else {
-            // Out of any wall it reaches into, to 1 cm in front of the wall face. A wall tile's
+            // Out of any wall it reaches into, to 0.1 cm in front of the wall face. A wall tile's
             // wall runs through its middle, WallThickness thick, and on to the neighbouring walls.
-            const float half = U73dScale::WallThickness * 0.5f, gap = 0.01f / tm;
+            const float half = U73dScale::WallThickness * 0.5f, gap = 0.001f / tm;
             for (int pass = 0; pass < 3; ++pass) {
                 glm::vec2 low, high;                       // footprint, tiles
                 if (centred) {
@@ -1959,6 +2009,25 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 if (push == glm::vec2(0)) break;
                 anchor.x += push.x; anchor.z += push.y;
             }
+            // Beds stand in the corner: moved to the nearer wall on each side, 0.1 cm clear.
+            if (prop.name == "bed" && !centred) {
+                const glm::vec2 low(anchor.x - w / tm, anchor.z - d / tm), high(anchor.x, anchor.z);
+                const float reach = 0.8f / tm, clear = 0.001f / tm;
+                float gaps[4] = {1e9f, 1e9f, 1e9f, 1e9f};                 // west, east, north, south (tiles)
+                for (int ty = int(std::floor(low.y)) - 3; ty <= int(std::floor(high.y)) + 3; ++ty)
+                    for (int tx = int(std::floor(low.x)) - 3; tx <= int(std::floor(high.x)) + 3; ++tx) {
+                        if (!m_solidTiles.count({tx, ty})) continue;
+                        const glm::vec2 wl(m_solidTiles.count({tx - 1, ty}) ? float(tx) : tx + 0.5f - half, m_solidTiles.count({tx, ty - 1}) ? float(ty) : ty + 0.5f - half);
+                        const glm::vec2 wh(m_solidTiles.count({tx + 1, ty}) ? tx + 1.f : tx + 0.5f + half, m_solidTiles.count({tx, ty + 1}) ? ty + 1.f : ty + 0.5f + half);
+                        const bool rows = wh.y > low.y + 0.05f && wl.y < high.y - 0.05f, columns = wh.x > low.x + 0.05f && wl.x < high.x - 0.05f;
+                        if (rows && wh.x <= low.x + 1e-3f) gaps[0] = std::min(gaps[0], low.x - wh.x);
+                        if (rows && wl.x >= high.x - 1e-3f) gaps[1] = std::min(gaps[1], wl.x - high.x);
+                        if (columns && wh.y <= low.y + 1e-3f) gaps[2] = std::min(gaps[2], low.y - wh.y);
+                        if (columns && wl.y >= high.y - 1e-3f) gaps[3] = std::min(gaps[3], wl.y - high.y);
+                    }
+                if (std::min(gaps[0], gaps[1]) < reach) anchor.x += gaps[0] <= gaps[1] ? -(gaps[0] - clear) : gaps[1] - clear;
+                if (std::min(gaps[2], gaps[3]) < reach) anchor.z += gaps[2] <= gaps[3] ? -(gaps[2] - clear) : gaps[3] - clear;
+            }
         }
         {
             glm::vec3 low(1e9f), high(-1e9f);
@@ -1969,6 +2038,7 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                     low = glm::min(low, p); high = glm::max(high, p);
                 }
             m_items.push_back({PropModels::germanName(prop.name), low, high, PropModels::weightKg(prop.name, w, d, h), {}});
+            m_items.back().kind = prop.name;
         }
         for (int k = 0; k < PropModels::MaterialCount; ++k) {
             const auto& part = m->parts[k];
@@ -2013,6 +2083,12 @@ void Britannia3dView::uploadItem(size_t index) {
     }
 }
 
+void Britannia3dView::wearItem(size_t index) {
+    putInBag(index);
+    m_items[index].inBag = false;
+    m_items[index].worn = true;
+}
+
 void Britannia3dView::putInBag(size_t index) {
     // Out of the world: its vertices sink 1000 m below the ground until it is put down again.
     auto& item = m_items[index];
@@ -2054,7 +2130,8 @@ void Britannia3dView::drawBagItems(ImVec2 p, float size) {
         const auto& item = m_items[i];
         if (!item.inBag) continue;
         const float side = size * 0.085f;
-        const ImVec2 q(p.x + size * (0.2f + (slot % 7) * 0.09f), p.y + size * (0.56f + (slot / 7) * 0.1f));
+        const glm::vec2 place = item.bagPos.x >= 0 ? item.bagPos : glm::vec2(0.24f + (slot % 7) * 0.09f, 0.6f + (slot / 7) * 0.1f);
+        const ImVec2 q(p.x + size * place.x - side * 0.5f, p.y + size * place.y - side * 0.5f);
         ++slot;
         ImGui::PushID(int(10000 + i));
         ImGui::SetCursorScreenPos(q);
@@ -2063,7 +2140,7 @@ void Britannia3dView::drawBagItems(ImVec2 p, float size) {
         ink->AddRect(q, {q.x + side, q.y + side}, IM_COL32(200, 160, 90, 200), 4);
         const std::string letter = item.name.substr(0, item.name[0] & 0x80 ? 2 : 1);
         ink->AddText({q.x + side * 0.32f, q.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
-        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s (%.1f kg): auf den Boden ziehen", item.name.c_str(), item.kg);
+        if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s (%.1f kg): im Rucksack verschieben, auf den Boden ziehen; Kleidung auf Sir Canegm ziehen = anziehen", item.name.c_str(), item.kg);
         if (ImGui::BeginDragDropSource()) {
             const int id = int(i);
             ImGui::SetDragDropPayload("U73D_ITEM", &id, sizeof(id));
@@ -2071,6 +2148,16 @@ void Britannia3dView::drawBagItems(ImVec2 p, float size) {
             ImGui::EndDragDropSource();
         }
         ImGui::PopID();
+    }
+    // Dropped inside the bag: the thing lies there (moved within the bag).
+    if (ImGui::BeginDragDropTargetCustom(ImRect({p.x + size * 0.15f, p.y + size * 0.26f}, {p.x + size * 0.85f, p.y + size * 0.78f}), ImGui::GetID("U73D bag"))) {
+        if (const auto* payload = ImGui::AcceptDragDropPayload("U73D_ITEM", ImGuiDragDropFlags_AcceptNoDrawDefaultRect)) {
+            const int id = *static_cast<const int*>(payload->Data);
+            const auto mouse = ImGui::GetIO().MousePos;
+            if (id >= 0 && size_t(id) < m_items.size() && m_items[size_t(id)].inBag)
+                m_items[size_t(id)].bagPos = glm::vec2(std::clamp((mouse.x - p.x) / size, 0.2f, 0.8f), std::clamp((mouse.y - p.y) / size, 0.3f, 0.74f));
+        }
+        ImGui::EndDragDropTarget();
     }
     // The load, top right on the bag: "0,1/30Kg" of the 30 kg it carries, with a bar.
     {
@@ -2107,10 +2194,12 @@ void Britannia3dView::moveItem(size_t index, glm::vec2 tiles) {
 int Britannia3dView::pickItem(glm::vec2 ndc) const {
     // The nearest thing whose box covers the mouse on screen.
     const auto viewProjection = m_camera.projectionMatrix() * m_camera.viewMatrix();
+    std::vector<std::pair<float, size_t>> candidates;
     int best = -1;
     float bestDepth = 1e30f;
     for (size_t i = 0; i < m_items.size(); ++i) {
         const auto& item = m_items[i];
+        if (item.inBag || item.worn) continue;              // not in the world
         glm::vec2 low(1e9f), high(-1e9f);
         float depth = 0;
         bool visible = true;
@@ -2123,7 +2212,18 @@ int Britannia3dView::pickItem(glm::vec2 ndc) const {
             depth += clip.w / 8;
         }
         if (!visible || ndc.x < low.x || ndc.x > high.x || ndc.y < low.y || ndc.y > high.y) continue;
+        candidates.push_back({depth, i});
         if (depth < bestDepth) { bestDepth = depth; best = int(i); }
+    }
+    // Things standing on furniture come before the furniture: of what lies near the nearest
+    // hit (1.5 m), the one standing highest, then the smallest.
+    for (const auto& [depth, i] : candidates) {
+        if (depth > bestDepth + 1.5f * Metre || int(i) == best) continue;
+        const auto& a = m_items[i];
+        const auto& b = m_items[size_t(best)];
+        const float volumeA = (a.high.x - a.low.x) * (a.high.z - a.low.z) * (a.high.y - a.low.y);
+        const float volumeB = (b.high.x - b.low.x) * (b.high.z - b.low.z) * (b.high.y - b.low.y);
+        if (a.low.y > b.low.y + 0.05f || (std::abs(a.low.y - b.low.y) <= 0.05f && volumeA < volumeB)) best = int(i);
     }
     return best;
 }
@@ -3212,6 +3312,18 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         }
         for (auto& [key, model] : m_models) if (model.stone) model.tint = glm::vec3(0.5f);
+        // Light half-timbered houses: plaster (U7's mean plaster colour) between oak timbers.
+        {
+            const glm::vec3 plaster = m_plasterCount ? m_plasterSum / float(m_plasterCount) : glm::vec3(0.78f, 0.64f, 0.6f);
+            const auto timber = HalfTimberMaterial::loadOrCreate(assetDirectory, U73dScale::StoreyHeight, plaster);
+            m_halfTimberAlbedo = makeTexture(timber.width, timber.height, timber.albedo.data(), true);
+            m_halfTimberNormal = makeTexture(timber.width, timber.height, timber.normal.data(), true);
+            for (unsigned id : {m_halfTimberAlbedo, m_halfTimberNormal}) {
+                glBindTexture(GL_TEXTURE_2D, id);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+            }
+        }
         // Town walls: fortress blocks and crenellations get the dressed stone.
         for (auto& [key, model] : m_models) {
             const auto name = lower(data.name(key.first));
@@ -3287,6 +3399,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         const bool stoneWall = p.wall && model != m_models.end() && model->second.stone && model->second.kind == U7ObjectModel::Kind::Box;
         const bool fortress = model != m_models.end() && model->second.fortress;
         int planks = plank ? (model->second.post ? 2 : 1) : stoneWall ? 4 : fortress ? 6 : 0;
+        if (p.wall && model != m_models.end() && model->second.halfTimber && model->second.kind == U7ObjectModel::Kind::Box) planks = 7;
         if (name == "floor" && model != m_models.end() && planks == 0) planks = model->second.planks ? 1 : model->second.stone ? 4 : 0;
         // Walkways: the tops of the town wall, its gateways and raised floors carry Sir Canegm.
         if (fortress || name == "fortress gateway" || (name == "floor" && p.object->lift > 0)) {
@@ -3562,6 +3675,13 @@ void Britannia3dView::render(int width, int height) {
     glUniform1i(glGetUniformLocation(GLuint(program), "slateAlbedo"), 8);
     glUniform1i(glGetUniformLocation(GLuint(program), "slateNormal"), 9);
     glUniform1f(glGetUniformLocation(GLuint(program), "slateSize"), SlateMaterial::Size);
+    glUniform1i(glGetUniformLocation(GLuint(program), "halfTimberAlbedo"), 18);
+    glUniform1i(glGetUniformLocation(GLuint(program), "halfTimberNormal"), 19);
+    glUniform1f(glGetUniformLocation(GLuint(program), "halfTimberWidth"), HalfTimberMaterial::Width);
+    glActiveTexture(GL_TEXTURE18);
+    glBindTexture(GL_TEXTURE_2D, m_halfTimberAlbedo);
+    glActiveTexture(GL_TEXTURE19);
+    glBindTexture(GL_TEXTURE_2D, m_halfTimberNormal);
     glUniform1i(glGetUniformLocation(GLuint(program), "mudAlbedo"), 16);
     glUniform1i(glGetUniformLocation(GLuint(program), "mudNormal"), 17);
     glActiveTexture(GL_TEXTURE16);
@@ -3784,7 +3904,11 @@ void Britannia3dView::draw(bool* open) {
         }
     }
     if (m_dragItem >= 0 && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-        if (overBag && overBag(io.MousePos)) {
+        if (dropOnCharacter && dropOnCharacter(size_t(m_dragItem), io.MousePos)) {
+            m_bagMessage = "Sir Canegm zieht " + m_items[size_t(m_dragItem)].name + " an";
+            m_bagMessageTime = 3.f;
+            wearItem(size_t(m_dragItem));
+        } else if (overBag && overBag(io.MousePos)) {
             // The backpack carries up to 30 kg.
             const auto& thing = m_items[size_t(m_dragItem)];
             if (bagWeight() + thing.kg <= BagCapacityKg) {
@@ -3861,7 +3985,7 @@ void Britannia3dView::draw(bool* open) {
         if (const auto* payload = ImGui::AcceptDragDropPayload("U73D_ITEM")) {
             const int item = *static_cast<const int*>(payload->Data);
             const glm::vec2 ndc(2.f * (io.MousePos.x - corner.x) / width - 1.f, 1.f - 2.f * (io.MousePos.y - corner.y) / height);
-            if (item >= 0 && size_t(item) < m_items.size()) placeItem(size_t(item), groundUnder(ndc, 0.f));
+            if (item >= 0 && size_t(item) < m_items.size() && m_items[size_t(item)].inBag) placeItem(size_t(item), groundUnder(ndc, 0.f));
         }
         ImGui::EndDragDropTarget();
     }

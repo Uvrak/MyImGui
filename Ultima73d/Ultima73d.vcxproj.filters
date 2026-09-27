@@ -75,6 +75,9 @@
     <ClCompile Include="TextileArt.cpp">
       <Filter>Britannia3d</Filter>
     </ClCompile>
+    <ClCompile Include="HalfTimberMaterial.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>App</Filter>
     </ClCompile>
@@ -150,6 +153,9 @@
       <Filter>Britannia3d</Filter>
     </ClInclude>
     <ClInclude Include="TextileArt.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="HalfTimberMaterial.h">
       <Filter>Britannia3d</Filter>
     </ClInclude>
     <ClInclude Include="U7Data.h">

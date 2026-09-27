@@ -376,9 +376,12 @@ void AnimatedCharacter::updateCamera(Camera &camera,float dt)
     if(const float first=firstPersonAmount();first>0){
         // First person: from behind the head to just in front of the face, eyes level,
         // so whoever stands in front is seen face to face.
-        const auto face=m_position+up*(m_height*.93f)+viewHeading*(m_height*.10f);
         // Looking up and down (right mouse): the orbit pitch moves the view about its default.
         const float lookDown=std::clamp(firstPersonPitch+glm::degrees(m_pitch-m_topDownPitch),-75.f,75.f);
+        // The eye a little in front of the face, further the more he looks down, so no part of
+        // the body comes into view.
+        const float forward=.16f+.1f*std::max(0.f,std::sin(glm::radians(lookDown)));
+        const auto face=m_position+up*(m_height*.93f)+viewHeading*(m_height*forward);
         const auto ahead=glm::normalize(viewHeading*std::cos(glm::radians(lookDown))-up*std::sin(glm::radians(lookDown)));
         const auto look=glm::normalize(glm::normalize(direction)*(1-first)+ahead*first);
         resolvedEye+=(face-resolvedEye)*first;

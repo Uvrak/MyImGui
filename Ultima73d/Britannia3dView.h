@@ -62,6 +62,11 @@ public:
     // back out onto the ground.
     void drawBagItems(ImVec2 panel, float size);
     float bagWeight() const;
+    const std::string& itemKind(size_t item) const { return m_items[item].kind; }
+    // Sir Canegm puts a thing on: it leaves the world and the backpack.
+    void wearItem(size_t item);
+    // A thing dragged in the world and let go over Sir Canegm: true when he puts it on.
+    std::function<bool(size_t, ImVec2)> dropOnCharacter;
     static constexpr float BagCapacityKg = 30.f;
     // The weight of what else the backpack holds (its equipment and compass), kg.
     std::function<float()> equipmentKg;
@@ -120,7 +125,10 @@ private:
     // planks: the original graphic is a wooden plank wall (brown, not light plaster); tint: its
     // mean colour, so the material keeps the tone of each wall.
     struct Model { unsigned texture = 0; U7ObjectModel::Kind kind = U7ObjectModel::Kind::File; std::vector<U7ObjectModel::Vertex> vertices;
-                   bool planks = false, post = false, stone = false, fortress = false; glm::vec3 tint{1}; };
+                   bool planks = false, post = false, stone = false, fortress = false, halfTimber = false; glm::vec3 tint{1}; };
+    unsigned m_halfTimberAlbedo = 0, m_halfTimberNormal = 0;
+    glm::vec3 m_plasterSum{0};
+    int m_plasterCount = 0;
 
     void addQuad(Batch& batch, const glm::vec3 (&p)[4], const glm::vec2 (&uv)[4], const glm::vec3& normal);
     // liftMetres: real height of one lift for this object (U73dScale), for its lift and its model.
@@ -263,6 +271,9 @@ private:
     // with the left button, over the floor or into the backpack.
     struct Span { size_t batch, first, count; };
     struct Item { std::string name; glm::vec3 low, high; float kg = 0; std::vector<Span> spans; bool inBag = false;
+                  std::string kind;                 // U7 name ("leather helm")
+                  glm::vec2 bagPos{-1};             // place in the backpack panel (0..1), -1: the next free one
+                  bool worn = false;                // put on by Sir Canegm (out of the world and the bag)
                   bool movable() const { return kg < 100.f && !spans.empty(); } };
     void putInBag(size_t item);
     void placeItem(size_t item, glm::vec3 flatPoint);

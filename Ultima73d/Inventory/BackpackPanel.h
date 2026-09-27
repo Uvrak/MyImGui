@@ -15,6 +15,19 @@ public:
     // The open bag on screen (top left, size); size 0 when closed.
     std::pair<ImVec2,float> panel{{0,0},0};
     bool isVisible() const { return visible; }
+    // Things of the world that are clothing (a U73D_ITEM payload): the equipment they are, or -1;
+    // wornFromWorld: the thing has been put on (it leaves the world).
+    std::function<int(int)> wearableEquipment;
+    std::function<void(int)> wornFromWorld;
+    // Whether a screen point lies on Sir Canegm (where clothing dropped is put on).
+    bool overCharacterAt(ImVec2 mouse) const {
+        if(!scene||lastB.x<=lastA.x)return false;
+        auto& actor=scene->character();auto vp=scene->camera().projectionMatrix()*scene->camera().viewMatrix();
+        auto project=[&](glm::vec3 point){auto q=vp*glm::vec4(point,1);return ImVec2(lastA.x+(q.x/q.w+1)*.5f*(lastB.x-lastA.x),lastA.y+(1-q.y/q.w)*.5f*(lastB.y-lastA.y));};
+        auto up=glm::normalize(actor.position());auto foot=project(actor.position());auto head=project(actor.position()+up*actor.height());
+        auto mid=project(actor.position()+up*actor.height()*.5f);float radius=std::max(25.f,std::abs(foot.y-head.y)*.4f);
+        return ImRect({mid.x-radius,std::min(head.y,foot.y)-15},{mid.x+radius,std::max(head.y,foot.y)+15}).Contains(mouse);
+    }
     // What the bag holds of the equipment (neither worn nor lying on the ground) and the compass, kg.
     float carriedKg() const {
         float kg=compass.onGround?0.f:Equipment::compassKg;
@@ -80,6 +93,7 @@ public:
         }
     }
     bool draw(ImVec2 a, ImVec2 b) {
+        lastA=a;lastB=b;
         if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_B, false)) visible = !visible;
         if (b.x-a.x<80 || b.y-a.y<80) return false;
         bool portraitHovered=scene&&portrait.draw(a,b,scene->character());
@@ -150,7 +164,9 @@ public:
                 if(!ImGui::IsMouseDown(0))characterDrag=-1;
             }
         }
-        if(scene && ImGui::GetDragDropPayload() && (ImGui::GetDragDropPayload()->IsDataType("CHARACTER_EQUIPMENT") || ImGui::GetDragDropPayload()->IsDataType("WORN_EQUIPMENT"))) {
+        const auto* dragged=ImGui::GetDragDropPayload();
+        const bool clothing=dragged&&dragged->IsDataType("U73D_ITEM")&&dragged->DataSize==sizeof(int)&&wearableEquipment&&wearableEquipment(*static_cast<const int*>(dragged->Data))>=0;
+        if(scene && dragged && (dragged->IsDataType("CHARACTER_EQUIPMENT") || dragged->IsDataType("WORN_EQUIPMENT") || clothing)) {
             auto& actor=scene->character();auto vp=scene->camera().projectionMatrix()*scene->camera().viewMatrix();
             auto project=[&](glm::vec3 point){auto q=vp*glm::vec4(point,1);return ImVec2(a.x+(q.x/q.w+1)*.5f*(b.x-a.x),a.y+(1-q.y/q.w)*.5f*(b.y-a.y));};
             auto up=glm::normalize(actor.position());auto foot=project(actor.position());auto head=project(actor.position()+up*actor.height());
@@ -160,6 +176,10 @@ public:
             if(overCharacter){ImGui::GetWindowDrawList()->AddRect(target.Min,target.Max,IM_COL32(110,220,100,230),6.f);
                 if(ImGui::BeginDragDropTargetCustom(target,ImGui::GetID("SirCanegm-equip"))){
                     if(auto payload=ImGui::AcceptDragDropPayload("CHARACTER_EQUIPMENT"))if(payload->DataSize==sizeof(int))setEquipment(*static_cast<const int*>(payload->Data),true);
+                    if(auto payload=ImGui::AcceptDragDropPayload("U73D_ITEM"))if(payload->DataSize==sizeof(int)&&wearableEquipment){
+                        const int id=*static_cast<const int*>(payload->Data),item=wearableEquipment(id);
+                        if(item>=0){setEquipment(item,true);if(wornFromWorld)wornFromWorld(id);}
+                    }
                     ImGui::EndDragDropTarget();
                 }
             }
@@ -237,6 +257,7 @@ private:
     }
     std::array<ImVec2,4> wornCenters{};
     BackpackScene* scene=nullptr;
+    ImVec2 lastA{0,0},lastB{0,0};
     std::filesystem::path outfitState;
     Equipment::Inventory inventory;
     BackpackInventory bag;
