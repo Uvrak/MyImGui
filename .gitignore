@@ -365,3 +365,6 @@ vcpkg/
 .aider*
 /ipc_key_debug.txt
 /MemoryToolsApp/imgui.ini
+
+# Ultima73d model files are OBJ meshes, not compiler output
+!Ultima73d/assets/Objects/**/*.obj

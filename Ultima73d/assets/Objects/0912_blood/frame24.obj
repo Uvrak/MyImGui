@@ -1,0 +1,24 @@
+# Ultima73d object model, kind flat
+# metres, Y up, Z south; origin = south east bottom corner of the footprint
+mtllib frame24.mtl
+usemtl u7
+v -0.75 0.02 -0.75
+v -0.375 0.02 -0.75
+v -0.375 0.02 0
+v -0.75 0.02 -0.75
+v -0.375 0.02 0
+v -0.75 0.02 0
+vt 0 1
+vt 1 1
+vt 1 0
+vt 0 1
+vt 1 0
+vt 0 0
+vn 0 1 0
+vn 0 1 0
+vn 0 1 0
+vn 0 1 0
+vn 0 1 0
+vn 0 1 0
+f 1/1/1 2/2/2 3/3/3
+f 4/4/4 5/5/5 6/6/6
