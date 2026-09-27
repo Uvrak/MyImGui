@@ -61,6 +61,8 @@ public:
     // Ultima7Remake's stable scene (see StableScene.h); when the folder exists, it replaces the
     // U7 furnishings of the stable (the walls, fences and doors stay).
     std::filesystem::path stableSceneDirectory;
+    // Text data kept in the repository: placements (Maps) and shaders.
+    std::filesystem::path dataDirectory;
     bool stableSceneVisible = true;
     const StableSceneProps* stableProps() const { return m_stableProps.get(); }
     // The wooden shed doors (DoorModel), opened and closed by a click on them.

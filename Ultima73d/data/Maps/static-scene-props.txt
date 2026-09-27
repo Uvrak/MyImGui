@@ -1,0 +1,16 @@
+U7_STATIC_PROPS_2 15
+"Characters/Leiche/medieval-peasant.glb"                 662.85 1226.65 0.016    0  -144    0  1.75  0
+"Characters/ToterGargoyle/ToterGargoyle.glb"      661.90 1217.70 -0.03  -14   180    8  6.80  1
+"Props/Stall/tisch.glb"                          656.33 1230.26 0.000     0      0    0  0.96  2
+"Props/Stall/tisch-quadratisch.glb"              668.10 1219.10 0.000     0      0    0  1.00  2
+"Props/Stall/tisch-decke.glb"                    657.00 1218.45 0.000     0      0    0  1.00  2
+"Props/Stall/wassertrog.glb"                     664.85 1214.60 0.000     0      0    0  1.00  2
+"Props/GardenTools/HayBundle/HayBundle.glb"               657.45 1222.90 0.000      0      95       0  4.59  2
+"Props/GardenTools/HayBundle/HayBundle.glb"               658.20 1222.85 0.000      0      75       0  4.32  2
+"Props/GardenTools/HayBundle/HayBundle.glb"               657.85 1223.40 0.000      0     110       0  4.05  2
+"Props/GardenTools/HayBundle/HayBundle.glb"               659.45 1223.35 0.000      0      85       0  3.78  2
+"Props/GardenTools/HayBundle/HayBundle.glb"               667.85 1222.75 0.000      0     -95       0  5.40  2
+"Props/GardenTools/HayBundle/HayBundle.glb"               668.55 1223.15 0.000      0     -75       0  4.46  2
+"Props/GardenTools/Pitchfork/Pitchfork.glb"               662.05 1217.99 0.672  27.57  111.44  130.32  4.28  2
+"Characters/Jolo/Jolo.glb"                        659.50 1234.00 0.000      0     180       0  5.914 3
+"Characters/Jolo/equipment/leather-set.glb"       659.50 1234.00 0.000      0     180       0  5.914 4

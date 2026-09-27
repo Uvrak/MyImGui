@@ -33,6 +33,8 @@ const char* DefaultStatic = "C:/GOG Galaxy/Games/Ultima 7/STATIC";
 // All assets live outside the repository: model files per object graphic (Objects, see
 // U7ObjectModel), materials, the stable scene and the characters.
 const char* AssetDirectory = "C:/Projects/U73dAssets";
+// Positions and other text data (placements, shaders) stay in the repository.
+const char* DataDirectory = U73D_PROJECT_DIR "data";
 
 // Structures, plus raised floors such as the walkways on top of the town walls.
 bool layerOne(const U7::WorldObject& object, const std::string& name) {
@@ -131,6 +133,7 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
         Britannia3dView view;
         view.assetDirectory = AssetDirectory;
         view.stableSceneDirectory = AssetDirectory;
+        view.dataDirectory = DataDirectory;
         view.build(data, x0, y0, x1, y1, layerOf, "Trinsic");
         view.roofsVisible = !has("--no-roofs");
         if (has("--toggle-doors"))
@@ -211,6 +214,7 @@ int main(int argc, char** argv) {
             Britannia3dView britannia3d;
             britannia3d.assetDirectory = AssetDirectory;
             britannia3d.stableSceneDirectory = AssetDirectory;
+            britannia3d.dataDirectory = DataDirectory;
             britannia3d.build(data, TrinsicChunkX0, TrinsicChunkY0, TrinsicChunkX1, TrinsicChunkY1, layerOf, "Trinsic");
             if (!britannia3d.loadCharacter(CanegmFolder, CanegmTileX, CanegmTileY))
                 std::cerr << "Sir Canegm not found in " << CanegmFolder << '\n';

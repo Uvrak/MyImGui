@@ -21,8 +21,8 @@ constexpr float ToolAxis[StableTools::ToolCount] = {-34.4f, 144.9f, 140.2f, 0.f,
 
 }
 
-void StableTools::load(const std::filesystem::path& assets, const Ground& ground) {
-    if (!m_shader.create(text(assets / "Shaders/static-prop.vert").c_str(), text(assets / "Shaders/static-prop.frag").c_str()))
+void StableTools::load(const std::filesystem::path& assets, const std::filesystem::path& data, const Ground& ground) {
+    if (!m_shader.create(text(data / "Shaders/static-prop.vert").c_str(), text(data / "Shaders/static-prop.frag").c_str()))
         throw std::runtime_error("Tool shader failed");
     const char* files[ToolCount] = {"Props/GardenTools/Pitchfork/Pitchfork.glb", "Props/GardenTools/Shovel/Shovel.glb",
                                     "Props/GardenTools/Rake/Rake.glb", "Props/Stall/hufeisen.glb", "Props/Stall/zange.glb",
@@ -50,7 +50,7 @@ void StableTools::load(const std::filesystem::path& assets, const Ground& ground
         if (!glow.empty() && !m_glow[t].create(glow.data(), unsigned(glow.size() / 9), 9)) throw std::runtime_error("Stable tool glow upload failed");
     }
     // Maps/stable-tools.txt: sourceId tool x y yaw scale height (metres).
-    std::ifstream in(assets / "Maps/stable-tools.txt");
+    std::ifstream in(data / "Maps/stable-tools.txt");
     std::string tag;
     size_t count = 0;
     if (!(in >> tag >> count) || tag != "tool-catalog-v2" || count > 64) throw std::runtime_error("Invalid stable tool catalog");

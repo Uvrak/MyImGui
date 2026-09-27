@@ -27,7 +27,7 @@ inline constexpr float CharacterHeight = 1.80f;
 // posts and the thick town wall blocks keep their size.
 inline constexpr float WallThickness = 0.75f;
 // The shed doors (DoorModel): leaf height; above it the wall goes on up to StoreyHeight.
-inline constexpr float DoorHeight = 2.0f;
+inline constexpr float DoorHeight = 2.25f;
 // Lift at which a thing counts as standing on a building (upper floors, walkways, roofs).
 inline constexpr int UpperFloorLift = 4;
 

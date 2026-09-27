@@ -44,7 +44,7 @@ void cylinder(std::vector<Vertex>& out, glm::vec3 base, float radius, float heig
 Parts build(float length, float height, float tileMetres) {
     Parts parts;
     const float L = length * tileMetres;     // metres
-    const float thick = 0.055f, gap = 0.01f;
+    const float thick = 0.11f, gap = 0.01f;        // leaf 11 cm
     const float inner = -thick / 2, outer = thick / 2;
     // Leaf: eight upright boards with small gaps (the grooves show between them).
     const int boards = 8;
@@ -54,7 +54,7 @@ Parts build(float length, float height, float tileMetres) {
         box(parts.planks, {x0, 0.02f, inner}, {x1, height, outer}, tileMetres);
     }
     // Inner side: two battens and the Z brace from the lower hinge side up to the latch side.
-    const float bt = 0.035f, bh = 0.16f;
+    const float bt = 0.07f, bh = 0.16f;             // battens 7 cm
     const float lowY = 0.28f, highY = height - 0.30f - bh;
     box(parts.battens, {-L + 0.04f, lowY, inner - bt}, {-0.04f, lowY + bh, inner}, tileMetres);
     box(parts.battens, {-L + 0.04f, highY, inner - bt}, {-0.04f, highY + bh, inner}, tileMetres);

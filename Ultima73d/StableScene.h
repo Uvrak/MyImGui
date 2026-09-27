@@ -15,9 +15,10 @@ struct GltfAnimationData;
 // its stable tools (shovel, rake, horseshoes, tongs, ritual candles, keys, pouch, gargoyle
 // jewellery), with Ultima7Remake's procedural materials (static-prop shaders).
 //
-// Files (copied from Ultima7Remake/assets, sorted into Ultima73d's assets folder):
-// Maps/static-scene-props.txt and Maps/stable-tools.txt (placements), Shaders/static-prop.*,
-// Characters/{Leiche,ToterGargoyle,Jolo}, Props/Stall and Props/GardenTools (the GLBs).
+// Files (copied from Ultima7Remake/assets): placements (Maps/static-scene-props.txt,
+// Maps/stable-tools.txt ...) and Shaders/static-prop.* in the repository's data folder; the
+// GLBs (Characters/{Leiche,ToterGargoyle,Jolo}, Props/Stall, Props/GardenTools) in the assets
+// folder outside the repository.
 // Places are Ultima7Remake map positions (1 unit = 2 U7 tiles = 1 m); the ground function
 // turns one into a planet position. Sizes and heights are metres.
 namespace StableScene {
@@ -45,7 +46,8 @@ public:
     ~StableSceneProps();
     // Props whose file path contains one of these are left out (e.g. "Pitchfork").
     std::vector<std::string> skipFiles;
-    void load(const std::filesystem::path& assets, const Ground& ground);
+    // assets: models (GLB); data: placements (Maps) and shaders, kept in the repository.
+    void load(const std::filesystem::path& assets, const std::filesystem::path& data, const Ground& ground);
     void render(const glm::mat4& viewProjection, const glm::vec3& eye, float time);
     size_t size() const { return m_props.size(); }
     // Extent of each placed prop in metres around its place (east, up, north), for checks.
@@ -69,7 +71,8 @@ public:
     static constexpr int ToolCount = 9;
     // Tools left out (0 pitchfork, 1 shovel, 2 rake, 3 horseshoe, 4 tongs, 5 candle, 6 key, 7 bag, 8 jewellery).
     std::array<bool, ToolCount> skip{};
-    void load(const std::filesystem::path& assets, const Ground& ground);
+    // assets: models (GLB); data: placements (Maps) and shaders, kept in the repository.
+    void load(const std::filesystem::path& assets, const std::filesystem::path& data, const Ground& ground);
     void render(const glm::mat4& viewProjection, const glm::vec3& eye);
     size_t size() const { return m_items.size(); }
 private:

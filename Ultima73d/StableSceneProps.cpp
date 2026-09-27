@@ -152,11 +152,11 @@ std::vector<float> drawVertices(const GltfMesh& mesh,int style,const std::vector
 
 StableSceneProps::~StableSceneProps(){for(auto& prop:m_props)if(prop.texture)glDeleteTextures(1,&prop.texture);}
 
-void StableSceneProps::load(const std::filesystem::path& assets,const Ground& ground){
-    if(!m_shader.create(shaderText(assets/"Shaders/static-prop.vert").c_str(),
-                        shaderText(assets/"Shaders/static-prop.frag").c_str()))
+void StableSceneProps::load(const std::filesystem::path& assets,const std::filesystem::path& data,const Ground& ground){
+    if(!m_shader.create(shaderText(data/"Shaders/static-prop.vert").c_str(),
+                        shaderText(data/"Shaders/static-prop.frag").c_str()))
         throw std::runtime_error("Static prop shader failed");
-    std::ifstream placements(assets/"Maps/static-scene-props.txt");
+    std::ifstream placements(data/"Maps/static-scene-props.txt");
     std::string magic;unsigned count=0;
     if(!(placements>>magic>>count)||magic!="U7_STATIC_PROPS_2"||count>256)
         throw std::runtime_error("Invalid static prop catalog");

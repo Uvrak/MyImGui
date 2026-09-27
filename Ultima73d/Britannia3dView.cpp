@@ -425,7 +425,7 @@ void Britannia3dView::drawDoors(unsigned program) {
 }
 
 void Britannia3dView::buildStraw() {
-    std::ifstream in(stableSceneDirectory / "Maps/stable-straw.txt");
+    std::ifstream in(dataDirectory / "Maps/stable-straw.txt");
     std::string tag, line;
     size_t count = 0;
     if (!(in >> tag >> count) || tag != "stable-straw-v1" || count > 4096) return;
@@ -464,7 +464,7 @@ void Britannia3dView::buildStraw() {
 }
 
 void Britannia3dView::buildFences() {
-    std::ifstream in(stableSceneDirectory / "Maps/stable-fences.txt");
+    std::ifstream in(dataDirectory / "Maps/stable-fences.txt");
     std::string tag;
     size_t count = 0;
     if (!(in >> tag >> count) || tag != "stable-fences-v1" || count > 512) return;
@@ -606,7 +606,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
     const int x0 = chunkX0 * c, y0 = chunkY0 * c, x1 = (chunkX1 + 1) * c, y1 = (chunkY1 + 1) * c;
     // Ultima7Remake's stable (x 655-669, y 1217-1231, and the paddock north of it up to y 1212)
     // replaces U7's furnishings there: everything but layer 1, roofs and upper floors.
-    const bool stableScene = !stableSceneDirectory.empty() && std::filesystem::exists(stableSceneDirectory / "Maps/static-scene-props.txt");
+    const bool stableScene = !stableSceneDirectory.empty() && std::filesystem::exists(dataDirectory / "Maps/static-scene-props.txt");
     if (stableScene) {
         // The stable itself (U7 tiles 1054 - 1084, 2176 - 2208), not the house north of it.
         m_stableArea = glm::ivec4(1054, 2176, 1086, 2209);
@@ -633,7 +633,8 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         if (stableScene && name == "door" && (object.shape == 270 || object.shape == 376) &&
             object.x >= m_stableArea.x && object.x < m_stableArea.z && object.y >= m_stableArea.y && object.y < m_stableArea.w) {
             Door door;
-            door.pivot = glm::vec3(object.x + 0.5f, 0.f, object.y + 0.5f);
+            // Hinge at the east end of the opening: U7's door object ends at its tile's east edge.
+            door.pivot = glm::vec3(object.x + 1.f, 0.f, object.y + 0.5f);
             door.openAngle = glm::radians(-90.f);
             door.open = object.shape == 376;
             door.angle = door.open ? door.openAngle : 0.f;
@@ -737,17 +738,17 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
     // Door meshes, and above each door opening the wall in plank material up to its full height.
     if (!m_doors.empty()) {
         constexpr float length = 4.f;                     // tiles, as U7's door objects
-        const auto parts = DoorModel::build(length - 0.08f, U73dScale::DoorHeight, U73dScale::TileMetres);
+        const auto parts = DoorModel::build(length - 0.02f, U73dScale::DoorHeight, U73dScale::TileMetres);
         auto upload = [](ow3d::Mesh& mesh, const std::vector<DoorModel::Vertex>& vertices) {
             std::vector<float> data;
             for (const auto& v : vertices)
-                data.insert(data.end(), {v.position.x - 0.04f, v.position.y, v.position.z, v.normal.x, v.normal.y, v.normal.z, 0.f, 0.f, 1.f});
+                data.insert(data.end(), {v.position.x - 0.01f, v.position.y, v.position.z, v.normal.x, v.normal.y, v.normal.z, 0.f, 0.f, 1.f});
             mesh.create(data.data(), unsigned(data.size() / 9), 9);
         };
         upload(m_doorPlanks, parts.planks);
         upload(m_doorBattens, parts.battens);
         upload(m_doorIron, parts.iron);
-        for (const auto& p : parts.leaf) m_doorLeaf.push_back(p - glm::vec3(0.04f, 0, 0));
+        for (const auto& p : parts.leaf) m_doorLeaf.push_back(p - glm::vec3(0.01f, 0, 0));
         const std::uint8_t iron[4] = {58, 56, 54, 255};
         m_ironTexture = makeTexture(1, 1, iron, false);
         auto& lintel = m_batches.emplace_back();
@@ -779,11 +780,10 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         };
         try {
             m_stableProps = std::make_unique<StableSceneProps>();
-            m_stableProps->skipFiles = {"Pitchfork"};
-            m_stableProps->load(stableSceneDirectory, ground);
+            m_stableProps->load(stableSceneDirectory, dataDirectory, ground);
             m_stableTools = std::make_unique<StableTools>();
             m_stableTools->skip[0] = m_stableTools->skip[1] = m_stableTools->skip[2] = true;   // U7's own tools instead
-            m_stableTools->load(stableSceneDirectory, ground);
+            m_stableTools->load(stableSceneDirectory, dataDirectory, ground);
             buildFences();
             buildStraw();
         } catch (const std::exception& e) {
