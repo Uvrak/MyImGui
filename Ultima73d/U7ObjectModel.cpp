@@ -9,7 +9,7 @@
 
 namespace {
 
-constexpr float LiftMetres = 0.5f;
+constexpr float LiftMetres = U7ObjectModel::LiftMetres;
 constexpr int P = U7::TilePixels;
 
 // Share of the opaque frame pixels that the object's box covers in the U7 projection.

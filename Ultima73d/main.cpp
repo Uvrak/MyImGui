@@ -9,7 +9,7 @@
 //   Ultima73d.exe --export <out.bmp> <x0> <y0> <width> <height> [U7 STATIC directory]
 //       writes a tile rectangle with all layers as a bitmap (no window), for checks.
 //   Ultima73d.exe --export3d <out.bmp> [--no-layers] [--no-roofs] [--globe] [--canegm] [--walk]
-//                 [--close] [--at <tile x> <tile y>]
+//                 [--close] [--at <tile x> <tile y>] [--toggle-doors] [--look <tile x> <tile y> <metres> <yaw> <pitch>]
 //       renders the Britannia3d view of Trinsic as a bitmap, for checks: from above, the whole
 //       globe, or Sir Canegm's camera (after walking 3 s north with --walk; close up; placed).
 #include "Britannia3dView.h"
@@ -103,7 +103,9 @@ int exportRegion(const U7::Data& data, const char* file, int x0, int y0, int wid
 // Trinsic with its town walls, the fields around it and the docks in the east.
 constexpr int TrinsicChunkX0 = 57, TrinsicChunkY0 = 129, TrinsicChunkX1 = 70, TrinsicChunkY1 = 146;
 // Sir Canegm from Ultima7Remake, on the street in front of the stable (its door faces south).
-const char* CanegmFolder = "C:/Projects/OpenWorld3D/Ultima7Remake/assets/Characters/SirCanegm";
+// Large files (Sir Canegm's textures and animations, about 250 MB) live outside the repository.
+const char* LargeAssetDirectory = "C:/Projects/U73dAssets";
+const std::string CanegmFolder = std::string(LargeAssetDirectory) + "/Characters/SirCanegm";
 constexpr float CanegmTileX = 1068.5f, CanegmTileY = 2213.f;
 
 SDL_Window* createWindow(const char* title, int width, int height, SDL_WindowFlags flags, SDL_GLContext& context) {
@@ -129,9 +131,20 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
     {
         Britannia3dView view;
         view.assetDirectory = AssetDirectory;
+        view.stableSceneDirectory = AssetDirectory;
         view.build(data, x0, y0, x1, y1, layerOf, "Trinsic");
         view.roofsVisible = !has("--no-roofs");
+        if (has("--toggle-doors"))
+            for (size_t d = 0; d < view.doorCount(); ++d) view.toggleDoor(d, true);
+        std::cout << "Doors: " << view.doorCount() << '\n';
+        if (const auto* props = view.stableProps())
+            for (const auto& e : props->extents())
+                if (e.file.find("Gargoyle") != std::string::npos)
+                    std::cout << e.file << " at " << e.x << ',' << e.y << ": east " << e.low.x << ".." << e.high.x << ", up " << e.low.y
+                              << ".." << e.high.y << ", north " << e.low.z << ".." << e.high.z << " m\n";
         view.layerVisible[1] = view.layerVisible[3] = !has("--no-layers");
+        if (const auto look = std::find(options.begin(), options.end(), "--look"); look != options.end() && options.end() - look >= 6)
+            view.setFreeCamera(std::stof(look[1]), std::stof(look[2]), std::stof(look[3]), std::stof(look[4]), std::stof(look[5]));
         if (has("--globe")) view.setFreeCamera((x0 + x1 + 1) * 8.f, (y0 + y1 + 1) * 8.f, 5200.f, 20.f, 55.f);
         if (has("--canegm")) {
             float tileX = CanegmTileX, tileY = CanegmTileY;
@@ -153,7 +166,7 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
         SDL_DestroySurface(image);
         std::cout << "Britannia3d chunks " << x0 << ',' << y0 << " - " << x1 << ',' << y1 << ": " << view.boxCount() << " boxes, "
                   << view.quadObjectCount() << " upright objects, " << view.modelCount() << " model files ("
-                  << view.createdFileCount() << " new) -> " << file << '\n';
+                  << view.createdFileCount() << " new), stable scene " << view.stablePropCount() << " props -> " << file << '\n';
     }
     SDL_GL_DestroyContext(context);
     SDL_DestroyWindow(window);
@@ -198,6 +211,7 @@ int main(int argc, char** argv) {
             grid.focusGroundCell(1056, 2194);            // Trinsic stable
             Britannia3dView britannia3d;
             britannia3d.assetDirectory = AssetDirectory;
+            britannia3d.stableSceneDirectory = AssetDirectory;
             britannia3d.build(data, TrinsicChunkX0, TrinsicChunkY0, TrinsicChunkX1, TrinsicChunkY1, layerOf, "Trinsic");
             if (!britannia3d.loadCharacter(CanegmFolder, CanegmTileX, CanegmTileY))
                 std::cerr << "Sir Canegm not found in " << CanegmFolder << '\n';
@@ -216,12 +230,24 @@ int main(int argc, char** argv) {
                 MyImGui::beginFrame();
                 MyImGui::beginDockspace();
                 grid.draw(&open);
+                // Layers 1 and 3 are one switch each for the grid and the 3D view: a change in
+                // either place is applied to the other.
+                const std::pair<std::size_t, int> shared[] = {{structureLayer, 1}, {terrainLayer, 3}};
+                bool before[2];
+                for (int i = 0; i < 2; ++i) before[i] = britannia3d.layerVisible[size_t(shared[i].second)];
                 if (britannia3dOpen) britannia3d.draw(&britannia3dOpen);
+                for (int i = 0; i < 2; ++i)
+                    if (britannia3d.layerVisible[size_t(shared[i].second)] != before[i])
+                        grid.setSpriteLayerVisible(shared[i].first, britannia3d.layerVisible[size_t(shared[i].second)]);
                 if (ImGui::Begin("Ebenen")) {
                     ImGui::TextUnformatted("Ebene 0: Bodentiles");
                     for (std::size_t i = 0; i < grid.spriteLayerCount(); ++i) {
                         bool visible = grid.spriteLayer(i).visible;
-                        if (ImGui::Checkbox(grid.spriteLayer(i).name.c_str(), &visible)) grid.setSpriteLayerVisible(i, visible);
+                        if (ImGui::Checkbox(grid.spriteLayer(i).name.c_str(), &visible)) {
+                            grid.setSpriteLayerVisible(i, visible);
+                            for (const auto& [layer, view] : shared)
+                                if (layer == i) britannia3d.layerVisible[size_t(view)] = visible;
+                        }
                     }
                     ImGui::Separator();
                     ImGui::Checkbox("Britannia3d", &britannia3dOpen);

@@ -7,6 +7,9 @@
     <Filter Include="Britannia3d">
       <UniqueIdentifier>{c4e7a219-6b3f-4d58-9e21-7a0b5d8c3f64}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Stallszene">
+      <UniqueIdentifier>{5e8a2c41-b7d9-4f36-8c15-2a9e7f0d6b83}</UniqueIdentifier>
+    </Filter>
     <Filter Include="U7 Daten">
       <UniqueIdentifier>{9f2e4b70-1c3d-4a85-b6e7-0d8a5c31f422}</UniqueIdentifier>
     </Filter>
@@ -14,6 +17,21 @@
   <ItemGroup>
     <ClCompile Include="Britannia3dView.cpp">
       <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="PixelArtScale.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="WoodMaterial.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="StableSceneProps.cpp">
+      <Filter>Stallszene</Filter>
+    </ClCompile>
+    <ClCompile Include="StableTools.cpp">
+      <Filter>Stallszene</Filter>
+    </ClCompile>
+    <ClCompile Include="DoorModel.cpp">
+      <Filter>Stallszene</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>App</Filter>
@@ -34,6 +52,21 @@
   <ItemGroup>
     <ClInclude Include="Britannia3dView.h">
       <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="PixelArtScale.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="U73dScale.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="WoodMaterial.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="StableScene.h">
+      <Filter>Stallszene</Filter>
+    </ClInclude>
+    <ClInclude Include="DoorModel.h">
+      <Filter>Stallszene</Filter>
     </ClInclude>
     <ClInclude Include="U7Data.h">
       <Filter>U7 Daten</Filter>

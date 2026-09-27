@@ -24,6 +24,9 @@
 // their box (trees, bushes ...) become two crossed upright quads, flat objects a ground quad.
 class U7ObjectModel {
 public:
+    // Height of a lift in the model files; the view rescales it (see U73dScale).
+    static constexpr float LiftMetres = 0.5f;
+
     enum class Kind { Flat, Box, Upright, File };
     struct Vertex { glm::vec3 position, normal; glm::vec2 uv; };   // uv: top-left origin
 
