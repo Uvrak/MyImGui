@@ -1,5 +1,5 @@
-stable-fences-v1 38
-# Ultima7Remake stall and paddock fence edges (kind 5): cell x, cell y, side (0 north, 1 east, 2 south, 3 west edge)
+stable-fences-v1 39
+# Ultima7Remake stall and paddock fence edges (kind 5): cell x, cell y, side (0 north, 1 east, 2 south, 3 west edge), optional shift in U7 tiles (east, south)
 655 1224 0
 655 1226 0
 655 1228 0
@@ -29,12 +29,13 @@ stable-fences-v1 38
 668 1228 0
 669 1208 0
 670 1208 0
-671 1208 3
-671 1209 3
-671 1210 3
-671 1211 3
-671 1212 3
-671 1213 3
-671 1214 3
-671 1215 3
-671 1216 3
+671 1208 3 3 0
+671 1209 3 3 0
+671 1210 3 3 0
+671 1211 3 3 0
+671 1212 3 3 0
+671 1213 3 3 0
+671 1214 3 3 0
+671 1215 3 3 0
+671 1216 3 3 0
+670 1208 0 3 0

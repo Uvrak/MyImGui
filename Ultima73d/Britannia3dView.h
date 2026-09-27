@@ -1,4 +1,5 @@
 #pragma once
+#include "U73dScale.h"
 #include "U7Data.h"
 #include "DoorModel.h"
 #include "StableScene.h"
@@ -93,19 +94,23 @@ public:
 private:
     struct Vertex { float x, y, z, nx, ny, nz, u, v, shade; };
     // array: texture is a GL_TEXTURE_2D_ARRAY of ground tiles, the vertex "shade" is the layer.
-    // planks: drawn with the high resolution plank material (WoodMaterial), tinted with tint:
-    // 0 no (U7 graphic), 1 horizontal boards, 2 upright boards (posts).
-    struct Batch { unsigned texture = 0; int layer = 0; bool roof = false, array = false; int planks = 0; glm::vec3 tint{1};
+    // planks: drawn with a high resolution material instead of the U7 graphic: 0 no (U7 graphic),
+    // 1 horizontal boards, 2 upright boards (WoodMaterial, tinted), 3 thatch, 4 stone wall
+    // (StoneMaterial), 5 slate (SlateMaterial).
+    // wind: 0 still, 1 sways (bark), 2 sways and flutters (leaves).
+    struct Batch { unsigned texture = 0; int layer = 0; bool roof = false, array = false; int planks = 0, wind = 0; glm::vec3 tint{1};
                    std::vector<Vertex> vertices; ow3d::Mesh mesh; };
     // planks: the original graphic is a wooden plank wall (brown, not light plaster); tint: its
     // mean colour, so the material keeps the tone of each wall.
     struct Model { unsigned texture = 0; U7ObjectModel::Kind kind = U7ObjectModel::Kind::File; std::vector<U7ObjectModel::Vertex> vertices;
-                   bool planks = false, post = false; glm::vec3 tint{1}; };
+                   bool planks = false, post = false, stone = false; glm::vec3 tint{1}; };
 
     void addQuad(Batch& batch, const glm::vec3 (&p)[4], const glm::vec2 (&uv)[4], const glm::vec3& normal);
     // liftMetres: real height of one lift for this object (U73dScale), for its lift and its model.
     // thinWall: a wall, door or window one tile thick, drawn U73dScale::WallThickness thick.
     void addObject(const U7::Data& data, const U7::WorldObject& object, int layer, bool roof, float liftMetres, int planks, bool thinWall);
+    // True when the tile a step from `point` (flat) along `direction` lies under a roof.
+    bool indoors(glm::vec3 point, glm::vec3 direction) const;
     void loadModels(const U7::Data& data, const std::vector<std::pair<int, int>>& graphics);
     void buildGround(const U7::Data& data);
     void buildGlobe(const U7::Data& data);
@@ -129,7 +134,16 @@ private:
     unsigned m_woodAlbedo = 0, m_woodNormal = 0;              // WoodMaterial
     // A shed door: hinge axis at pivot (flat), closed leaf along -x turned by baseYaw; open is
     // turned a further openAngle (radians); angle follows the target.
-    struct Door { glm::vec3 pivot{0}; float baseYaw = 0, openAngle = 0, angle = 0; bool open = false; };
+    // kind 0: door leaf (DoorModel, 4 tiles long); kind 1: a window casement (leaf `length`
+    // tiles long, `height` metres high, from the pivot's height).
+    struct Door { glm::vec3 pivot{0}; float baseYaw = 0, openAngle = 0, angle = 0; bool open = false;
+                  int kind = 0; float length = 4.f, height = U73dScale::DoorHeight; };
+    void ensureDoorMeshes();
+    ow3d::Mesh m_windowFrame, m_windowGlass;
+    unsigned m_windowWoodTexture = 0, m_windowGlassTexture = 0;
+    std::set<std::pair<int, int>> m_stoneTiles;                // tiles of stone walls
+    std::set<std::pair<int, int>> m_wallFootprint;             // tiles of walls, doors and windows (known before placing)
+    std::map<std::pair<int, int>, float> m_wallTop;             // tile -> top of its wall (metres)
     std::vector<Door> m_doors;
     std::vector<U7::WorldObject> m_extraObjects;              // added blood of the stable scene
     ow3d::Mesh m_doorPlanks, m_doorBattens, m_doorIron;
@@ -140,13 +154,44 @@ private:
     void drawDoors(unsigned program);
     // Ultima7Remake's stall and paddock fences (Maps/stable-fences.txt), as KnownGeometry builds them.
     void buildFences();
+    // U7's fences in the whole town, rebuilt as the stable's rail fences (two rails, posts).
+    void buildTownFences(const U7::Data& data, const std::vector<U7::WorldObject>& fences);
+    unsigned railTexture();
+    unsigned m_railTexture = 0;
     // Ultima7Remake's loose straw over the stable floor (Maps/stable-straw.txt, Materials/Straw).
     void buildStraw();
+    // Thatched gable roof over the shed (ThatchMaterial) in place of U7's flat wood roof.
+    void buildThatchRoof();
+    // Gable roof over a rectangle (tiles) with its eaves at eave metres: roof faces into roof
+    // (uv in metres: along the ridge, down the slope), the gable triangles into gable.
+    void addGableRoof(Batch& roof, Batch& gable, float x0, float z0, float x1, float z1, float eave, float pitchDegrees,
+                      float overhang, float thick, bool ridgeCap);
+    // Slate gable roofs (SlateMaterial) over the stone houses, from U7's flat slate roof pieces.
+    void buildSlateRoofs(const std::vector<glm::ivec4>& tiles);
+    // High resolution windows (frame, mullion, sill, leaded yellow panes as in U7), stone door
+    // frames, and U7's paintings and tapestries as sharp pictures on the inner wall faces.
+    void buildOpenings(const U7::Data& data, const std::vector<U7::WorldObject>& windows, const std::vector<U7::WorldObject>& doors);
+    void buildPictures(const U7::Data& data, const std::vector<U7::WorldObject>& pictures);
+    unsigned m_slateAlbedo = 0, m_slateNormal = 0, m_stoneAlbedo = 0, m_stoneNormal = 0;
+    // The horse sign as a high resolution wrought iron silhouette on its bracket at the shed wall,
+    // and the pitchfork in the gargoyle's chest drawn with U7's own pitchfork graphic.
+    void buildSignAndFork(const U7::Data& data);
+    // 3D trees (TreeModel) in place of U7's tree graphics, each of its own height.
+    void buildTrees(const std::vector<glm::vec2>& places);
+    // 3D street lamps (LampModel) in place of U7's lamp posts.
+    void buildLamps(const std::vector<glm::vec2>& places);
+    // 3D wells (WellModel) in place of U7's well and its windlass.
+    void buildWells(const std::vector<glm::vec2>& places);
+    // 3D signposts from U7's post (713) with its arrow boards (379); a post or board that does
+    // not belong to a signpost stays U7's graphic.
+    void buildSignposts(const U7::Data& data, const std::vector<U7::WorldObject>& posts, const std::vector<U7::WorldObject>& signs);
+    unsigned m_thatchAlbedo = 0, m_thatchNormal = 0;
     std::unique_ptr<StableSceneProps> m_stableProps;
     std::unique_ptr<StableTools> m_stableTools;
     glm::ivec4 m_stableArea{0};                                // tiles x0, y0, x1, y1 (exclusive)
     std::map<std::pair<int, int>, std::vector<glm::vec3>> m_walls;   // 8 x 8 tile cell -> flat wall triangles
-    std::set<std::pair<int, int>> m_roofTiles;               // tiles under a roof: roofs hide above Sir Canegm
+    std::set<std::pair<int, int>> m_roofTiles;
+    std::set<std::pair<int, int>> m_solidTiles;                // tiles of walls, doors, windows (trees keep clear)               // tiles under a roof: roofs hide above Sir Canegm
     ow3d::Shader m_shader;
     ow3d::Camera m_camera;
     unsigned m_framebuffer = 0, m_color = 0;                          // resolved image

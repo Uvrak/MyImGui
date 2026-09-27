@@ -92,7 +92,22 @@ xcopy /y /d "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutD
   <ItemGroup>
     <ClCompile Include="Britannia3dView.cpp" />
     <ClCompile Include="DoorModel.cpp" />
+    <ClCompile Include="LampModel.cpp" />
+    <ClCompile Include="WellModel.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SlateMaterial.cpp">
+      <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
+    </ClCompile>
+    <ClCompile Include="StoneMaterial.cpp">
+      <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
+    </ClCompile>
+    <ClCompile Include="TreeModel.cpp" />
+    <ClCompile Include="ThatchMaterial.cpp">
+      <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
+    </ClCompile>
     <ClCompile Include="StableSceneProps.cpp" />
     <ClCompile Include="StableTools.cpp" />
     <ClCompile Include="WoodMaterial.cpp">
@@ -114,6 +129,12 @@ xcopy /y /d "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutD
     <ClInclude Include="U73dScale.h" />
     <ClInclude Include="StableScene.h" />
     <ClInclude Include="DoorModel.h" />
+    <ClInclude Include="ThatchMaterial.h" />
+    <ClInclude Include="TreeModel.h" />
+    <ClInclude Include="StoneMaterial.h" />
+    <ClInclude Include="SlateMaterial.h" />
+    <ClInclude Include="LampModel.h" />
+    <ClInclude Include="WellModel.h" />
     <ClInclude Include="U7Data.h" />
     <ClInclude Include="WoodMaterial.h" />
     <ClInclude Include="U7GroundGrid.h" />

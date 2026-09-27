@@ -2,6 +2,12 @@
 #include <set>
 #include "PixelArtScale.h"
 #include "U73dScale.h"
+#include "SlateMaterial.h"
+#include "StoneMaterial.h"
+#include "ThatchMaterial.h"
+#include "LampModel.h"
+#include "WellModel.h"
+#include "TreeModel.h"
 #include "WoodMaterial.h"
 #include "U7GroundGrid.h"
 #include <glad/gl.h>
@@ -41,6 +47,8 @@ uniform float metre;
 uniform float radius;
 uniform float tileMetres;
 uniform bool direct;
+uniform int wind;                // 1: sways with the height above the ground, 2: leaves also flutter
+uniform float time;
 out vec3 vNormal;
 out vec2 vUv;
 out float vShade;
@@ -57,6 +65,16 @@ void main() {
     // Materials stick to the mesh (vFlat, vMapNormal before flatModel); light follows it.
     vNormal = mat3(flatModel) * aNormal; vMapNormal = aNormal; vUv = aUv; vShade = aShade; vFlat = aPosition;
     vec3 f = (flatModel * vec4(aPosition, 1.0)).xyz;
+    if (wind != 0) {
+        // Metres above the trunk base (y), the tree's place gives the phase.
+        float phase = (floor(f.x) + floor(f.z)) * 0.37;
+        float sway = pow(max(f.y - 1.2, 0.0) / 8.0, 1.6) * 0.45;
+        float gust = sin(time * 1.1 + phase) + 0.45 * sin(time * 2.3 + phase * 1.7);
+        vec2 push = vec2(0.8, 0.45) * sway * gust;
+        if (wind == 2) push += vec2(sin(time * 5.1 + f.y * 3.0 + f.x), cos(time * 4.3 + f.z * 2.7)) * 0.035;
+        f.xz += push / tileMetres;
+        f.y -= dot(push, push) * 0.3;
+    }
     gl_Position = projection * view * vec4(direct ? aPosition : planet(f), 1.0);
 })";
 
@@ -71,7 +89,17 @@ uniform mat4 flatModel;
 uniform sampler2D image;
 uniform sampler2DArray tiles;
 uniform bool tileArray;
-uniform int planks;             // 0: U7 graphic, 1: horizontal boards, 2: vertical boards (posts)
+uniform int planks;             // 0: U7 graphic, 1/2: boards, 3: thatch, 4: stone wall, 5: slate
+uniform sampler2D stoneAlbedo;
+uniform sampler2D stoneNormal;
+uniform float stoneSize;        // metres along a wall per atlas face
+uniform float stoneHeight;      // metres up per atlas face (a storey)
+uniform sampler2D slateAlbedo;
+uniform sampler2D slateNormal;
+uniform float slateSize;
+uniform sampler2D thatchAlbedo;
+uniform sampler2D thatchNormal;
+uniform float thatchSize;
 uniform vec3 tint;
 uniform sampler2D woodAlbedo;
 uniform sampler2D woodNormal;
@@ -80,6 +108,20 @@ uniform float woodTile;          // metres per tile: the material is mapped in m
 out vec4 color;
 const vec3 sun = normalize(vec3(-0.35, 1.0, 0.45));
 void main() {
+    if (planks == 3 || planks == 5) {
+        // Roofs: uv in metres (u along the ridge, v down the slope), as the roof mesh sets it.
+        vec3 n = normalize(vMapNormal), t = abs(n.x) > abs(n.z) ? vec3(0, 0, 1) : vec3(1, 0, 0);
+        vec3 down = normalize(cross(t, n));
+        if (down.y > 0.0) down = -down;
+        t = normalize(cross(n, down));
+        vec2 uv = vUv / (planks == 3 ? thatchSize : slateSize);
+        vec3 relief = (planks == 3 ? texture(thatchNormal, uv) : texture(slateNormal, uv)).xyz * 2.0 - 1.0;
+        vec3 bumped = normalize(t * relief.x + down * relief.y + n * relief.z);
+        float light = 0.42 + 0.68 * max(dot(bumped, sun), 0.0);
+        vec3 albedo = planks == 3 ? texture(thatchAlbedo, uv).rgb : texture(slateAlbedo, uv).rgb;
+        color = vec4(albedo * light * vShade, 1.0);
+        return;
+    }
     if (planks != 0) {
         // Plank material, mapped in metres: boards run horizontally on every wall face.
         vec3 n = normalize(vMapNormal), t, down;
@@ -88,11 +130,13 @@ void main() {
         else if (abs(n.x) > 0.5) { uv = vec2(vFlat.z * woodTile, -vFlat.y); t = vec3(0, 0, 1); down = vec3(0, -1, 0); }
         else { uv = vec2(vFlat.x * woodTile, -vFlat.y); t = vec3(1, 0, 0); down = vec3(0, -1, 0); }
         if (planks == 2 && abs(n.y) <= 0.5) { uv = uv.yx; vec3 s = t; t = down; down = s; }
-        uv /= woodSize;
-        vec3 relief = texture(woodNormal, uv).xyz * 2.0 - 1.0;
+        const bool stone = planks == 4;
+        uv /= stone ? stoneSize : woodSize;
+        vec3 relief = (stone ? texture(stoneNormal, uv) : texture(woodNormal, uv)).xyz * 2.0 - 1.0;
         vec3 bumped = normalize(mat3(flatModel) * (t * relief.x + down * relief.y + n * relief.z));
         float light = 0.42 + 0.65 * max(dot(bumped, sun), 0.0);
-        color = vec4(tint * texture(woodAlbedo, uv).rgb * 2.0 * light, 1.0);
+        vec3 albedo = stone ? texture(stoneAlbedo, uv).rgb * tint * 2.0 : tint * texture(woodAlbedo, uv).rgb * 2.0;
+        color = vec4(albedo * light * vShade, 1.0);
         return;
     }
     vec4 texel = tileArray ? texture(tiles, vec3(vUv, vShade)) : texture(image, vUv);
@@ -128,11 +172,15 @@ void Britannia3dView::destroy() {
     m_models.clear();
     m_walls.clear();
     m_roofTiles.clear();
+    m_solidTiles.clear();
     m_stableProps.reset();
     m_stableTools.reset();
     m_doors.clear();
     m_doorLeaf.clear();
     m_doorPlanks.destroy(); m_doorBattens.destroy(); m_doorIron.destroy();
+    m_windowFrame.destroy(); m_windowGlass.destroy();
+    m_stoneTiles.clear();
+    m_wallTop.clear();
     m_ironTexture = 0;
     if (!m_textures.empty()) glDeleteTextures(GLsizei(m_textures.size()), m_textures.data());
     m_textures.clear();
@@ -210,6 +258,17 @@ void Britannia3dView::addObject(const U7::Data& data, const U7::WorldObject& obj
     // Walls, doors, fences ... of layer 1 stop Sir Canegm (not the walkways on the town walls).
     const bool wall = layer == 1 && source.kind != U7ObjectModel::Kind::Flat && source.kind != U7ObjectModel::Kind::Upright;
     auto& walls = m_walls[{object.x / 8, object.y / 8}];
+    if (layer == 1 && source.kind == U7ObjectModel::Kind::Box && lower(data.name(object.shape)) == "wall") {
+        const auto size = data.shapeSize(object.shape);
+        const float top = (object.lift + size.z) * liftMetres;
+        for (int y = object.y - size.y + 1; y <= object.y; ++y)
+            for (int x = object.x - size.x + 1; x <= object.x; ++x) {
+                m_solidTiles.insert({x, y});
+                if (planks == 4) m_stoneTiles.insert({x, y});
+                auto& t = m_wallTop[{x, y}];
+                t = std::max(t, top);
+            }
+    }
     for (const auto& v : source.vertices) {
         // Faces turned away from the light get a little darker, as in U7.
         const float shade = v.normal.x < -0.5f || v.normal.z < -0.5f ? 0.9f : 1.f;
@@ -219,6 +278,16 @@ void Britannia3dView::addObject(const U7::Data& data, const U7::WorldObject& obj
             const auto size = data.shapeSize(object.shape);
             if (size.y == 1 && size.x > 1) local.z = -0.5f + (local.z + 0.5f) * U73dScale::WallThickness;
             if (size.x == 1 && size.y > 1) local.x = -0.5f + (local.x + 0.5f) * U73dScale::WallThickness;
+            // Corner and end pieces (1 x 1): a side is pulled in to the wall thickness only where
+            // no wall, door or window continues, so the pieces close flush with their neighbours.
+            if (size.x == 1 && size.y == 1) {
+                const float t = U73dScale::WallThickness * 0.5f;
+                auto has = [&](int dx, int dy) { return m_wallFootprint.count({object.x + dx, object.y + dy}) > 0; };
+                if (local.x < -0.5f && !has(-1, 0)) local.x = -0.5f - t;
+                if (local.x > -0.5f && !has(1, 0)) local.x = -0.5f + t;
+                if (local.z < -0.5f && !has(0, -1)) local.z = -0.5f - t;
+                if (local.z > -0.5f && !has(0, 1)) local.z = -0.5f + t;
+            }
         }
         const auto p = anchor + local;
         batch.vertices.push_back({p.x, p.y, p.z, v.normal.x, v.normal.y, v.normal.z, v.uv.x, v.uv.y, shade});
@@ -289,6 +358,8 @@ void Britannia3dView::loadModels(const U7::Data& data, const std::vector<std::pa
                 model.tint = sum / float(count) / 255.f;
                 const auto& c = model.tint;
                 model.planks = c.r > c.g + 0.04f && c.g > c.b + 0.03f && c.r - c.b > 0.13f && c.r < 0.55f;
+                // Stone: grey, hardly coloured (U7's rubble walls).
+                model.stone = !model.planks && std::max({c.r, c.g, c.b}) - std::min({c.r, c.g, c.b}) < 0.07f && c.r < 0.6f;
             }
         }
     }
@@ -378,7 +449,8 @@ int Britannia3dView::pickDoor(glm::vec2 ndc) const {
         glm::vec2 corner[4];
         float depth = 0;
         bool visible = true;
-        const glm::vec3 local[4] = {{0, 0, 0}, {-4, 0, 0}, {-4, U73dScale::DoorHeight, 0}, {0, U73dScale::DoorHeight, 0}};
+        const float l = m_doors[i].length, h = m_doors[i].height;
+        const glm::vec3 local[4] = {{0, 0, 0}, {-l, 0, 0}, {-l, h, 0}, {0, h, 0}};
         for (int k = 0; k < 4; ++k) {
             const auto clip = viewProjection * glm::vec4(planet(glm::vec3(model * glm::vec4(local[k], 1))), 1);
             if (clip.w <= 0) { visible = false; break; }
@@ -408,6 +480,16 @@ void Britannia3dView::drawDoors(unsigned program) {
     for (const auto& door : m_doors) {
         const auto matrix = doorModel(door);
         glUniformMatrix4fv(model, 1, GL_FALSE, &matrix[0][0]);
+        if (door.kind == 1) {
+            glUniform1i(planks, 0);
+            glBindTexture(GL_TEXTURE_2D, m_windowWoodTexture);
+            m_windowFrame.bind();
+            glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_windowFrame.vertexCount()));
+            glBindTexture(GL_TEXTURE_2D, m_windowGlassTexture);
+            m_windowGlass.bind();
+            glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_windowGlass.vertexCount()));
+            continue;
+        }
         glUniform3f(tint, wood.r * 0.9f, wood.g * 0.9f, wood.b * 0.9f);
         glUniform1i(planks, 2);
         m_doorPlanks.bind();
@@ -422,6 +504,669 @@ void Britannia3dView::drawDoors(unsigned program) {
     }
     const glm::mat4 identity(1);
     glUniformMatrix4fv(model, 1, GL_FALSE, &identity[0][0]);
+}
+
+namespace {
+
+// A box in the flat world: a (tiles) along the run, depth across it (metres), y up (metres).
+struct Run {
+    bool alongX;
+    float line;                       // z (alongX) or x of the wall's middle, tiles
+    glm::vec3 at(float a, float depth, float y) const {
+        const float d = depth / U73dScale::TileMetres;
+        return alongX ? glm::vec3(a, y, line + d) : glm::vec3(line + d, y, a);
+    }
+    glm::vec3 axis(glm::vec3 n) const { return alongX ? n : glm::vec3(n.z, n.y, n.x); }
+};
+
+}
+
+void Britannia3dView::buildOpenings(const U7::Data& data, const std::vector<U7::WorldObject>& windows, const std::vector<U7::WorldObject>& doors) {
+    constexpr float tm = U73dScale::TileMetres, SL = U73dScale::StructureLift;
+    // Frame wood and the lit U7 glass.
+    const std::uint8_t wood[4] = {104, 86, 70, 255};
+    constexpr int gs = 128;
+    std::vector<std::uint8_t> glass(size_t(gs) * gs * 4);
+    for (int y = 0; y < gs; ++y)
+        for (int x = 0; x < gs; ++x) {
+            // Warm yellow, a little brighter in the middle, with a faint diamond leading.
+            const float fx = float(x) / gs, fy = float(y) / gs;
+            const float glow = 1.f - 0.25f * (std::abs(fx - .5f) + std::abs(fy - .5f));
+            const float d1 = std::fmod(fx * 4 + fy * 6, 1.f), d2 = std::fmod(fx * 4 - fy * 6 + 8, 1.f);
+            const bool lead = d1 < 0.04f || d2 < 0.04f;
+            auto* p = glass.data() + (size_t(y) * gs + x) * 4;
+            const float l = lead ? 0.35f : glow;
+            p[0] = std::uint8_t(std::min(255.f, 250 * l)); p[1] = std::uint8_t(std::min(255.f, 205 * l)); p[2] = std::uint8_t(std::min(255.f, 110 * l)); p[3] = 255;
+        }
+    m_windowWoodTexture = makeTexture(1, 1, wood, false);
+    auto& frame = m_batches.emplace_back();
+    frame.texture = m_windowWoodTexture;
+    frame.layer = 1;
+    const size_t frameIndex = m_batches.size() - 1;
+    m_windowGlassTexture = makeTexture(gs, gs, glass.data(), true);
+    auto& stone = m_batches.emplace_back();
+    stone.planks = 4;                                  // dressed stone: sills and door jambs, lighter
+    stone.tint = glm::vec3(0.82f);
+    stone.layer = 1;
+    const size_t stoneIndex = m_batches.size() - 1;
+    auto box = [&](size_t batch, const Run& run, float a0, float a1, float d0, float d1, float y0, float y1) {
+        const glm::vec3 c[8] = {run.at(a0, d0, y0), run.at(a1, d0, y0), run.at(a1, d1, y0), run.at(a0, d1, y0),
+                                run.at(a0, d0, y1), run.at(a1, d0, y1), run.at(a1, d1, y1), run.at(a0, d1, y1)};
+        const int f[6][4] = {{4, 5, 6, 7}, {3, 2, 1, 0}, {0, 1, 5, 4}, {2, 3, 7, 6}, {1, 2, 6, 5}, {3, 0, 4, 7}};
+        const glm::vec3 n[6] = {{0, 1, 0}, {0, -1, 0}, {0, 0, -1}, {0, 0, 1}, {1, 0, 0}, {-1, 0, 0}};
+        const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        for (int k = 0; k < 6; ++k) addQuad(m_batches[batch], {c[f[k][0]], c[f[k][1]], c[f[k][2]], c[f[k][3]]}, uv, run.axis(n[k]));
+    };
+    const float wall = U73dScale::WallThickness * tm;           // metres
+    glm::vec2 leafSize(0);
+    for (const auto& w : windows) {
+        const auto size = data.shapeSize(w.shape);
+        const bool alongX = size.x > size.y;
+        const Run run{alongX, alongX ? w.y + 0.5f : w.x + 0.5f};
+        const float a1 = alongX ? w.x + 1.f : w.y + 1.f, a0 = a1 - float(alongX ? size.x : size.y);
+        const float y0 = w.lift * SL, y1 = (w.lift + size.z) * SL, f = 0.09f / tm, am = (a0 + a1) / 2;
+        // Frame (jambs, head, sill piece, mullion) through the wall's middle, 12 cm deep.
+        box(frameIndex, run, a0, a0 + f, -0.06f, 0.06f, y0, y1);
+        box(frameIndex, run, a1 - f, a1, -0.06f, 0.06f, y0, y1);
+        box(frameIndex, run, a0, a1, -0.06f, 0.06f, y1 - 0.09f, y1);
+        box(frameIndex, run, a0, a1, -0.06f, 0.06f, y0, y0 + 0.09f);
+        (void)am;
+        // Two casements meeting in the middle, hinged at the jambs, opening inwards on a click.
+        {
+            const float inner0 = a0 + f, inner1 = a1 - f, leaf = (inner1 - inner0) / 2, hy = y0 + 0.09f, hh = (y1 - 0.09f) - hy;
+            leafSize = glm::vec2(leaf, hh);
+            for (int side = 0; side < 2; ++side) {
+                Door casement;
+                casement.kind = 1;
+                casement.length = leaf;
+                casement.height = hh;
+                const float hinge = side == 0 ? inner1 : inner0;
+                casement.pivot = run.at(hinge, 0.f, hy);
+                // Local -x runs from the hinge along the leaf: towards -a (side 0) or +a (side 1).
+                const float along = alongX ? 0.f : glm::radians(-90.f);
+                casement.baseYaw = along + (side == 0 ? 0.f : glm::radians(180.f));
+                const glm::vec3 localMinusZ = glm::vec3(glm::rotate(glm::mat4(1), casement.baseYaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 0));
+                const glm::vec3 mid = run.at((a0 + a1) / 2, 0.f, 0.f);
+                casement.openAngle = glm::radians(indoors(mid, localMinusZ) ? -80.f : 80.f);
+                m_doors.push_back(casement);
+            }
+        }
+        box(stoneIndex, run, a0 - 0.1f / tm, a1 + 0.1f / tm, -wall / 2 - 0.06f, wall / 2 + 0.06f, y0 - 0.1f, y0);
+        // Reveals: the wall below and above the window in the opening (dressed stone).
+        box(stoneIndex, run, a0, a1, -wall / 2, wall / 2, y1, y1 + 0.12f);
+    }
+    // Casement meshes: a frame of four bars and a mullion-less leaded pane (all windows share
+    // one leaf size).
+    if (leafSize.x > 0) {
+        const float l = leafSize.x, h = leafSize.y, b = 0.06f / tm;
+        std::vector<float> frameData, glassData;
+        auto boxInto = [&](std::vector<float>& out, float x0, float x1, float y0, float y1, float d) {
+            const glm::vec3 c[8] = {{x0, y0, -d}, {x1, y0, -d}, {x1, y0, d}, {x0, y0, d}, {x0, y1, -d}, {x1, y1, -d}, {x1, y1, d}, {x0, y1, d}};
+            const int f[6][4] = {{4, 5, 6, 7}, {3, 2, 1, 0}, {0, 1, 5, 4}, {2, 3, 7, 6}, {1, 2, 6, 5}, {3, 0, 4, 7}};
+            const glm::vec3 n[6] = {{0, 1, 0}, {0, -1, 0}, {0, 0, -1}, {0, 0, 1}, {1, 0, 0}, {-1, 0, 0}};
+            for (int k = 0; k < 6; ++k)
+                for (int i : {0, 1, 2, 0, 2, 3}) {
+                    const auto& p = c[f[k][i]];
+                    out.insert(out.end(), {p.x, p.y, p.z, n[k].x, n[k].y, n[k].z, 0.f, 0.f, 1.f});
+                }
+        };
+        const float d = 0.03f / tm;
+        boxInto(frameData, -l, 0, 0, b * tm, d);                      // bottom rail
+        boxInto(frameData, -l, 0, h - b * tm, h, d);                  // top rail
+        boxInto(frameData, -b, 0, 0, h, d);                           // hinge stile
+        boxInto(frameData, -l, -l + b, 0, h, d);                      // meeting stile
+        boxInto(frameData, -l, 0, h / 2 - 0.02f, h / 2 + 0.02f, d * 0.8f);   // glazing bar
+        for (const float z : {-0.004f / tm, 0.004f / tm}) {
+            const glm::vec3 q[4] = {{-l + b, h - b * tm, z}, {-b, h - b * tm, z}, {-b, b * tm, z}, {-l + b, b * tm, z}};
+            const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+            for (int i : {0, 1, 2, 0, 2, 3})
+                glassData.insert(glassData.end(), {q[i].x, q[i].y, q[i].z, 0.f, 0.f, z > 0 ? 1.f : -1.f, uv[i].x, uv[i].y, 1.f});
+        }
+        m_windowFrame.create(frameData.data(), unsigned(frameData.size() / 9), 9);
+        m_windowGlass.create(glassData.data(), unsigned(glassData.size() / 9), 9);
+    }
+    // Doors: a DoorModel door (2.25 m) in the opening, dressed stone jambs and a stone lintel up
+    // to the wall's top above it (planks in wooden houses). The opening runs along the wall.
+    auto& lintelStone = m_batches.emplace_back();
+    lintelStone.planks = 4;
+    lintelStone.tint = glm::vec3(0.5f);
+    lintelStone.layer = 1;
+    const size_t lintelStoneIndex = m_batches.size() - 1;
+    auto& lintelWood = m_batches.emplace_back();
+    lintelWood.planks = 1;
+    lintelWood.layer = 1;
+    for (const auto& batch : m_batches) if (batch.planks == 1 && batch.tint != glm::vec3(1)) { lintelWood.tint = batch.tint; break; }
+    const size_t lintelWoodIndex = m_batches.size() - 1;
+    for (const auto& d : doors) {
+        const auto size = data.shapeSize(d.shape);
+        const int length = std::max(size.x, size.y);
+        bool converted = false;
+        struct Candidate { bool alongX; float line, a0, a1; };
+        const Candidate candidates[2] = {
+            {true, d.y + 0.5f, float(d.x + 1 - length), float(d.x + 1)},
+            {false, d.x + 0.5f, float(d.y + 1 - length), float(d.y + 1)}};
+        for (const auto& c : candidates) {
+            const int line = int(std::floor(c.line));
+            // The wall goes on beyond at least one end (within two tiles) of the opening.
+            auto solid = [&](int a) { return m_solidTiles.count(c.alongX ? std::pair<int, int>{a, line} : std::pair<int, int>{line, a}) > 0; };
+            const bool before = solid(int(c.a0) - 1) || solid(int(c.a0) - 2), after = solid(int(c.a1)) || solid(int(c.a1) + 1);
+            if (!before && !after) continue;
+            const Run run{c.alongX, c.line};
+            const float j = 0.16f / tm, base = d.lift * SL, top = (d.lift + size.z) * SL;
+            auto isStone = [&](int a) { return m_stoneTiles.count(c.alongX ? std::pair<int, int>{a, line} : std::pair<int, int>{line, a}) > 0; };
+            const bool stoneHouse = isStone(int(c.a0) - 1) || isStone(int(c.a1)) || isStone(int(c.a0) - 2) || isStone(int(c.a1) + 1);
+            if (stoneHouse) {
+                box(stoneIndex, run, c.a0, c.a0 + j, -wall / 2 - 0.05f, wall / 2 + 0.05f, base, base + U73dScale::DoorHeight + 0.2f);
+                box(stoneIndex, run, c.a1 - j, c.a1, -wall / 2 - 0.05f, wall / 2 + 0.05f, base, base + U73dScale::DoorHeight + 0.2f);
+                box(stoneIndex, run, c.a0, c.a1, -wall / 2 - 0.05f, wall / 2 + 0.05f, base, base + 0.04f);
+                // A dressed lintel beam over the door, then the wall above it.
+                box(stoneIndex, run, c.a0 - 0.1f / tm, c.a1 + 0.1f / tm, -wall / 2 - 0.05f, wall / 2 + 0.05f, base + U73dScale::DoorHeight,
+                    base + U73dScale::DoorHeight + 0.2f);
+            }
+            box(stoneHouse ? lintelStoneIndex : lintelWoodIndex, run, c.a0, c.a1, -wall / 2, wall / 2, base + U73dScale::DoorHeight + (stoneHouse ? 0.2f : 0.f), top);
+            // The door itself, hinged at the a1 end, leaf towards a0; opens inwards.
+            Door door;
+            door.pivot = run.at(c.a1, 0.f, base);
+            door.baseYaw = c.alongX ? 0.f : glm::radians(-90.f);
+            const glm::vec3 localMinusZ = glm::vec3(glm::rotate(glm::mat4(1), door.baseYaw, glm::vec3(0, 1, 0)) * glm::vec4(0, 0, -1, 0));
+            door.openAngle = glm::radians(indoors(run.at((c.a0 + c.a1) / 2, 0.f, 0.f), localMinusZ) ? -90.f : 90.f);
+            m_doors.push_back(door);
+            converted = true;
+            break;
+        }
+        // Not a door in a wall (an open door, a gate): the U7 door as before.
+        if (!converted) addObject(data, d, 1, false, SL, 0, true);
+    }
+}
+
+void Britannia3dView::buildPictures(const U7::Data& data, const std::vector<U7::WorldObject>& pictures) {
+    constexpr float tm = U73dScale::TileMetres, SL = U73dScale::StructureLift;
+    for (const auto& picture : pictures) {
+        const auto frame = data.frame(picture.shape, picture.frame);
+        if (frame.rgba.empty()) continue;
+        const int w = frame.width, h = frame.height;
+        // Unshear: on a north wall (plane along x) a frame pixel (u, v) is along = u - v, up = -v;
+        // on a west wall (along y) along = v - u, up = -u.
+        const bool alongX = w > h;
+        const int cols = w + h - 1, rows = alongX ? h : w;
+        std::vector<std::uint8_t> flat(size_t(cols) * rows * 4, 0);
+        int left = cols, right = -1, top = rows, bottom = -1;
+        for (int v = 0; v < h; ++v)
+            for (int u = 0; u < w; ++u) {
+                const auto* p = frame.rgba.data() + (size_t(v) * w + u) * 4;
+                if (!p[3]) continue;
+                const int x = alongX ? u - v + h - 1 : v - u + w - 1, y = alongX ? v : u;
+                std::copy_n(p, 4, flat.data() + (size_t(y) * cols + x) * 4);
+                left = std::min(left, x); right = std::max(right, x); top = std::min(top, y); bottom = std::max(bottom, y);
+            }
+        if (right < left) continue;
+        const int cw = right - left + 3, ch = bottom - top + 3;
+        std::vector<std::uint8_t> crop(size_t(cw) * ch * 4, 0);
+        for (int y = 0; y < ch - 2; ++y)
+            std::copy_n(flat.begin() + (size_t(y + top) * cols + left) * 4, size_t(cw - 2) * 4, crop.begin() + (size_t(y + 1) * cw + 1) * 4);
+        // Fill single transparent pixels the unshearing left inside the picture.
+        for (int y = 1; y + 1 < ch; ++y)
+            for (int x = 1; x + 1 < cw; ++x) {
+                auto* p = crop.data() + (size_t(y) * cw + x) * 4;
+                if (p[3]) continue;
+                const auto* l = p - 4; const auto* r = p + 4;
+                if (l[3] && r[3]) for (int k = 0; k < 4; ++k) p[k] = std::uint8_t((l[k] + r[k]) / 2);
+            }
+        constexpr int factor = 8;
+        auto big = PixelArtScale::scale(crop.data(), cw, ch, factor);
+        PixelArtScale::smoothEdges(big, cw * factor, ch * factor, 3);
+        // Size: 16 frame pixels per metre (U7's 8 per tile); on the nearest wall's inner face.
+        const float width = cw / 16.f, height = ch / 16.f;
+        const auto size = data.shapeSize(picture.shape);
+        float centre, face = 0;
+        bool found = false;
+        if (alongX) {
+            centre = picture.x + 1 - size.x * 0.5f;
+            for (int row = picture.y; row >= picture.y - 2 && !found; --row)
+                if (m_solidTiles.count({int(centre), row})) { face = row + 0.5f + U73dScale::WallThickness * 0.5f + 0.02f; found = true; }
+        } else {
+            centre = picture.y + 1 - size.y * 0.5f;
+            for (int col = picture.x; col >= picture.x - 2 && !found; --col)
+                if (m_solidTiles.count({col, int(centre)})) { face = col + 0.5f + U73dScale::WallThickness * 0.5f + 0.02f; found = true; }
+        }
+        if (!found) face = (alongX ? picture.y : picture.x) + 0.1f;
+        const float bottomY = std::max(picture.lift * SL, 0.9f), topY = bottomY + height;
+        const float a0 = centre - width / 2 / tm, a1 = centre + width / 2 / tm;
+        auto at = [&](float a, float y, float off) { return alongX ? glm::vec3(a, y, face + off) : glm::vec3(face + off, y, a); };
+        auto& batch = m_batches.emplace_back();
+        batch.texture = makeTexture(cw * factor, ch * factor, big.data(), true);
+        batch.layer = 2;
+        const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        const glm::vec3 n = alongX ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0);
+        addQuad(batch, {at(a0, topY, 0), at(a1, topY, 0), at(a1, bottomY, 0), at(a0, bottomY, 0)}, uv, n);
+        ++m_boxes;
+    }
+}
+
+void Britannia3dView::buildWells(const std::vector<glm::vec2>& places) {
+    if (places.empty()) return;
+    constexpr float tm = U73dScale::TileMetres;
+    const auto parts = WellModel::build();
+    glm::vec3 woodTone(0.45f, 0.32f, 0.24f);
+    for (const auto& batch : m_batches) if (batch.planks == 1 && batch.tint != glm::vec3(1)) { woodTone = batch.tint; break; }
+    const std::uint8_t iron[4] = {40, 38, 36, 255}, rope[4] = {150, 128, 92, 255}, water[4] = {18, 34, 70, 255};
+    struct Part { const std::vector<WellModel::Vertex>* vertices; int planks; glm::vec3 tint; unsigned texture; };
+    const Part list[6] = {{&parts.stone, 4, glm::vec3(0.5f), 0}, {&parts.rim, 4, glm::vec3(0.7f), 0}, {&parts.wood, 1, woodTone, 0},
+                          {&parts.iron, 0, glm::vec3(1), makeTexture(1, 1, iron, false)}, {&parts.rope, 0, glm::vec3(1), makeTexture(1, 1, rope, false)},
+                          {&parts.water, 0, glm::vec3(1), makeTexture(1, 1, water, false)}};
+    for (const auto& part : list) {
+        auto& batch = m_batches.emplace_back();
+        batch.planks = part.planks;
+        batch.tint = part.tint;
+        batch.texture = part.texture;
+        batch.layer = 2;
+        for (const auto& place : places)
+            for (const auto& v : *part.vertices)
+                batch.vertices.push_back({place.x + v.position.x / tm, v.position.y, place.y + v.position.z / tm,
+                                          v.normal.x, v.normal.y, v.normal.z, v.uv.x, v.uv.y, 1.f});
+    }
+    // The wall stops Sir Canegm: a ring of wall triangles.
+    for (const auto& place : places) {
+        auto& cell = m_walls[{int(place.x) / 8, int(place.y) / 8}];
+        for (int i = 0; i < 16; ++i) {
+            const float a0 = 6.2831853f * i / 16, a1 = 6.2831853f * (i + 1) / 16, r = 0.74f / tm;
+            const glm::vec3 p0(place.x + std::cos(a0) * r, 0, place.y + std::sin(a0) * r), p1(place.x + std::cos(a1) * r, 0, place.y + std::sin(a1) * r);
+            const glm::vec3 up(0, 0.78f, 0);
+            for (const auto& q : {p0, p1, p1 + up, p0, p1 + up, p0 + up}) cell.push_back(q);
+        }
+    }
+}
+
+void Britannia3dView::buildLamps(const std::vector<glm::vec2>& places) {
+    if (places.empty()) return;
+    constexpr float tm = U73dScale::TileMetres;
+    const auto parts = LampModel::build();
+    const auto post = LampModel::postTexture(128), glass = LampModel::glassTexture(128);
+    const std::uint8_t iron[4] = {38, 36, 34, 255};
+    struct Part { const std::vector<LampModel::Vertex>* vertices; unsigned texture; float shade; };
+    const Part list[3] = {{&parts.post, makeTexture(128, 128, post.data(), true), 1.f},
+                          {&parts.iron, makeTexture(1, 1, iron, false), 1.f},
+                          {&parts.glass, makeTexture(128, 128, glass.data(), true), 1.55f}};   // lit: brighter than the light
+    for (const auto& part : list) {
+        auto& batch = m_batches.emplace_back();
+        batch.texture = part.texture;
+        batch.layer = 2;
+        for (const auto& place : places) {
+            // Turned like U7's: the crossbar runs from north west to south east.
+            const float c = 0.7071f, sn = 0.7071f;
+            for (const auto& v : *part.vertices) {
+                const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
+                const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
+                batch.vertices.push_back({place.x + p.x / tm, p.y, place.y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, part.shade});
+            }
+        }
+    }
+}
+
+void Britannia3dView::buildSignposts(const U7::Data& data, const std::vector<U7::WorldObject>& posts,
+                                     const std::vector<U7::WorldObject>& signs) {
+    constexpr float tm = U73dScale::TileMetres;
+    std::vector<bool> postUsed(posts.size(), false), signUsed(signs.size(), false);
+    std::vector<int> postOf(signs.size(), -1);
+    for (size_t s = 0; s < signs.size(); ++s)
+        for (size_t p = 0; p < posts.size(); ++p)
+            if (std::abs(signs[s].x - posts[p].x) <= 1 && std::abs(signs[s].y - posts[p].y) <= 1) {
+                postUsed[p] = signUsed[s] = true;
+                postOf[s] = int(p);
+                break;
+            }
+    // Posts and boards without a partner stay U7 graphics (placed first: addObject can grow
+    // m_batches, which would leave a reference into it dangling).
+    for (size_t p = 0; p < posts.size(); ++p) if (!postUsed[p]) addObject(data, posts[p], 2, false, U73dScale::FurnitureLift, 0, false);
+    for (size_t k = 0; k < signs.size(); ++k) if (!signUsed[k]) addObject(data, signs[k], 2, false, U73dScale::FurnitureLift, 0, false);
+    const auto wood = LampModel::postTexture(128);
+    auto& batch = m_batches.emplace_back();
+    batch.texture = makeTexture(128, 128, wood.data(), true);
+    glBindTexture(GL_TEXTURE_2D, batch.texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    batch.layer = 2;
+    // A prism from a 2D outline (x along, y up, metres; counter-clockwise) extruded by
+    // thickness across `side`, placed at origin (metres), into the batch.
+    auto prism = [&](const std::vector<glm::vec2>& outline, float thickness, glm::vec3 origin, glm::vec3 along, glm::vec3 side, float shade) {
+        auto at = [&](glm::vec2 q, float d) {
+            const glm::vec3 m = origin + along * q.x + glm::vec3(0, q.y, 0) + side * d;
+            return glm::vec3(m.x / tm, m.y, m.z / tm);
+        };
+        const float h = thickness / 2;
+        for (const float d : {-h, h})
+            for (size_t i = 1; i + 1 < outline.size(); ++i) {
+                const glm::vec2 q[3] = {outline[0], outline[i], outline[i + 1]};
+                const glm::vec3 n = side * (d > 0 ? 1.f : -1.f);
+                for (const auto& v : q) {
+                    const auto p = at(v, d);
+                    batch.vertices.push_back({p.x, p.y, p.z, n.x, n.y, n.z, v.x * 1.5f, v.y * 3.f, shade});
+                }
+            }
+        for (size_t i = 0; i < outline.size(); ++i) {
+            const auto a = outline[i], b = outline[(i + 1) % outline.size()];
+            const glm::vec2 e = glm::normalize(b - a);
+            const glm::vec3 n = glm::normalize(along * e.y - glm::vec3(0, e.x, 0));
+            const glm::vec3 pts[4] = {at(a, -h), at(b, -h), at(b, h), at(a, h)};
+            const glm::vec2 uv[4] = {{a.x * 1.5f, a.y * 3.f}, {b.x * 1.5f, b.y * 3.f}, {b.x * 1.5f, b.y * 3.f + 0.05f}, {a.x * 1.5f, a.y * 3.f + 0.05f}};
+            for (int j : {0, 1, 2, 0, 2, 3}) batch.vertices.push_back({pts[j].x, pts[j].y, pts[j].z, n.x, n.y, n.z, uv[j].x, uv[j].y, shade * 0.9f});
+        }
+    };
+    for (size_t p = 0; p < posts.size(); ++p) {
+        if (!postUsed[p]) continue;
+        const glm::vec3 base((posts[p].x + 0.5f) * tm, 0, (posts[p].y + 0.5f) * tm);
+        // Square post 12 cm thick, 2.4 m high, with a pointed top.
+        const float w = 0.06f;
+        const std::vector<glm::vec2> outline = {{-w, 0}, {w, 0}, {w, 2.4f}, {0, 2.52f}, {-w, 2.4f}};
+        prism(outline, 2 * w, base, {1, 0, 0}, {0, 0, 1}, 1.f);
+        prism(outline, 2 * w, base, {0, 0, 1}, {1, 0, 0}, 0.95f);
+    }
+    for (size_t s = 0; s < signs.size(); ++s) {
+        const auto& sign = signs[s];
+        if (!signUsed[s]) continue;
+        // Frames 7 - 10 point along x, 0 - 3 along y; even frames east / south, odd west / north.
+        const auto& post = posts[size_t(postOf[s])];
+        const glm::vec3 base((post.x + 0.5f) * tm, 0, (post.y + 0.5f) * tm);
+        const bool alongX = sign.frame >= 7;
+        const float direction = sign.frame % 2 == 0 ? 1.f : -1.f;
+        const glm::vec3 along = alongX ? glm::vec3(direction, 0, 0) : glm::vec3(0, 0, direction);
+        const glm::vec3 side = alongX ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0);
+        const float y = std::clamp(1.35f + 0.3f * (sign.lift - 3), 1.1f, 2.2f);
+        // Arrow board: 1.1 m long, 0.2 m high, pointed, fixed to the side of the post.
+        prism({{0.0f, y}, {0.98f, y}, {1.14f, y + 0.1f}, {0.98f, y + 0.2f}, {0.0f, y + 0.2f}}, 0.035f, base + side * 0.08f, along, side, 1.05f);
+    }
+}
+
+void Britannia3dView::buildTrees(const std::vector<glm::vec2>& places) {
+    if (places.empty()) return;
+    constexpr float tm = U73dScale::TileMetres;
+    const auto bark = TreeModel::barkTexture(256), leaves = TreeModel::leafTexture(512);
+    auto& barkBatch = m_batches.emplace_back();
+    barkBatch.texture = makeTexture(256, 256, bark.data(), true);
+    glBindTexture(GL_TEXTURE_2D, barkBatch.texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    barkBatch.layer = 3;
+    barkBatch.wind = 1;
+    const size_t barkIndex = m_batches.size() - 1;
+    auto& leafBatch = m_batches.emplace_back();
+    leafBatch.texture = makeTexture(512, 512, leaves.data(), true);
+    leafBatch.layer = 3;
+    leafBatch.wind = 2;
+    for (const auto& place : places) {
+        // The place decides the tree: 7 to 11 m, its own branching.
+        const std::uint32_t seed = std::uint32_t(int(place.x)) * 73856093u ^ std::uint32_t(int(place.y)) * 19349663u;
+        auto tree = TreeModel::build(seed, 7.f, 11.f);
+        const float turn = float(seed % 628) / 100.f, c = std::cos(turn), sn = std::sin(turn);
+        // Keep the crown (and its sway) 0.9 m clear of the nearest wall or roof: the tree is
+        // narrowed horizontally to fit, its height stays.
+        float clearance = 1e9f;
+        glm::vec2 away(0);                                   // from the buildings, metres
+        for (int dy = -24; dy <= 24; ++dy)
+            for (int dx = -24; dx <= 24; ++dx) {
+                const std::pair<int, int> tile{int(std::floor(place.x)) + dx, int(std::floor(place.y)) + dy};
+                if (!m_solidTiles.count(tile) && !m_roofTiles.count(tile)) continue;
+                const float nx = std::clamp(place.x, float(tile.first), float(tile.first + 1));
+                const float nz = std::clamp(place.y, float(tile.second), float(tile.second + 1));
+                const glm::vec2 off = glm::vec2(place.x - nx, place.y - nz) * tm;
+                const float dist = glm::length(off);
+                clearance = std::min(clearance, dist);
+                if (dist > 0.01f && dist < 8.f) away += off / (dist * dist);
+            }
+        float reach = 0.f;
+        for (const auto& v : tree.leaves) reach = std::max(reach, glm::length(glm::vec2(v.position.x, v.position.z)));
+        for (const auto& v : tree.bark) if (v.position.y > 2.f) reach = std::max(reach, glm::length(glm::vec2(v.position.x, v.position.z)));
+        // Near a building the crown is flattened on the building's side (keeping 0.9 m clear)
+        // and grows fuller on the opposite side instead, so it keeps its volume.
+        if (glm::length(away) > 1e-4f && reach > 0) {
+            const glm::vec2 dir = glm::normalize(away);
+            const glm::vec2 awayModel(c * dir.x + sn * dir.y, -sn * dir.x + c * dir.y);   // undoes the turn below
+            const float squeeze = std::clamp((clearance - 0.9f) / reach, 0.1f, 1.f);
+            const float grow = 1.f + 0.6f * (1.f - squeeze);
+            for (auto* part : {&tree.leaves, &tree.bark})
+                for (auto& v : *part) {
+                    if (v.position.y <= 0.6f) continue;
+                    const glm::vec2 xz(v.position.x, v.position.z);
+                    const float along = glm::dot(xz, awayModel);
+                    const glm::vec2 across = xz - awayModel * along;
+                    // Low on the trunk nothing changes; the crown fully.
+                    const float w = std::clamp((v.position.y - 1.5f) / 2.5f, 0.f, 1.f);
+                    const float scaled = along < 0 ? along * squeeze : along * grow;
+                    const glm::vec2 moved = across + awayModel * (along + (scaled - along) * w);
+                    v.position.x = moved.x; v.position.z = moved.y;
+                }
+        }
+        auto add = [&](Batch& batch, const std::vector<TreeModel::Vertex>& vertices, float shade) {
+            for (const auto& v : vertices) {
+                const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
+                const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
+                batch.vertices.push_back({place.x + p.x / tm, p.y, place.y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y * 0.6f, shade});
+            }
+        };
+        add(m_batches[barkIndex], tree.bark, 1.f);
+        add(leafBatch, tree.leaves, 1.f);
+        ++m_quadObjects;
+    }
+}
+
+void Britannia3dView::buildSignAndFork(const U7::Data& data) {
+    constexpr float tm = U73dScale::TileMetres;
+    // --- Horse sign: U7 draws it on a plane along y (x fixed); a point (y, h) of that plane is
+    // frame pixel (c - 8h, 8y - 8h), so pixel (u, v) unshears to along = v - u, up = -u.
+    const auto frame = data.frame(361, 7);
+    if (!frame.rgba.empty()) {
+        const int w = frame.width, h = frame.height, uw = w + h - 1;
+        std::vector<std::uint8_t> flat(size_t(uw) * w * 4, 0);
+        int left = uw, right = -1, top = w, bottom = -1;
+        for (int v = 0; v < h; ++v)
+            for (int u = 0; u < w; ++u) {
+                const auto* p = frame.rgba.data() + (size_t(v) * w + u) * 4;
+                if (!p[3]) continue;
+                const int x = v - u + w - 1, y = u;
+                // Wrought iron: the silhouette in one dark iron colour.
+                auto* q = flat.data() + (size_t(y) * uw + x) * 4;
+                q[0] = 34; q[1] = 32; q[2] = 30; q[3] = 255;
+                left = std::min(left, x); right = std::max(right, x); top = std::min(top, y); bottom = std::max(bottom, y);
+            }
+        if (right >= left) {
+            const int cw = right - left + 3, ch = bottom - top + 3;     // one pixel margin
+            std::vector<std::uint8_t> crop(size_t(cw) * ch * 4, 0);
+            for (int y = 0; y < ch - 2; ++y)
+                std::copy_n(flat.begin() + (size_t(y + top) * uw + left) * 4, size_t(cw - 2) * 4, crop.begin() + (size_t(y + 1) * cw + 1) * 4);
+            constexpr int factor = 16;
+            auto big = PixelArtScale::scale(crop.data(), cw, ch, factor);
+            PixelArtScale::smoothEdges(big, cw * factor, ch * factor, 6);
+            auto& sign = m_batches.emplace_back();
+            sign.texture = makeTexture(cw * factor, ch * factor, big.data(), true);
+            sign.layer = 2;
+            // 8 pixels = 0.3125 m (half its U7 size, 25 % larger). The bracket (image left) sits on the wall face
+            // west of the door, the sign reaches south out of the wall, its bar at 2.7 m.
+            const float scale = 0.25f * 1.25f / 8.f, width = cw * scale, height = ch * scale;   // half U7 size, then 25 % larger
+            const float x = 1066.0f, wall = 2207.875f, topY = 2.75f;
+            const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+            addQuad(sign, {glm::vec3(x, topY, wall), glm::vec3(x, topY, wall + width / tm), glm::vec3(x, topY - height, wall + width / tm),
+                           glm::vec3(x, topY - height, wall)}, uv, {1, 0, 0});
+        }
+    }
+    // --- Pitchfork in the gargoyle's chest: U7's frame 589:0 (handle lower left, tines upper
+    // right) on one quad along the fork, from the floor in front up into the chest.
+    const auto fork = m_models.find({589, 0});
+    const auto forkFrame = data.frame(589, 0);
+    if (fork != m_models.end() && !forkFrame.rgba.empty()) {
+        const auto chest = StableScene::u7Tile(661.90f, 1217.80f);
+        // The tines go into the chest (1.3 m up, inside the body), the handle rests on the floor in front.
+        const glm::vec3 tip(chest.x + 0.08f / tm, 1.25f, chest.y - 0.75f / tm), handle(chest.x - 0.25f / tm, 0.03f, chest.y + 0.75f / tm);
+        auto metres = [&](glm::vec3 v) { return glm::vec3(v.x * tm, v.y, v.z * tm); };
+        auto tiles = [&](glm::vec3 v) { return glm::vec3(v.x / tm, v.y, v.z / tm); };
+        const glm::vec3 axis = glm::normalize(metres(tip - handle));
+        const glm::vec3 across = glm::normalize(glm::cross(axis, glm::vec3(0, 1, 0)));
+        const float fw = float(forkFrame.width), fh = float(forkFrame.height);
+        const glm::vec2 h0(1.f, fh - 1.f), t0(fw - 1.f, 1.f);        // handle end and tines in the frame
+        const glm::vec2 ds = glm::normalize(t0 - h0), ps(-ds.y, ds.x);
+        const float k = glm::length(metres(tip - handle)) / glm::length(t0 - h0);   // metres per pixel
+        auto place = [&](glm::vec2 s) {
+            const float a = glm::dot(s - h0, ds), b = glm::dot(s - h0, ps);
+            return handle + tiles(axis * (a * k) + across * (b * k));
+        };
+        // Blood: the tines and the upper shaft (what went into the chest) are soaked dark red,
+        // with runs down the handle; the lower handle stays clean.
+        std::vector<std::uint8_t> bloody = forkFrame.rgba;
+        const float span = glm::length(t0 - h0);
+        for (int y = 0; y < forkFrame.height; ++y)
+            for (int x = 0; x < forkFrame.width; ++x) {
+                auto* p = bloody.data() + (size_t(y) * forkFrame.width + x) * 4;
+                if (!p[3]) continue;
+                const float along = glm::dot(glm::vec2(x + 0.5f, y + 0.5f) - h0, ds) / span;   // 0 handle .. 1 tines
+                const std::uint32_t hash = std::uint32_t(x * 73856093) ^ std::uint32_t(y * 19349663);
+                const float speck = float((hash >> 8) & 255) / 255.f;
+                const bool soaked = along > 0.72f || (along > 0.45f && speck < (along - 0.45f) * 2.6f);
+                if (!soaked) continue;
+                const float dark = 0.45f + 0.55f * speck;
+                p[0] = std::uint8_t(std::min(255.f, 70.f + 110.f * dark)); p[1] = std::uint8_t(4 + 8 * dark); p[2] = std::uint8_t(4 + 8 * dark);
+            }
+        constexpr int factor = 8;
+        auto big = PixelArtScale::scale(bloody.data(), forkFrame.width, forkFrame.height, factor);
+        PixelArtScale::smoothEdges(big, forkFrame.width * factor, forkFrame.height * factor, factor / 2);
+        auto& batch = m_batches.emplace_back();
+        batch.texture = makeTexture(forkFrame.width * factor, forkFrame.height * factor, big.data(), true);
+        batch.layer = 2;
+        const glm::vec2 corners[4] = {{0, 0}, {fw, 0}, {fw, fh}, {0, fh}};
+        const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        addQuad(batch, {place(corners[0]), place(corners[1]), place(corners[2]), place(corners[3])}, uv, glm::cross(across, axis));
+    }
+}
+
+static void loadRepeating(unsigned id) {
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+}
+
+void Britannia3dView::addGableRoof(Batch& roof, Batch& gable, float x0, float z0, float x1, float z1, float eave, float pitchDegrees,
+                                   float overhang, float thick, bool ridgeCap) {
+    // Built across a (x) and along b (z, the ridge) in tiles, then turned so the ridge runs
+    // along the longer side. Heights are metres, overhang and thickness metres.
+    constexpr float tm = U73dScale::TileMetres;
+    const bool alongZ = (z1 - z0) >= (x1 - x0);
+    const float a0 = alongZ ? x0 : z0, a1 = alongZ ? x1 : z1, b0 = alongZ ? z0 : x0, b1 = alongZ ? z1 : x1;
+    auto place = [&](float a, float y, float b) { return alongZ ? glm::vec3(a, y, b) : glm::vec3(b, y, a); };
+    auto turn = [&](glm::vec3 n) { return alongZ ? n : glm::vec3(n.z, n.y, n.x); };
+    const float pitch = glm::radians(pitchDegrees);
+    const float half = (a1 - a0) * 0.5f * tm, mid = (a0 + a1) * 0.5f, rise = half * std::tan(pitch);
+    const float ridge = eave + rise, outer = half + overhang, low = eave - overhang * std::tan(pitch);
+    const float bo0 = b0 - overhang / tm, bo1 = b1 + overhang / tm;
+    const float slope = outer / std::cos(pitch), length = (bo1 - bo0) * tm, t = thick / std::cos(pitch);
+    auto quad = [&](Batch& batch, const glm::vec3 (&p)[4], glm::vec3 n, const glm::vec2 (&uv)[4], float shade) {
+        for (int i : {0, 1, 2, 0, 2, 3}) batch.vertices.push_back({p[i].x, p[i].y, p[i].z, n.x, n.y, n.z, uv[i].x, uv[i].y, shade});
+    };
+    for (const float side : {-1.f, 1.f}) {
+        const glm::vec3 n = turn(glm::normalize(glm::vec3(side * std::sin(pitch), std::cos(pitch), 0)));
+        const float eaveA = mid + side * outer / tm;
+        for (const float offset : {0.f, -t})
+            quad(roof, {place(mid, ridge + offset, bo0), place(mid, ridge + offset, bo1), place(eaveA, low + offset, bo1), place(eaveA, low + offset, bo0)},
+                 offset == 0.f ? n : -n, {glm::vec2(0, 0), glm::vec2(length, 0), glm::vec2(length, slope), glm::vec2(0, slope)}, offset == 0.f ? 1.f : 0.55f);
+        quad(roof, {place(eaveA, low, bo0), place(eaveA, low, bo1), place(eaveA, low - t, bo1), place(eaveA, low - t, bo0)},
+             turn(glm::normalize(glm::vec3(side * std::cos(pitch), -std::sin(pitch), 0))),
+             {glm::vec2(0, slope), glm::vec2(length, slope), glm::vec2(length, slope + 0.05f), glm::vec2(0, slope + 0.05f)}, 0.7f);
+        for (const float b : {bo0, bo1})
+            quad(roof, {place(mid, ridge, b), place(eaveA, low, b), place(eaveA, low - t, b), place(mid, ridge - t, b)},
+                 turn(glm::vec3(0, 0, b == bo0 ? -1.f : 1.f)), {glm::vec2(0, 0), glm::vec2(0, slope), glm::vec2(0.3f, slope), glm::vec2(0.3f, 0)}, 0.8f);
+    }
+    if (ridgeCap) {
+        constexpr int segments = 10;
+        const float r = 0.28f;
+        for (int i = 0; i < segments; ++i) {
+            const float c0 = glm::radians(-70.f + 140.f * i / segments), c1 = glm::radians(-70.f + 140.f * (i + 1) / segments);
+            const glm::vec3 d0(std::sin(c0), std::cos(c0), 0), d1(std::sin(c1), std::cos(c1), 0);
+            auto at = [&](glm::vec3 d, float b) { return place(mid + d.x * r / tm, ridge - 0.08f + d.y * r, b); };
+            quad(roof, {at(d0, bo0), at(d0, bo1), at(d1, bo1), at(d1, bo0)}, turn(glm::normalize(d0 + d1)),
+                 {glm::vec2(0, i * 0.08f), glm::vec2(length, i * 0.08f), glm::vec2(length, (i + 1) * 0.08f), glm::vec2(0, (i + 1) * 0.08f)}, 1.f);
+        }
+    } else {
+        // A ridge tile of the same material.
+        const float r = 0.10f;
+        quad(roof, {place(mid - r / tm, ridge + 0.02f, bo0), place(mid - r / tm, ridge + 0.02f, bo1), place(mid + r / tm, ridge + 0.02f, bo1), place(mid + r / tm, ridge + 0.02f, bo0)},
+             glm::vec3(0, 1, 0), {glm::vec2(0, 0), glm::vec2(length, 0), glm::vec2(length, 0.2f), glm::vec2(0, 0.2f)}, 0.8f);
+    }
+    // Gables close the triangle between the eaves and the ridge, at both ends of the ridge.
+    const float inset = 0.19f / tm, half2 = U73dScale::WallThickness * 0.25f;
+    for (const float b : {b0 + inset, b1 - inset})
+        for (const float face : {-1.f, 1.f}) {
+            const float bf = b + face * half2;
+            const glm::vec3 p[3] = {place(a0, eave, bf), place(a1, eave, bf), place(mid, ridge - t, bf)};
+            const glm::vec3 n = turn(glm::vec3(0, 0, face));
+            for (const auto& q : p) gable.vertices.push_back({q.x, q.y, q.z, n.x, n.y, n.z, 0, 0, 1});
+        }
+    for (int y = int(z0); y <= int(z1); ++y)
+        for (int x = int(x0); x <= int(x1); ++x) m_roofTiles.insert({x, y});
+}
+
+void Britannia3dView::buildThatchRoof() {
+    const auto thatch = ThatchMaterial::loadOrCreate(assetDirectory);
+    m_thatchAlbedo = makeTexture(thatch.size, thatch.size, thatch.albedo.data(), true);
+    m_thatchNormal = makeTexture(thatch.size, thatch.size, thatch.normal.data(), true);
+    loadRepeating(m_thatchAlbedo);
+    loadRepeating(m_thatchNormal);
+    auto& roof = m_batches.emplace_back();
+    roof.planks = 3;
+    roof.roof = true;
+    roof.layer = 2;
+    const size_t roofIndex = m_batches.size() - 1;
+    auto& gable = m_batches.emplace_back();
+    gable.planks = 1;
+    gable.layer = 1;
+    gable.roof = true;                   // part of the roof: hidden with it
+    for (const auto& batch : m_batches) if (batch.planks == 1 && &batch != &gable) { gable.tint = batch.tint; break; }
+    // The shed's outer wall faces: 45 degrees, 0.6 m overhang, 0.35 m thick straw, ridge roll.
+    addGableRoof(m_batches[roofIndex], gable, 1056.125f, 2180.125f, 1083.875f, 2207.875f, U73dScale::StoreyHeight, 45.f, 0.6f, 0.35f, true);
+}
+
+void Britannia3dView::buildSlateRoofs(const std::vector<glm::ivec4>& tiles) {
+    if (tiles.empty()) return;
+    const auto slate = SlateMaterial::loadOrCreate(assetDirectory);
+    m_slateAlbedo = makeTexture(slate.size, slate.size, slate.albedo.data(), true);
+    m_slateNormal = makeTexture(slate.size, slate.size, slate.normal.data(), true);
+    loadRepeating(m_slateAlbedo);
+    loadRepeating(m_slateNormal);
+    auto& roof = m_batches.emplace_back();
+    roof.planks = 5;
+    roof.roof = true;
+    roof.layer = 2;
+    const size_t roofIndex = m_batches.size() - 1;
+    auto& gableBatch = m_batches.emplace_back();
+    gableBatch.planks = 1;               // wooden gables between the roof halves
+    gableBatch.layer = 1;
+    gableBatch.roof = true;
+    for (const auto& batch : m_batches) if (batch.planks == 1 && batch.tint != glm::vec3(1)) { gableBatch.tint = batch.tint; break; }
+    const size_t gableIndex = m_batches.size() - 1;
+    // Roof pieces (tiles x0 y0 x1 y1, exclusive) -> rectangles of connected houses.
+    std::set<std::pair<int, int>> free;
+    for (const auto& t : tiles)
+        for (int y = t.y; y < t.w; ++y)
+            for (int x = t.x; x < t.z; ++x) free.insert({x, y});
+    while (!free.empty()) {
+        // Greedy: the largest rectangle growing right and down from the first free tile.
+        const auto start = *free.begin();
+        int w = 0;
+        while (free.count({start.first + w, start.second})) ++w;
+        int h = 1;
+        for (;; ++h) {
+            bool full = true;
+            for (int x = 0; x < w && full; ++x) full = free.count({start.first + x, start.second + h}) > 0;
+            if (!full) break;
+        }
+        for (int y = 0; y < h; ++y)
+            for (int x = 0; x < w; ++x) free.erase({start.first + x, start.second + y});
+        if (w < 2 || h < 2) continue;
+        // The eaves lie on the highest wall under the roof, so no wall reaches through it.
+        float eave = 5 * U73dScale::StructureLift;
+        for (int y = start.second - 1; y <= start.second + h; ++y)
+            for (int x = start.first - 1; x <= start.first + w; ++x)
+                if (const auto top = m_wallTop.find({x, y}); top != m_wallTop.end()) eave = std::max(eave, top->second);
+        const float x0 = float(start.first) + 0.125f, z0 = float(start.second) + 0.125f;
+        const float x1 = float(start.first + w) - 0.125f, z1 = float(start.second + h) - 0.125f;
+        addGableRoof(m_batches[roofIndex], m_batches[gableIndex], x0, z0, x1, z1, eave, 38.f, 0.35f, 0.12f, false);
+    }
 }
 
 void Britannia3dView::buildStraw() {
@@ -463,20 +1208,8 @@ void Britannia3dView::buildStraw() {
     }
 }
 
-void Britannia3dView::buildFences() {
-    std::ifstream in(dataDirectory / "Maps/stable-fences.txt");
-    std::string tag;
-    size_t count = 0;
-    if (!(in >> tag >> count) || tag != "stable-fences-v1" || count > 512) return;
-    std::set<std::tuple<int, int, int>> edges;
-    std::string line;
-    std::getline(in, line);
-    while (edges.size() < count && std::getline(in, line)) {
-        if (line.empty() || line[0] == '#') continue;
-        std::istringstream row(line);
-        int x, y, side;
-        if (row >> x >> y >> side) edges.insert({x, y, side});
-    }
+unsigned Britannia3dView::railTexture() {
+    if (m_railTexture) return m_railTexture;
     // The rail of U7's stall dividers: a black outline over four greys of weathered wood.
     constexpr int w = 64, h = 64;
     const glm::vec3 band[4] = {{.427f, .298f, .235f}, {.333f, .235f, .188f}, {.235f, .173f, .141f}, {.157f, .110f, .078f}};
@@ -490,18 +1223,100 @@ void Britannia3dView::buildFences() {
             auto* p = rail.data() + (size_t(y) * w + x) * 4;
             p[0] = std::uint8_t(c.r * 255); p[1] = std::uint8_t(c.g * 255); p[2] = std::uint8_t(c.b * 255); p[3] = 255;
         }
+    m_railTexture = makeTexture(w, h, rail.data(), true);
+    return m_railTexture;
+}
+
+void Britannia3dView::buildTownFences(const U7::Data& data, const std::vector<U7::WorldObject>& fences) {
+    if (fences.empty()) return;
+    constexpr float tm = U73dScale::TileMetres;
     auto& batch = m_batches.emplace_back();
-    batch.texture = makeTexture(w, h, rail.data(), true);
+    batch.texture = railTexture();
+    batch.layer = 1;
+    std::set<std::pair<int, int>> occupied;
+    for (const auto& f : fences) {
+        const auto size = data.shapeSize(f.shape);
+        for (int y = f.y - size.y + 1; y <= f.y; ++y)
+            for (int x = f.x - size.x + 1; x <= f.x; ++x) occupied.insert({x, y});
+    }
+    std::set<std::pair<int, int>> posts;                      // quarter tiles
+    auto box = [&](glm::vec2 a, glm::vec2 b, float bottom, float height, float thick) {
+        // A box from a to b (tiles) thick metres across, from bottom to bottom + height metres.
+        const glm::vec2 d = glm::normalize(b - a), n(-d.y, d.x);
+        const glm::vec2 off = n * (thick * 0.5f / tm);
+        const glm::vec2 c[4] = {a - off, b - off, b + off, a + off};
+        glm::vec3 p[8];
+        for (int i = 0; i < 4; ++i) { p[i] = glm::vec3(c[i].x, bottom, c[i].y); p[i + 4] = glm::vec3(c[i].x, bottom + height, c[i].y); }
+        const int faces[6][4] = {{4, 5, 6, 7}, {3, 2, 1, 0}, {0, 1, 5, 4}, {2, 3, 7, 6}, {1, 2, 6, 5}, {3, 0, 4, 7}};
+        const glm::vec3 normals[6] = {{0, 1, 0}, {0, -1, 0}, {-n.x, 0, -n.y}, {n.x, 0, n.y}, {d.x, 0, d.y}, {-d.x, 0, -d.y}};
+        const glm::vec2 uv[4] = {{0, 1}, {1, 1}, {1, 0}, {0, 0}};
+        for (int k = 0; k < 6; ++k) {
+            const glm::vec3 q[4] = {p[faces[k][0]], p[faces[k][1]], p[faces[k][2]], p[faces[k][3]]};
+            addQuad(batch, q, uv, normals[k]);
+            const glm::vec3 centre = (q[0] + q[2]) * 0.5f;
+            auto& cell = m_walls[{int(std::floor(centre.x)) / 8, int(std::floor(centre.z)) / 8}];
+            for (int j : {0, 1, 2, 0, 2, 3}) cell.push_back(q[j]);
+        }
+    };
+    auto post = [&](glm::vec2 at, glm::vec2 dir) {
+        if (!posts.insert({int(std::lround(at.x * 4)), int(std::lround(at.y * 4))}).second) return;
+        const glm::vec2 h = dir * (0.08f / tm);
+        box(at - h, at + h, 0, 1.14f, 0.16f);
+    };
+    for (const auto& f : fences) {
+        const auto size = data.shapeSize(f.shape);
+        bool alongX = size.x > size.y;
+        if (size.x == size.y) alongX = occupied.count({f.x - 1, f.y}) || occupied.count({f.x + 1, f.y});
+        const glm::vec2 a = alongX ? glm::vec2(f.x - size.x + 1, f.y + 0.5f) : glm::vec2(f.x + 0.5f, f.y - size.y + 1);
+        const glm::vec2 b = alongX ? glm::vec2(f.x + 1, f.y + 0.5f) : glm::vec2(f.x + 0.5f, f.y + 1);
+        box(a, b, 0.42f, 0.16f, 0.14f);
+        box(a, b, 0.90f, 0.16f, 0.14f);
+        const glm::vec2 dir = alongX ? glm::vec2(1, 0) : glm::vec2(0, 1);
+        post(a, dir);
+        post(b, dir);
+    }
+}
+
+void Britannia3dView::buildFences() {
+    std::ifstream in(dataDirectory / "Maps/stable-fences.txt");
+    std::string tag;
+    size_t count = 0;
+    if (!(in >> tag >> count) || tag != "stable-fences-v1" || count > 512) return;
+    std::set<std::tuple<int, int, int>> edges;
+    std::map<std::tuple<int, int, int>, glm::vec2> shifts;      // edge -> shift in U7 tiles
+    std::string line;
+    std::getline(in, line);
+    while (edges.size() < count && std::getline(in, line)) {
+        if (line.empty() || line[0] == '#') continue;
+        std::istringstream row(line);
+        int x, y, side;
+        if (!(row >> x >> y >> side)) continue;
+        glm::vec2 shift(0);
+        if (row >> shift.x >> shift.y && edges.count({x, y, side})) {
+            // A second, shifted copy of an edge (extends a run): stored under a free key.
+            int key = 1;
+            while (edges.count({x, y, side + 4 * key})) ++key;
+            edges.insert({x, y, side + 4 * key});
+            shifts[{x, y, side + 4 * key}] = shift;
+            continue;
+        }
+        edges.insert({x, y, side});
+        shifts[{x, y, side}] = shift;
+    }
+    auto& batch = m_batches.emplace_back();
+    batch.texture = railTexture();
     batch.layer = 1;
     auto& walls = m_walls;
-    for (const auto& [x, y, side] : edges) {
+    for (const auto& [x, y, keyedSide] : edges) {
+        const int side = keyedSide % 4;
+        const glm::vec2 shift = shifts[{x, y, keyedSide}];
         // As KnownGeometry::buildEditedEdge (kind 5): the edge runs along u (0 .. 1 cell), depth
         // across it; heights are metres. Ultima7Remake map units become U7 tiles.
         const bool vertical = side == 1 || side == 3;
         const float bx = float(x) + (side == 1 ? 1.f : 0.f), by = float(y) + (side == 2 ? 1.f : 0.f);
         auto point = [&](float u, float depth, float height) {
             const auto tile = StableScene::u7Tile(bx + (vertical ? depth : u), by + (vertical ? u : depth));
-            return glm::vec3(tile.x, height, tile.y);
+            return glm::vec3(tile.x + shift.x, height, tile.y + shift.y);
         };
         auto box = [&](float u, float width, float bottom, float height, float thickness) {
             glm::vec3 p[8];
@@ -526,10 +1341,33 @@ void Britannia3dView::buildFences() {
         box(0, 1, .42f, .16f, .14f);
         box(0, 1, .90f, .16f, .14f);
         const int along = vertical ? y : x;
-        auto fence = [&](int d) { return edges.count({x + (vertical ? 0 : d), y + (vertical ? d : 0), side}) > 0; };
+        auto fence = [&](int d) { return edges.count({x + (vertical ? 0 : d), y + (vertical ? d : 0), keyedSide}) > 0; };
         if ((along & 1) == 0 || !fence(-1)) box(-.08f, .16f, 0, 1.14f, .16f);
         if (!fence(1)) box(.92f, .16f, 0, 1.14f, .16f);
     }
+}
+
+void Britannia3dView::ensureDoorMeshes() {
+    if (m_doorPlanks.vertexCount()) return;
+    constexpr float length = 4.f;                     // tiles, as U7's door objects
+    const auto parts = DoorModel::build(length - 0.02f, U73dScale::DoorHeight, U73dScale::TileMetres);
+    auto upload = [](ow3d::Mesh& mesh, const std::vector<DoorModel::Vertex>& vertices) {
+        std::vector<float> data;
+        for (const auto& v : vertices)
+            data.insert(data.end(), {v.position.x - 0.01f, v.position.y, v.position.z, v.normal.x, v.normal.y, v.normal.z, 0.f, 0.f, 1.f});
+        mesh.create(data.data(), unsigned(data.size() / 9), 9);
+    };
+    upload(m_doorPlanks, parts.planks);
+    upload(m_doorBattens, parts.battens);
+    upload(m_doorIron, parts.iron);
+    for (const auto& p : parts.leaf) m_doorLeaf.push_back(p - glm::vec3(0.01f, 0, 0));
+    const std::uint8_t iron[4] = {58, 56, 54, 255};
+    m_ironTexture = makeTexture(1, 1, iron, false);
+}
+
+bool Britannia3dView::indoors(glm::vec3 point, glm::vec3 direction) const {
+    const glm::vec3 p = point + direction * 1.5f;
+    return m_roofTiles.count({int(std::floor(p.x)), int(std::floor(p.z))}) > 0;
 }
 
 bool Britannia3dView::characterUnderRoof() const {
@@ -611,6 +1449,10 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         // The stable itself (U7 tiles 1054 - 1084, 2176 - 2208), not the house north of it.
         m_stableArea = glm::ivec4(1054, 2176, 1086, 2209);
     }
+    std::vector<glm::vec2> treePlaces, lampPlaces, wellPlaces;
+    std::vector<U7::WorldObject> signPosts, signBoards, townFences;
+    std::vector<glm::ivec4> slateTiles;
+    std::vector<U7::WorldObject> windows, houseDoors, pictures;
     std::map<int, std::string> names;
     struct Placed { const U7::WorldObject* object; int layer; bool roof; float liftMetres; bool wall, thinWall; };
     std::vector<Placed> placed;
@@ -624,6 +1466,61 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         const auto& name = it->second;
         if (name == "egg" || name == "path" || name == "light source") continue;
         const int layer = layerOf ? layerOf(object, name) : 2;
+        // Signposts: posts and arrow boards, matched in buildSignposts.
+        if (object.shape == 713 && object.lift == 0) {
+            signPosts.push_back(object);
+            if (seen.insert({object.shape, object.frame}).second) graphics.push_back({object.shape, object.frame});
+            continue;
+        }
+        if (object.shape == 379) {
+            signBoards.push_back(object);
+            if (seen.insert({object.shape, object.frame}).second) graphics.push_back({object.shape, object.frame});
+            continue;
+        }
+        // U7's wells (470) become 3D wells; their windlass (740) is part of the model.
+        if (object.shape == 470) {
+            const auto size = data.shapeSize(object.shape);
+            wellPlaces.push_back({object.x + 1 - size.x * 0.5f, object.y + 1 - size.y * 0.5f});
+            continue;
+        }
+        if (object.shape == 740) continue;
+        // U7's lamp posts become 3D street lamps.
+        if (object.shape == 889) {
+            lampPlaces.push_back({object.x + 0.5f, object.y + 0.5f});
+            continue;
+        }
+        // U7's trees become 3D trees.
+        if (object.shape == 453) {
+            treePlaces.push_back({object.x + 0.5f, object.y + 0.5f});
+            continue;
+        }
+        // The horse sign in front of the shed becomes the iron sign on the wall.
+        if (stableScene && object.shape == 361 && object.frame == 7 && object.x == 1067 && object.y == 2211) continue;
+        // U7's fences everywhere else become rail fences too.
+        // (Not in the stable and its paddock: Ultima7Remake's fences stand there, see below.)
+        const bool paddock = stableScene && ((object.x >= m_stableArea.x && object.x < m_stableArea.z && object.y >= m_stableArea.y && object.y < m_stableArea.w) ||
+                                             (object.x >= 1070 && object.x < 1090 && object.y >= 2158 && object.y < 2182));
+        if (name == "fence" && !paddock) { townFences.push_back(object); continue; }
+        // Windows get a 3D frame with panes; paintings and tapestries hang as pictures.
+        if (object.shape == 732 || object.shape == 438) { windows.push_back(object); continue; }
+        if (name == "painting" || name == "tapestry") { pictures.push_back(object); continue; }
+        if (name == "door" && !(stableScene && object.x >= m_stableArea.x && object.x < m_stableArea.z &&
+                                object.y >= m_stableArea.y && object.y < m_stableArea.w)) {
+            // Becomes a DoorModel door in buildOpenings (or the U7 door again, if it is no door
+            // in a wall); its graphic is loaded for that case.
+            houseDoors.push_back(object);
+            if (seen.insert({object.shape, object.frame}).second) graphics.push_back({object.shape, object.frame});
+            continue;
+        }
+        // U7's flat slate roofs (on the walls, lift 5) become slate gable roofs.
+        if (name == "slate roof" && object.lift == 5) {
+            const auto size = data.shapeSize(object.shape);
+            slateTiles.push_back({object.x - size.x + 1, object.y - size.y + 1, object.x + 1, object.y + 1});
+            continue;
+        }
+        // The thatched roof replaces U7's flat wood roof over the shed.
+        if (stableScene && name == "wood roof" && object.x >= 1056 && object.x < 1087 && object.y >= 2180 && object.y < 2211)
+            continue;
         // Ultima7Remake's fences and trough replace U7's in the stable and the paddock north east of it.
         if (stableScene && (name == "fence" || name == "trough") &&
             ((object.x >= m_stableArea.x && object.x < m_stableArea.z && object.y >= m_stableArea.y && object.y < m_stableArea.w) ||
@@ -727,6 +1624,17 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             model.tint = woodTone;
             model.post = size.x == 1 && size.y == 1;
         }
+    {
+        const auto stone = StoneMaterial::loadOrCreate(assetDirectory, data);   // tiles every StoneMaterial::Size metres
+        m_stoneAlbedo = makeTexture(stone.width, stone.height, stone.albedo.data(), true);
+        m_stoneNormal = makeTexture(stone.width, stone.height, stone.normal.data(), true);
+        for (unsigned id : {m_stoneAlbedo, m_stoneNormal}) {
+            glBindTexture(GL_TEXTURE_2D, id);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        }
+        for (auto& [key, model] : m_models) if (model.stone) model.tint = glm::vec3(0.5f);
+    }
     // Wooden plank walls get the high resolution plank material (stone and plaster keep U7's).
     m_woodAlbedo = makeTexture(wood.size, wood.size, wood.albedo.data(), true);
     m_woodNormal = makeTexture(wood.size, wood.size, wood.normal.data(), true);
@@ -735,22 +1643,9 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     }
-    // Door meshes, and above each door opening the wall in plank material up to its full height.
+    // Above each stable door the wall goes on in plank material up to its full height.
     if (!m_doors.empty()) {
-        constexpr float length = 4.f;                     // tiles, as U7's door objects
-        const auto parts = DoorModel::build(length - 0.02f, U73dScale::DoorHeight, U73dScale::TileMetres);
-        auto upload = [](ow3d::Mesh& mesh, const std::vector<DoorModel::Vertex>& vertices) {
-            std::vector<float> data;
-            for (const auto& v : vertices)
-                data.insert(data.end(), {v.position.x - 0.01f, v.position.y, v.position.z, v.normal.x, v.normal.y, v.normal.z, 0.f, 0.f, 1.f});
-            mesh.create(data.data(), unsigned(data.size() / 9), 9);
-        };
-        upload(m_doorPlanks, parts.planks);
-        upload(m_doorBattens, parts.battens);
-        upload(m_doorIron, parts.iron);
-        for (const auto& p : parts.leaf) m_doorLeaf.push_back(p - glm::vec3(0.01f, 0, 0));
-        const std::uint8_t iron[4] = {58, 56, 54, 255};
-        m_ironTexture = makeTexture(1, 1, iron, false);
+        constexpr float length = 4.f;
         auto& lintel = m_batches.emplace_back();
         lintel.planks = 1;
         lintel.layer = 1;
@@ -766,12 +1661,23 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             // Collision: the lintel is overhead, the closed door is added per frame.
         }
     }
+    m_wallFootprint.clear();
+    auto footprint = [&](const U7::WorldObject& o) {
+        const auto size = data.shapeSize(o.shape);
+        for (int y = o.y - size.y + 1; y <= o.y; ++y)
+            for (int x = o.x - size.x + 1; x <= o.x; ++x) m_wallFootprint.insert({x, y});
+    };
+    for (const auto& p : placed) if (p.wall || (p.layer == 1 && p.thinWall)) footprint(*p.object);
+    for (const auto& o : houseDoors) footprint(o);
+    for (const auto& o : windows) footprint(o);
     for (const auto& p : placed) {
         const auto model = m_models.find({p.object->shape, p.object->frame});
         const bool plank = p.wall && model != m_models.end() && model->second.planks && model->second.kind == U7ObjectModel::Kind::Box;
-        const int planks = !plank ? 0 : model->second.post ? 2 : 1;
+        const bool stoneWall = p.wall && model != m_models.end() && model->second.stone && model->second.kind == U7ObjectModel::Kind::Box;
+        const int planks = plank ? (model->second.post ? 2 : 1) : stoneWall ? 4 : 0;
         addObject(data, *p.object, p.layer, p.roof, p.liftMetres, planks, p.thinWall);
     }
+    buildSlateRoofs(slateTiles);
     buildGlobe(data);
     if (stableScene) {
         const StableScene::Ground ground = [this](float x, float y) {
@@ -780,18 +1686,29 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         };
         try {
             m_stableProps = std::make_unique<StableSceneProps>();
+            m_stableProps->skipFiles = {"Pitchfork"};          // U7's own pitchfork graphic instead
             m_stableProps->load(stableSceneDirectory, dataDirectory, ground);
             m_stableTools = std::make_unique<StableTools>();
             m_stableTools->skip[0] = m_stableTools->skip[1] = m_stableTools->skip[2] = true;   // U7's own tools instead
             m_stableTools->load(stableSceneDirectory, dataDirectory, ground);
             buildFences();
             buildStraw();
+            buildThatchRoof();
+            buildSignAndFork(data);
         } catch (const std::exception& e) {
             SDL_Log("Britannia3d: stable scene not loaded: %s", e.what());
             m_stableProps.reset();
             m_stableTools.reset();
         }
     }
+    buildLamps(lampPlaces);
+    buildWells(wellPlaces);
+    buildSignposts(data, signPosts, signBoards);
+    buildTownFences(data, townFences);
+    buildOpenings(data, windows, houseDoors);
+    if (!m_doors.empty()) ensureDoorMeshes();
+    buildPictures(data, pictures);
+    buildTrees(treePlaces);            // after all walls and roofs: the crowns keep clear of them
     for (auto* batches : {&m_batches, &m_globe})
         for (auto& batch : *batches)
             batch.mesh.create(reinterpret_cast<const float*>(batch.vertices.data()), unsigned(batch.vertices.size()), 9);
@@ -811,6 +1728,7 @@ void Britannia3dView::prepareCollision(ow3d::BuildingCollision& collision, glm::
                 for (const auto& p : it->second) triangles.push_back(planet(p));
     if (layerVisible[1])
         for (const auto& door : m_doors) {
+            if (door.kind != 0) continue;
             if (glm::distance(glm::vec2(door.pivot.x, door.pivot.z), glm::vec2(here.x, here.z)) > 12.f) continue;
             const auto model = doorModel(door);
             for (const auto& p : m_doorLeaf) triangles.push_back(planet(glm::vec3(model * glm::vec4(p, 1))));
@@ -930,6 +1848,8 @@ void Britannia3dView::render(int width, int height) {
     glGetIntegerv(GL_CURRENT_PROGRAM, &program);
     glUniform2f(glGetUniformLocation(GLuint(program), "centre"), m_centre.x, m_centre.y);
     const GLint direct = glGetUniformLocation(GLuint(program), "direct");
+    const GLint wind = glGetUniformLocation(GLuint(program), "wind");
+    glUniform1f(glGetUniformLocation(GLuint(program), "time"), float(SDL_GetTicks()) / 1000.f);
     const GLint tileArray = glGetUniformLocation(GLuint(program), "tileArray");
     {
         const glm::mat4 identity(1);
@@ -940,6 +1860,22 @@ void Britannia3dView::render(int width, int height) {
     glUniform1i(glGetUniformLocation(GLuint(program), "woodAlbedo"), 2);
     glUniform1i(glGetUniformLocation(GLuint(program), "woodNormal"), 3);
     glUniform1f(glGetUniformLocation(GLuint(program), "woodSize"), WoodMaterial::Size);
+    glUniform1i(glGetUniformLocation(GLuint(program), "stoneAlbedo"), 6);
+    glUniform1i(glGetUniformLocation(GLuint(program), "stoneNormal"), 7);
+    glUniform1f(glGetUniformLocation(GLuint(program), "stoneSize"), StoneMaterial::Size);
+    glUniform1f(glGetUniformLocation(GLuint(program), "stoneHeight"), U73dScale::StoreyHeight);
+    glUniform1i(glGetUniformLocation(GLuint(program), "slateAlbedo"), 8);
+    glUniform1i(glGetUniformLocation(GLuint(program), "slateNormal"), 9);
+    glUniform1f(glGetUniformLocation(GLuint(program), "slateSize"), SlateMaterial::Size);
+    const unsigned units[4] = {m_stoneAlbedo, m_stoneNormal, m_slateAlbedo, m_slateNormal};
+    for (int k = 0; k < 4; ++k) { glActiveTexture(GL_TEXTURE6 + k); glBindTexture(GL_TEXTURE_2D, units[k]); }
+    glUniform1i(glGetUniformLocation(GLuint(program), "thatchAlbedo"), 4);
+    glUniform1i(glGetUniformLocation(GLuint(program), "thatchNormal"), 5);
+    glUniform1f(glGetUniformLocation(GLuint(program), "thatchSize"), ThatchMaterial::Size);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, m_thatchAlbedo);
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, m_thatchNormal);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, m_woodAlbedo);
     glActiveTexture(GL_TEXTURE3);
@@ -951,6 +1887,7 @@ void Britannia3dView::render(int width, int height) {
             if (batches == &m_batches && ((batch.roof && !roofs) || !layerVisible[size_t(batch.layer)])) continue;
             glUniform1i(direct, batch.layer < 0);
             glUniform1i(tileArray, batch.array);
+            glUniform1i(wind, batch.wind);
             glUniform1i(planks, batch.planks);
             glUniform3f(tint, batch.tint.r, batch.tint.g, batch.tint.b);
             if (batch.array) {
@@ -964,6 +1901,7 @@ void Britannia3dView::render(int width, int height) {
     if (layerVisible[1]) {
         glUniform1i(direct, 0);
         glUniform1i(tileArray, 0);
+        glUniform1i(wind, 0);
         drawDoors(GLuint(program));
     }
     glBindVertexArray(0);

@@ -33,6 +33,24 @@
     <ClCompile Include="DoorModel.cpp">
       <Filter>Stallszene</Filter>
     </ClCompile>
+    <ClCompile Include="ThatchMaterial.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="TreeModel.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="StoneMaterial.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="SlateMaterial.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="LampModel.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="WellModel.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>App</Filter>
     </ClCompile>
@@ -67,6 +85,24 @@
     </ClInclude>
     <ClInclude Include="DoorModel.h">
       <Filter>Stallszene</Filter>
+    </ClInclude>
+    <ClInclude Include="ThatchMaterial.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeModel.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="StoneMaterial.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="SlateMaterial.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="LampModel.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="WellModel.h">
+      <Filter>Britannia3d</Filter>
     </ClInclude>
     <ClInclude Include="U7Data.h">
       <Filter>U7 Daten</Filter>

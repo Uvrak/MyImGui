@@ -130,6 +130,11 @@ float joloSurface(const std::string& material){
 }
 float joloLeatherSurface(const std::string& material){
     if(material=="jolo-leather")return 35.f;
+    if(material=="jolo-boots")return 43.f;
+    if(material=="jolo-chest-red")return 39.f;
+    if(material=="jolo-sleeves-green")return 40.f;
+    if(material=="jolo-trousers-blue")return 41.f;
+    if(material=="jolo-belt-purple")return 42.f;
     if(material=="jolo-hardware")return 36.f;
     throw std::runtime_error("Unknown Jolo leather material: "+material);
 }

@@ -38,7 +38,7 @@ void main(){
         float rim=pow(1.-abs(dot(n,normalize(eye-worldPosition))),3.)*.10;
         FragColor=vec4(texel*(diffuse+rim),1.);return;
     }
-    vec3 colors[39]=vec3[39](vec3(.63,.39,.28),vec3(.64,.57,.43),vec3(.20,.24,.13),
+    vec3 colors[44]=vec3[44](vec3(.63,.39,.28),vec3(.64,.57,.43),vec3(.20,.24,.13),
         vec3(.18,.105,.065),vec3(.075,.040,.025),vec3(.16,.085,.04),vec3(.25,.018,.012),
         vec3(.72,.49,.36),vec3(.20,.13,.095),vec3(.48,.095,.070),vec3(.10,.045,.030),
         vec3(.38,.24,.10),vec3(.30,.004,.006),vec3(.37,.060,.055),
@@ -53,7 +53,10 @@ void main(){
         // water trough: stone, water
         vec3(.55,.55,.55),vec3(.25,.30,.95),
         // Jolo: aged white hair, brown leather clothing, iron hardware, living skin
-        vec3(.82,.80,.72),vec3(.31,.135,.055),vec3(.40,.40,.39),vec3(.58,.31,.20),vec3(1.));
+        vec3(.82,.80,.72),vec3(.31,.135,.055),vec3(.40,.40,.39),vec3(.58,.31,.20),vec3(1.),
+        // Separate fitted leather-set panels: chest, shoulders, trousers and belt.
+        vec3(.40,.15,.055),vec3(.31,.105,.038),vec3(.25,.075,.026),vec3(.14,.042,.018),
+        vec3(.12,.032,.014));
     // Ritual flame: unlit, pale blue-white core to a deep blue tip.
     // Light pool of a ritual flame (drawn additively): blue, fading out over half a metre.
     if(surface==27){float fall=1.-smoothstep(0.,.5,length(modelPosition.xz));FragColor=vec4(vec3(.10,.20,.62)*fall*fall,1);return;}
@@ -61,7 +64,7 @@ void main(){
     vec3 n=normalize(worldNormal),light=normalize(vec3(-.6,-.8,1.6));
     float diffuse=.48+.52*abs(dot(n,light));
     float rim=pow(1.-abs(dot(n,normalize(eye-worldPosition))),3.)*.10;
-    vec3 color=colors[clamp(surface,0,38)];
+    vec3 color=colors[clamp(surface,0,43)];
     vec3 m=modelPosition*unitMetres;                       // object space in metres
     float grime=fbm(m*9.);                                 // large soft stains, shared by cloth and skin
     if(surface==0 || surface==7 || surface==37){
@@ -165,7 +168,7 @@ void main(){
         float fine=.5+.5*sin((m.x-m.z)*710.-m.y*83.);
         color*=.80+.23*mix(.5,strands*.7+fine*.3,detail(m,430.));
         color=mix(vec3(.48,.46,.42),color,smoothstep(.04,.19,modelPosition.y));
-    }else if(surface==35){
+    }else if(surface==35 || (surface>=39 && surface<=43)){
         // Jolo's fitted leather: pebbled grain, creases, wear and dark seams.
         float pebble=cells(m*230.);
         float grain=mix(.5,smoothstep(0.,.24,pebble),detail(m,230.));
@@ -276,6 +279,17 @@ void main(){
         float amount=clamp((smoothstep(.48,.60,splash)+runs*.6)*(surface<=8?1.:.85),0.,1.);
         vec3 blood=mix(vec3(.32,.004,.006),vec3(.11,0.,0.),smoothstep(.6,.9,fbm(m*40.)));
         color=mix(color,blood,amount*.9);
+        color+=vec3(.5,.18,.18)*pow(max(dot(reflect(-normalize(eye-worldPosition),n),light),0.),40.)*amount;
+    }
+    // Ultima73d: fresh blood on the corpse (surfaces 0-8) and the gargoyle (9-13): heavily
+    // soaked, large splashes and runs, most on the chest and belly, glossy where it is wet.
+    if(surface<=13){
+        float splash=fbm(m*7.+vec3(3.1,0.,7.7))*.65+fbm(m*23.)*.35;
+        float runs=smoothstep(.55,.9,fbm(m*vec3(30.,4.,30.)+11.));
+        float body=surface<=8?smoothstep(-.05,.30,m.z)*.35:smoothstep(.6,1.2,m.y)*.35;
+        float amount=clamp((smoothstep(.40,.54,splash)+runs*.85+body)*(surface<=8?1.:.95),0.,1.);
+        vec3 blood=mix(vec3(.32,.004,.006),vec3(.11,0.,0.),smoothstep(.6,.9,fbm(m*40.)));
+        color=mix(color,blood,amount*.95);
         color+=vec3(.5,.18,.18)*pow(max(dot(reflect(-normalize(eye-worldPosition),n),light),0.),40.)*amount;
     }
     color*=diffuse+rim;
