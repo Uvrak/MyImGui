@@ -220,7 +220,9 @@ private:
     void buildSlateRoofs(const std::vector<glm::ivec4>& tiles);
     // High resolution windows (frame, mullion, sill, leaded yellow panes as in U7), stone door
     // frames, and U7's paintings and tapestries as sharp pictures on the inner wall faces.
-    void buildOpenings(const U7::Data& data, const std::vector<U7::WorldObject>& windows, const std::vector<U7::WorldObject>& doors);
+    // shutters: U7's closed / open shutters, as board shutters outside the nearest window.
+    void buildOpenings(const U7::Data& data, const std::vector<U7::WorldObject>& windows, const std::vector<U7::WorldObject>& doors,
+                       const std::vector<U7::WorldObject>& shutters);
     void buildPictures(const U7::Data& data, const std::vector<U7::WorldObject>& pictures);
     unsigned m_slateAlbedo = 0, m_slateNormal = 0, m_stoneAlbedo = 0, m_stoneNormal = 0, m_ashlarAlbedo = 0, m_ashlarNormal = 0;
     // The horse sign as a high resolution wrought iron silhouette on its bracket at the shed wall,

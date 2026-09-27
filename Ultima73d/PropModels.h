@@ -12,7 +12,7 @@ namespace PropModels {
 
 struct Vertex { glm::vec3 position, normal; glm::vec2 uv; };
 
-enum Material { Wood, DarkWood, Iron, Cloth, Linen, Stone, Leaves, Needles, Blades, Clay, MaterialCount };
+enum Material { Wood, DarkWood, Iron, Cloth, Linen, Stone, Leaves, Needles, Blades, Clay, Pewter, Glass, Leather, Burlap, Flame, Straw, Steel, Gold, Water, Food, MaterialCount };
 
 struct Model {
     std::vector<Vertex> parts[MaterialCount];
@@ -38,5 +38,57 @@ Model bush(float size, unsigned seed);
 // A bush in a clay pot (U7's indoor plant).
 Model pottedPlant(float size, unsigned seed);
 Model evergreen(float height, unsigned seed);
+
+// Small things, centred at the origin on the surface they stand on (a sconce: on the wall at
+// z = 0, facing +z).
+Model candle(bool lit, float stand);
+Model sconce(bool lit);
+Model cup();
+Model plate();
+Model pitcher();
+Model bottle(unsigned seed);
+Model book(unsigned seed);
+Model scroll();
+Model bag(float size, unsigned seed);
+Model bucket();
+Model pot();
+Model boots();
+Model horseshoe();
+Model pillar(float width, float depth, float height);
+Model haystack(float width, float depth, float height, unsigned seed);
+// Weapons and armour lying flat along x; hafted heads: 0 mace, 1 morning star, 2 club,
+// 3 hammer, 4 two handed axe.
+Model blade(float length, bool hilt);
+Model hafted(float length, int head);
+Model tongs();
+Model shield(float radius, bool wooden);
+Model helm(bool leather);
+Model armour();
+Model gloves();
+Model clothHeap(float size, unsigned seed);
+Model bread(unsigned seed);
+Model potion(unsigned seed);
+Model shards();
+Model inkwell();
+Model coins();
+Model utensils();
+Model top();
+// Larger things, built along x, centred on their footprint.
+Model anvil();
+Model stove(float width, float depth, float height);
+Model firepit(float size);
+Model easel(bool withPalette);
+Model mirror();
+Model sundial();
+Model podium();
+Model pedestal();
+Model trough(float length, float width);
+Model lever();
+Model ironBars(float length, float height);
+Model flag(unsigned seed);
+Model basket();
+Model bellows();
+// A farm wagon along x, the shafts towards +x.
+Model wagon(float length, float width);
 
 }

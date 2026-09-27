@@ -623,9 +623,34 @@ void Britannia3dView::buildRoads() {
             for (int i = 0; i < 6; ++i) v[i].shade = float(layer) + 3000.f;
             doorCobbles.insert({x, y});
         }
+    // A single earth tile between the paving in front of a door is paved too, and the whole
+    // threshold of the shed's doorway (earth under the eaves, between the door posts).
+    auto inShed = [&](int x, int y) { return x >= m_stableArea.x && x < m_stableArea.z && y >= m_stableArea.y && y < m_stableArea.w; };
+    for (int pass = 0; pass < 2; ++pass)
+        for (const auto& tile : doorZone) {
+            const auto [x, y] = tile;
+            if (x < x0 || y < y0 || x >= x1 || y >= y1 || road.count(tile) || doorCobbles.count(tile) || m_solidTiles.count(tile) ||
+                (m_roofTiles.count(tile) && !inShed(x, y))) continue;
+            auto paved = [&](int tx, int ty) { return road.count({tx, ty}) || doorCobbles.count({tx, ty}); };
+            auto closed = [&](int tx, int ty) { return paved(tx, ty) || m_solidTiles.count({tx, ty}) > 0; };
+            const bool threshold = m_roofTiles.count(tile) && paved(x, y + 1) && closed(x - 1, y) && closed(x + 1, y) &&
+                                   (paved(x - 1, y) || paved(x + 1, y));
+            if (!threshold && !((paved(x - 1, y) && paved(x + 1, y)) || (paved(x, y - 1) && paved(x, y + 1)))) continue;
+            auto* v = m_batches[m_groundBatch].vertices.data() + (size_t(y - y0) * w + (x - x0)) * 6;
+            for (int i = 0; i < 6; ++i) v[i].shade = 1000.f;
+            doorCobbles.insert(tile);
+        }
+    // House floors: under a roof, but not the lawn under the eaves.
+    auto houseFloor = [&](int x, int y) {
+        if (!m_roofTiles.count({x, y})) return false;
+        const int l = m_tileLayer[size_t(y - y0) * w + (x - x0)];
+        return !m_grassLayer[size_t(l)] && !m_grassEdgeLayer[size_t(l)];
+    };
+    // Paving: the raised street and the level paving in front of doors (outside).
+    auto paving = [&](int x, int y) { return road.count({x, y}) || (doorCobbles.count({x, y}) && !m_roofTiles.count({x, y})); };
     auto free = [&](int x, int y) {
-        return x >= x0 && y >= y0 && x < x1 && y < y1 && !road.count({x, y}) && !m_solidTiles.count({x, y}) && !m_roofTiles.count({x, y}) &&
-               !doorZone.count({x, y}) && !doorCobbles.count({x, y});
+        return x >= x0 && y >= y0 && x < x1 && y < y1 && !road.count({x, y}) && !m_solidTiles.count({x, y}) && !houseFloor(x, y) &&
+               !doorCobbles.count({x, y}) && !(m_roofTiles.count({x, y}) && doorZone.count({x, y}));
     };
     // Diagonal corners: an open tile with street on two adjacent sides (and not on the other
     // two) gets the street's half as a triangle with a diagonal kerb, grass on the other half.
@@ -634,7 +659,7 @@ void Britannia3dView::buildRoads() {
     for (int y = y0; y < y1; ++y)
         for (int x = x0; x < x1; ++x) {
             if (!free(x, y)) continue;
-            const bool n = road.count({x, y - 1}) > 0, e = road.count({x + 1, y}) > 0, so = road.count({x, y + 1}) > 0, w = road.count({x - 1, y}) > 0;
+            const bool n = paving(x, y - 1), e = paving(x + 1, y), so = paving(x, y + 1), w = paving(x - 1, y);
             if (n + e + so + w != 2) continue;
             if (n && e) diagonal[{x, y}] = 1;
             else if (e && so) diagonal[{x, y}] = 2;
@@ -655,10 +680,12 @@ void Britannia3dView::buildRoads() {
                 if (open(x + d.x, y + d.y)) { grass = m_tileLayer[size_t(y + d.y - y0) * w + (x + d.x - x0)]; break; }
             auto* v = ground.vertices.data() + (size_t(y - y0) * w + (x - x0)) * 6;
             if (grass >= 0) for (int i = 0; i < 6; ++i) v[i].shade = float(grass);
-            // Street triangle at street height.
+            // Street triangle at street height (level with the paving at a door).
             const glm::vec2 p0 = glm::vec2(x, y) + corner[(c + 3) % 4], p1 = glm::vec2(x, y) + corner[c], p2 = glm::vec2(x, y) + corner[(c + 1) % 4];
+            const glm::ivec2 side[4][2] = {{{0, -1}, {-1, 0}}, {{0, -1}, {1, 0}}, {{0, 1}, {1, 0}}, {{0, 1}, {-1, 0}}};
+            const bool raised = road.count({x + side[c][0].x, y + side[c][0].y}) || road.count({x + side[c][1].x, y + side[c][1].y});
             for (const auto& p : {p0, p1, p2})
-                ground.vertices.push_back({p.x, RoadHeight, p.y, 0, 1, 0, 0, 0, 1000.f});
+                ground.vertices.push_back({p.x, raised ? RoadHeight : 0.f, p.y, 0, 1, 0, 0, 0, 1000.f});
         }
     }
     // Where a street meets a house floor or a doorway (no kerb): a stone edge down to the floor.
@@ -684,7 +711,9 @@ void Britannia3dView::buildRoads() {
     // meets lawn; not under roofs.
     auto lawnSide = [&](int x, int y) {
         return x >= x0 && y >= y0 && x < x1 && y < y1 && !road.count({x, y}) && !doorCobbles.count({x, y}) && !diagonal.count({x, y}) &&
-               !m_solidTiles.count({x, y}) && !m_roofTiles.count({x, y});
+               !m_solidTiles.count({x, y}) && !houseFloor(x, y) && !(m_roofTiles.count({x, y}) && doorZone.count({x, y})) &&
+               // (lawn only: not the earth floor of the shed in its doorway)
+               (m_grassLayer[size_t(m_tileLayer[size_t(y - y0) * w + (x - x0)])] || m_grassEdgeLayer[size_t(m_tileLayer[size_t(y - y0) * w + (x - x0)])]);
     };
     for (const auto& [x, y] : doorCobbles) {
         if (m_roofTiles.count({x, y}) || inWall(x, y)) continue;
@@ -982,7 +1011,8 @@ struct Run {
 
 }
 
-void Britannia3dView::buildOpenings(const U7::Data& data, const std::vector<U7::WorldObject>& windows, const std::vector<U7::WorldObject>& doors) {
+void Britannia3dView::buildOpenings(const U7::Data& data, const std::vector<U7::WorldObject>& windows, const std::vector<U7::WorldObject>& doors,
+                                    const std::vector<U7::WorldObject>& shutters) {
     constexpr float tm = U73dScale::TileMetres, SL = U73dScale::StructureLift;
     // Frame wood and the lit U7 glass.
     const std::uint8_t wood[4] = {104, 86, 70, 255};
@@ -1055,6 +1085,45 @@ void Britannia3dView::buildOpenings(const U7::Data& data, const std::vector<U7::
         box(stoneIndex, run, a0 - 0.1f / tm, a1 + 0.1f / tm, -wall / 2 - 0.06f, wall / 2 + 0.06f, y0 - 0.1f, y0);
         // Reveals: the wall below and above the window in the opening (dressed stone).
         box(stoneIndex, run, a0, a1, -wall / 2, wall / 2, y1, y1 + 0.12f);
+    }
+    // Shutters: two board leaves with battens on the outside of the window; closed across it,
+    // open folded back flat against the wall beside it.
+    {
+        auto& boards = m_batches.emplace_back();
+        boards.planks = 2;                                           // upright boards
+        boards.layer = 1;
+        for (const auto& batch : m_batches) if (batch.planks == 1 && batch.tint != glm::vec3(1)) { boards.tint = batch.tint * 0.85f; break; }
+        const size_t boardIndex = m_batches.size() - 1;
+        for (const auto& s : shutters) {
+            const auto size = data.shapeSize(s.shape);
+            const bool alongX = size.x > size.y, open = lower(data.name(s.shape)).find("open") != std::string::npos;
+            float line = alongX ? s.y + 0.5f : s.x + 0.5f;
+            float a1 = alongX ? s.x + 1.f : s.y + 1.f, a0 = a1 - float(alongX ? size.x : size.y);
+            float y0 = s.lift * SL, y1 = y0 + 3 * SL;
+            // The window it belongs to: same wall line, overlapping.
+            for (const auto& w : windows) {
+                const auto ws = data.shapeSize(w.shape);
+                if ((ws.x > ws.y) != alongX) continue;
+                const float wl = alongX ? w.y + 0.5f : w.x + 0.5f, w1 = alongX ? w.x + 1.f : w.y + 1.f, w0 = w1 - float(alongX ? ws.x : ws.y);
+                if (std::abs(wl - line) > 1.1f || w1 < a0 - 0.5f || w0 > a1 + 0.5f) continue;
+                line = wl; a0 = w0 + 0.09f / tm; a1 = w1 - 0.09f / tm;
+                y0 = w.lift * SL + 0.09f; y1 = (w.lift + ws.z) * SL - 0.09f;
+                break;
+            }
+            const Run run{alongX, line};
+            // Outside: away from the roofed side.
+            const glm::vec3 mid = run.at((a0 + a1) / 2, 0.f, 0.f), plus = run.at((a0 + a1) / 2, 1.f, 0.f) - mid;
+            const float out = indoors(mid, glm::normalize(plus)) ? -1.f : 1.f;
+            const float d0 = out * (wall / 2 + 0.005f), d1 = out * (wall / 2 + 0.04f), d2 = out * (wall / 2 + 0.065f);
+            const float leaf = (a1 - a0) / 2;
+            const float spans[2][2] = {{open ? a0 - leaf : a0, open ? a0 : a0 + leaf}, {open ? a1 : a1 - leaf, open ? a1 + leaf : a1}};
+            for (const auto& span : spans) {
+                const float gap = 0.01f / tm;
+                box(boardIndex, run, span[0] + gap, span[1] - gap, std::min(d0, d1), std::max(d0, d1), y0, y1);
+                for (const float y : {y0 + (y1 - y0) * 0.15f, y1 - (y1 - y0) * 0.15f - 0.1f})
+                    box(boardIndex, run, span[0] + gap, span[1] - gap, std::min(d1, d2), std::max(d1, d2), y, y + 0.1f);
+            }
+        }
     }
     // Casement meshes: a frame of four bars and a mullion-less leaded pane (all windows share
     // one leaf size).
@@ -1141,43 +1210,71 @@ void Britannia3dView::buildOpenings(const U7::Data& data, const std::vector<U7::
 }
 
 void Britannia3dView::buildPictures(const U7::Data& data, const std::vector<U7::WorldObject>& pictures) {
+    // Paintings: the U7 picture as canvas in a moulded gilt frame; tapestries: the U7 weave as
+    // cloth hanging in soft folds from a wooden rod with knobs. One texture and one batch per
+    // U7 picture (shape, frame): the same picture hanging twice shares them.
     constexpr float tm = U73dScale::TileMetres, SL = U73dScale::StructureLift;
+    struct Image { unsigned texture = 0; int width = 0, height = 0; bool alongX = false; size_t batch = 0; };
+    std::map<std::pair<int, int>, Image> images;
+    const std::uint8_t giltColour[4] = {176, 134, 62, 255}, rodColour[4] = {92, 60, 36, 255};
+    auto& gilt = m_batches.emplace_back();
+    gilt.texture = makeTexture(1, 1, giltColour, false);
+    gilt.layer = 2;
+    const size_t giltIndex = m_batches.size() - 1;
+    auto& rod = m_batches.emplace_back();
+    rod.texture = makeTexture(1, 1, rodColour, false);
+    rod.layer = 2;
+    const size_t rodIndex = m_batches.size() - 1;
     for (const auto& picture : pictures) {
-        const auto frame = data.frame(picture.shape, picture.frame);
-        if (frame.rgba.empty()) continue;
-        const int w = frame.width, h = frame.height;
-        // Unshear: on a north wall (plane along x) a frame pixel (u, v) is along = u - v, up = -v;
-        // on a west wall (along y) along = v - u, up = -u.
-        const bool alongX = w > h;
-        const int cols = w + h - 1, rows = alongX ? h : w;
-        std::vector<std::uint8_t> flat(size_t(cols) * rows * 4, 0);
-        int left = cols, right = -1, top = rows, bottom = -1;
-        for (int v = 0; v < h; ++v)
-            for (int u = 0; u < w; ++u) {
-                const auto* p = frame.rgba.data() + (size_t(v) * w + u) * 4;
-                if (!p[3]) continue;
-                const int x = alongX ? u - v + h - 1 : v - u + w - 1, y = alongX ? v : u;
-                std::copy_n(p, 4, flat.data() + (size_t(y) * cols + x) * 4);
-                left = std::min(left, x); right = std::max(right, x); top = std::min(top, y); bottom = std::max(bottom, y);
-            }
-        if (right < left) continue;
-        const int cw = right - left + 3, ch = bottom - top + 3;
-        std::vector<std::uint8_t> crop(size_t(cw) * ch * 4, 0);
-        for (int y = 0; y < ch - 2; ++y)
-            std::copy_n(flat.begin() + (size_t(y + top) * cols + left) * 4, size_t(cw - 2) * 4, crop.begin() + (size_t(y + 1) * cw + 1) * 4);
-        // Fill single transparent pixels the unshearing left inside the picture.
-        for (int y = 1; y + 1 < ch; ++y)
-            for (int x = 1; x + 1 < cw; ++x) {
-                auto* p = crop.data() + (size_t(y) * cw + x) * 4;
-                if (p[3]) continue;
-                const auto* l = p - 4; const auto* r = p + 4;
-                if (l[3] && r[3]) for (int k = 0; k < 4; ++k) p[k] = std::uint8_t((l[k] + r[k]) / 2);
-            }
-        constexpr int factor = 8;
-        auto big = PixelArtScale::scale(crop.data(), cw, ch, factor);
-        PixelArtScale::smoothEdges(big, cw * factor, ch * factor, 3);
+        auto [it, added] = images.try_emplace({picture.shape, picture.frame});
+        auto& image = it->second;
+        if (added) {
+            const auto frame = data.frame(picture.shape, picture.frame);
+            if (frame.rgba.empty()) continue;
+            const int w = frame.width, h = frame.height;
+            // Unshear: on a north wall (plane along x) a frame pixel (u, v) is along = u - v, up = -v;
+            // on a west wall (along y) along = v - u, up = -u.
+            const bool alongX = w > h;
+            const int cols = w + h - 1, rows = alongX ? h : w;
+            std::vector<std::uint8_t> flat(size_t(cols) * rows * 4, 0);
+            int left = cols, right = -1, top = rows, bottom = -1;
+            for (int v = 0; v < h; ++v)
+                for (int u = 0; u < w; ++u) {
+                    const auto* px = frame.rgba.data() + (size_t(v) * w + u) * 4;
+                    if (!px[3]) continue;
+                    const int x = alongX ? u - v + h - 1 : v - u + w - 1, y = alongX ? v : u;
+                    std::copy_n(px, 4, flat.data() + (size_t(y) * cols + x) * 4);
+                    left = std::min(left, x); right = std::max(right, x); top = std::min(top, y); bottom = std::max(bottom, y);
+                }
+            if (right < left) continue;
+            const int cw = right - left + 3, ch = bottom - top + 3;
+            std::vector<std::uint8_t> crop(size_t(cw) * ch * 4, 0);
+            for (int y = 0; y < ch - 2; ++y)
+                std::copy_n(flat.begin() + (size_t(y + top) * cols + left) * 4, size_t(cw - 2) * 4, crop.begin() + (size_t(y + 1) * cw + 1) * 4);
+            // Fill single transparent pixels the unshearing left inside the picture.
+            for (int y = 1; y + 1 < ch; ++y)
+                for (int x = 1; x + 1 < cw; ++x) {
+                    auto* px = crop.data() + (size_t(y) * cw + x) * 4;
+                    if (px[3]) continue;
+                    const auto* l = px - 4; const auto* r = px + 4;
+                    if (l[3] && r[3]) for (int k = 0; k < 4; ++k) px[k] = std::uint8_t((l[k] + r[k]) / 2);
+                }
+            constexpr int factor = 8;
+            auto big = PixelArtScale::scale(crop.data(), cw, ch, factor);
+            PixelArtScale::smoothEdges(big, cw * factor, ch * factor, 3);
+            image.texture = makeTexture(cw * factor, ch * factor, big.data(), true);
+            image.width = cw;
+            image.height = ch;
+            image.alongX = alongX;
+            auto& batch = m_batches.emplace_back();
+            batch.texture = image.texture;
+            batch.layer = 2;
+            image.batch = m_batches.size() - 1;
+        }
+        if (!image.texture) continue;
+        const bool alongX = image.alongX, tapestry = lower(data.name(picture.shape)).find("tapestry") != std::string::npos;
         // Size: 16 frame pixels per metre (U7's 8 per tile); on the nearest wall's inner face.
-        const float width = cw / 16.f, height = ch / 16.f;
+        const float width = image.width / 16.f, height = image.height / 16.f;
         const auto size = data.shapeSize(picture.shape);
         float centre, face = 0;
         bool found = false;
@@ -1193,13 +1290,49 @@ void Britannia3dView::buildPictures(const U7::Data& data, const std::vector<U7::
         if (!found) face = (alongX ? picture.y : picture.x) + 0.1f;
         const float bottomY = std::max(picture.lift * SL, 0.9f), topY = bottomY + height;
         const float a0 = centre - width / 2 / tm, a1 = centre + width / 2 / tm;
-        auto at = [&](float a, float y, float off) { return alongX ? glm::vec3(a, y, face + off) : glm::vec3(face + off, y, a); };
-        auto& batch = m_batches.emplace_back();
-        batch.texture = makeTexture(cw * factor, ch * factor, big.data(), true);
-        batch.layer = 2;
+        // (a: along the wall in tiles, y: metres up, off: metres out from the wall)
+        auto at = [&](float a, float y, float off) { return alongX ? glm::vec3(a, y, face + off / tm) : glm::vec3(face + off / tm, y, a); };
+        const glm::vec3 out = alongX ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0), side = alongX ? glm::vec3(1, 0, 0) : glm::vec3(0, 0, 1);
         const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
-        const glm::vec3 n = alongX ? glm::vec3(0, 0, 1) : glm::vec3(1, 0, 0);
-        addQuad(batch, {at(a0, topY, 0), at(a1, topY, 0), at(a1, bottomY, 0), at(a0, bottomY, 0)}, uv, n);
+        // A box on the wall: along a0 .. a1 (tiles), y0 .. y1, from the wall out to depth (metres).
+        auto box = [&](Batch& batch, float b0, float b1, float y0, float y1, float depth) {
+            addQuad(batch, {at(b0, y1, depth), at(b1, y1, depth), at(b1, y0, depth), at(b0, y0, depth)}, uv, out);
+            addQuad(batch, {at(b0, y1, 0), at(b1, y1, 0), at(b1, y1, depth), at(b0, y1, depth)}, uv, glm::vec3(0, 1, 0));
+            addQuad(batch, {at(b0, y0, depth), at(b1, y0, depth), at(b1, y0, 0), at(b0, y0, 0)}, uv, glm::vec3(0, -1, 0));
+            addQuad(batch, {at(b0, y1, 0), at(b0, y1, depth), at(b0, y0, depth), at(b0, y0, 0)}, uv, -side);
+            addQuad(batch, {at(b1, y1, depth), at(b1, y1, 0), at(b1, y0, 0), at(b1, y0, depth)}, uv, side);
+        };
+        if (tapestry) {
+            // The cloth in soft vertical folds, a little off the wall.
+            auto& cloth = m_batches[image.batch];
+            constexpr int strips = 16;
+            for (int i = 0; i < strips; ++i) {
+                const float s0 = float(i) / strips, s1 = float(i + 1) / strips;
+                const float o0 = 0.035f + 0.018f * std::sin(s0 * 6.2831853f * 3.f), o1 = 0.035f + 0.018f * std::sin(s1 * 6.2831853f * 3.f);
+                const float b0 = a0 + (a1 - a0) * s0, b1 = a0 + (a1 - a0) * s1;
+                const glm::vec3 n = glm::normalize(out + side * ((o0 - o1) / ((b1 - b0) * tm)));
+                const glm::vec2 cuv[4] = {{s0, 0}, {s1, 0}, {s1, 1}, {s0, 1}};
+                addQuad(cloth, {at(b0, topY, o0), at(b1, topY, o1), at(b1, bottomY, o1), at(b0, bottomY, o0)}, cuv, n);
+            }
+            // The rod across the top, wider than the cloth, with a knob at each end.
+            auto& r = m_batches[rodIndex];
+            const float over = 0.08f / tm;
+            box(r, a0 - over, a1 + over, topY - 0.02f, topY + 0.03f, 0.08f);
+            for (const float end : {a0 - over, a1 + over - 0.06f / tm}) box(r, end, end + 0.06f / tm, topY - 0.035f, topY + 0.045f, 0.1f);
+        } else {
+            // The canvas set into a moulded frame 7 cm wide, 5 cm deep.
+            auto& canvas = m_batches[image.batch];
+            addQuad(canvas, {at(a0, topY, 0.025f), at(a1, topY, 0.025f), at(a1, bottomY, 0.025f), at(a0, bottomY, 0.025f)}, uv, out);
+            auto& g = m_batches[giltIndex];
+            const float bar = 0.07f, barA = bar / tm;
+            box(g, a0 - barA, a1 + barA, topY, topY + bar, 0.05f);
+            box(g, a0 - barA, a1 + barA, bottomY - bar, bottomY, 0.05f);
+            box(g, a0 - barA, a0, bottomY, topY, 0.05f);
+            box(g, a1, a1 + barA, bottomY, topY, 0.05f);
+            // An inner lip, a step down to the canvas.
+            box(g, a0, a1, topY - 0.015f, topY, 0.035f);
+            box(g, a0, a1, bottomY, bottomY + 0.015f, 0.035f);
+        }
         ++m_boxes;
     }
 }
@@ -1298,6 +1431,16 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
     textures[PropModels::Iron] = solid(42, 40, 38);
     textures[PropModels::Linen] = solid(222, 212, 186);
     textures[PropModels::Clay] = solid(150, 78, 48);
+    textures[PropModels::Pewter] = solid(150, 150, 142);
+    textures[PropModels::Glass] = solid(46, 96, 58);
+    textures[PropModels::Leather] = solid(92, 58, 34);
+    textures[PropModels::Burlap] = solid(170, 140, 96);
+    textures[PropModels::Flame] = solid(255, 214, 120);
+    textures[PropModels::Straw] = solid(196, 164, 84);
+    textures[PropModels::Steel] = solid(196, 200, 204);
+    textures[PropModels::Gold] = solid(222, 178, 60);
+    textures[PropModels::Water] = solid(30, 52, 78);
+    textures[PropModels::Food] = solid(178, 118, 58);
     textures[PropModels::Stone] = repeat(makeTexture(128, 128, stonePixels.data(), true));
     textures[PropModels::Leaves] = makeTexture(256, 256, leafPixels.data(), true);
     textures[PropModels::Needles] = makeTexture(256, 256, needlePixels.data(), true);
@@ -1316,6 +1459,47 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
         }
         return it->second;
     };
+    // U7 builds a wagon from several "cart" pieces: one PropModels::wagon over each group of
+    // them, its shafts towards the shaft piece (757).
+    {
+        std::vector<const PropPlace*> carts;
+        for (const auto& prop : props) if (prop.name == "cart") carts.push_back(&prop);
+        std::vector<bool> used(carts.size(), false);
+        for (size_t i = 0; i < carts.size(); ++i) {
+            if (used[i]) continue;
+            glm::vec2 low(1e9f), high(-1e9f), shaft(-1);
+            std::vector<size_t> group{i};
+            used[i] = true;
+            for (size_t k = 0; k < group.size(); ++k)
+                for (size_t j = 0; j < carts.size(); ++j)
+                    if (!used[j] && std::abs(carts[j]->object.x - carts[group[k]]->object.x) <= 4 && std::abs(carts[j]->object.y - carts[group[k]]->object.y) <= 4) {
+                        used[j] = true;
+                        group.push_back(j);
+                    }
+            for (const size_t k : group) {
+                const auto& o = carts[k]->object;
+                const auto size = data.shapeSize(o.shape);
+                low = glm::min(low, glm::vec2(o.x + 1 - size.x, o.y + 1 - size.y));
+                high = glm::max(high, glm::vec2(o.x + 1, o.y + 1));
+                if (o.shape == 757) shaft = glm::vec2(o.x + 1 - size.x * 0.5f, o.y + 1 - size.y * 0.5f);
+            }
+            const glm::vec2 centre = (low + high) * 0.5f, extent = high - low;
+            const bool alongX = extent.x >= extent.y;
+            const float length = std::max(extent.x, extent.y) * tm, width = std::min(extent.x, extent.y) * tm;
+            float turn = alongX ? 0.f : 1.5707963f;
+            if (shaft.x >= 0 && (alongX ? shaft.x < centre.x : shaft.y < centre.y)) turn += 3.1415926f;
+            auto& wagon = models.try_emplace("wagon " + std::to_string(int(length * 10)) + " " + std::to_string(int(width * 10)),
+                                             PropModels::wagon(length, width)).first->second;
+            const float c = std::cos(turn), sn = std::sin(turn);
+            for (int k = 0; k < PropModels::MaterialCount; ++k)
+                for (const auto& v : wagon.parts[k]) {
+                    auto& batch = m_batches[batchFor(k, 0, 2)];
+                    const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
+                    const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
+                    batch.vertices.push_back({centre.x + p.x / tm, p.y, centre.y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 1.f});
+                }
+        }
+    }
     // Tables and desks, for turning the chairs: a chair's back is away from the nearest table.
     std::vector<glm::vec2> tableCentres;
     std::set<std::pair<int, int>> seats;
@@ -1338,6 +1522,9 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
         auto dims = [&](const char* kind) { char key[96]; std::snprintf(key, sizeof key, "%s %.2f %.2f %.2f", kind, w, d, h); return std::string(key); };
         const PropModels::Model* m = nullptr;
         bool centred = false;   // stones and plants: centred on the object, turned at random
+        bool turned = true;     // (false: centred, not turned; or turned by fixedTurn)
+        float fixedTurn = 0;
+        glm::vec2 wallAt(-1);   // a sconce: its wall face, tiles
         int layer = prop.layer, cover = 0;
         if (prop.name == "table") m = &model(dims("table"), [&] { return PropModels::table(w, d, h); });
         else if (prop.name == "desk") m = &model(dims("desk"), [&] { return PropModels::desk(w, d, h); });
@@ -1375,14 +1562,115 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 // Indoors a pot plant, outdoors a bush.
                 if (m_roofTiles.count({o.x, o.y})) m = &model("pot " + v, [&] { return PropModels::pottedPlant(0.75f, variant + 1); });
                 else m = &model("bush large " + v, [&] { return PropModels::bush(1.0f, variant + 5); });
+            } else if (prop.name == "light source" || prop.name == "lit light source") {
+                // U7's candles (unlit ones stand as short stumps).
+                const bool lit = prop.name == "lit light source";
+                const float stand = prop.base < 0.1f ? 1.1f : 0.f;   // on the floor: a candle stand
+                m = &model(std::string(lit ? "candle lit" : "candle") + (stand > 0 ? " stand" : ""), [&] { return PropModels::candle(lit, stand); });
+            } else if (prop.name == "cup") m = &model("cup", [] { return PropModels::cup(); });
+            else if (prop.name == "plate") m = &model("plate", [] { return PropModels::plate(); });
+            else if (prop.name == "pitcher") m = &model("pitcher", [] { return PropModels::pitcher(); });
+            else if (prop.name == "bottle") m = &model("bottle " + v, [&] { return PropModels::bottle(variant); });
+            else if (prop.name == "book") { cover = int(seed % 4); m = &model("book " + v, [&] { return PropModels::book(variant); }); }
+            else if (prop.name == "scroll") m = &model("scroll", [] { return PropModels::scroll(); });
+            else if (prop.name == "bag" || prop.name == "sack of wheat") {
+                const float s = prop.name == "bag" ? 0.3f : 0.6f;
+                m = &model(prop.name + " " + v, [&] { return PropModels::bag(s, variant); });
+            } else if (prop.name == "bucket") m = &model("bucket", [] { return PropModels::bucket(); });
+            else if (prop.name == "pot") m = &model("pot", [] { return PropModels::pot(); });
+            else if (prop.name == "boots") m = &model("boots", [] { return PropModels::boots(); });
+            else if (prop.name == "horseshoe") m = &model("horseshoe", [] { return PropModels::horseshoe(); });
+            else if (prop.name == "haystack") m = &model(dims("haystack") + v, [&] { return PropModels::haystack(w, d, std::max(h, 1.2f), variant); });
+            else if (prop.name == "pillar") {
+                turned = false;
+                m = &model(dims("pillar"), [&] { return PropModels::pillar(w, d, U73dScale::StoreyHeight); });
+            } else if (prop.name == "lit sconce" || prop.name == "spent sconce") {
+                // On the wall next to it, facing into the room.
+                const bool lit = prop.name == "lit sconce";
+                m = &model(lit ? "sconce lit" : "sconce", [&] { return PropModels::sconce(lit); });
+                turned = false;
+                // Wall to the north: facing south (+z, no turn); west: east; south: north; east: west.
+                const glm::ivec2 dirs[4] = {{0, -1}, {-1, 0}, {0, 1}, {1, 0}};
+                const float turns[4] = {0.f, -1.5707963f, 3.1415926f, 1.5707963f};
+                int wall = 0;
+                for (int k = 0; k < 4; ++k) if (m_solidTiles.count({o.x + dirs[k].x, o.y + dirs[k].y})) { wall = k; break; }
+                fixedTurn = turns[wall];
+                wallAt = centre + glm::vec2(dirs[wall]) * (1.f - U73dScale::WallThickness * 0.5f - 0.02f);
+            } else if (prop.name == "dagger") m = &model("dagger", [] { return PropModels::blade(0.35f, true); });
+            else if (prop.name == "knife") m = &model("knife", [] { return PropModels::blade(0.22f, true); });
+            else if (prop.name == "main gauche") m = &model("main gauche", [] { return PropModels::blade(0.45f, true); });
+            else if (prop.name == "sword") m = &model("sword", [] { return PropModels::blade(0.95f, true); });
+            else if (prop.name == "sword blank") m = &model("sword blank", [] { return PropModels::blade(0.8f, false); });
+            else if (prop.name == "mace") m = &model("mace", [] { return PropModels::hafted(0.6f, 0); });
+            else if (prop.name == "morning star") m = &model("morning star", [] { return PropModels::hafted(0.7f, 1); });
+            else if (prop.name == "club") m = &model("club", [] { return PropModels::hafted(0.7f, 2); });
+            else if (prop.name == "hammer") m = &model("hammer", [] { return PropModels::hafted(0.4f, 3); });
+            else if (prop.name == "two handed axe") m = &model("two handed axe", [] { return PropModels::hafted(1.3f, 4); });
+            else if (prop.name == "tongs") m = &model("tongs", [] { return PropModels::tongs(); });
+            else if (prop.name == "wooden shield") m = &model("wooden shield", [] { return PropModels::shield(0.3f, true); });
+            else if (prop.name == "buckler") m = &model("buckler", [] { return PropModels::shield(0.18f, false); });
+            else if (prop.name == "leather helm" || prop.name == "crested helm") {
+                const bool leather = prop.name == "leather helm";
+                m = &model(prop.name, [&] { return PropModels::helm(leather); });
+            } else if (prop.name == "leather armour" || prop.name == "leather leggings") m = &model("armour", [] { return PropModels::armour(); });
+            else if (prop.name == "leather gloves") m = &model("gloves", [] { return PropModels::gloves(); });
+            else if (prop.name == "cloak" || prop.name == "hood" || prop.name == "cloth") {
+                cover = int(seed % 4);
+                const float s = prop.name == "hood" ? 0.3f : 0.5f;
+                m = &model(prop.name + " " + v, [&] { return PropModels::clothHeap(s, variant); });
+            } else if (prop.name == "food item") m = &model("bread " + v, [&] { return PropModels::bread(variant); });
+            else if (prop.name == "potion") { cover = int(seed % 4); m = &model("potion", [] { return PropModels::potion(0); }); }
+            else if (prop.name == "broken dish") m = &model("shards", [] { return PropModels::shards(); });
+            else if (prop.name == "desk item") m = &model("inkwell", [] { return PropModels::inkwell(); });
+            else if (prop.name == "gold coin") m = &model("coins", [] { return PropModels::coins(); });
+            else if (prop.name == "kitchen items" || prop.name == "eating utensils") m = &model("utensils", [] { return PropModels::utensils(); });
+            else if (prop.name == "top") m = &model("top", [] { return PropModels::top(); });
+            else if (prop.name == "swamp boots") m = &model("boots", [] { return PropModels::boots(); });
+            else if (prop.name == "backpack") m = &model("backpack " + v, [&] { return PropModels::bag(0.45f, variant); });
+            else if (prop.name == "basket") m = &model("basket", [] { return PropModels::basket(); });
+            else if (prop.name == "sealed box" || prop.name == "unsealed box") {
+                centred = false;
+                m = &model(dims("crate"), [&] { return PropModels::crate(w, d, h); });
+            } else if (prop.name == "cauldron") {
+                m = &model("cauldron", [] {
+                    auto big = PropModels::pot();
+                    for (auto& part : big.parts) for (auto& vertex : part) vertex.position *= 1.8f;
+                    return big;
+                });
+            } else if (prop.name == "firepit") m = &model(dims("firepit"), [&] { return PropModels::firepit(std::min(w, d)); });
+            else if (prop.name == "sundial") m = &model("sundial", [] { return PropModels::sundial(); });
+            else if (prop.name == "pedestal") m = &model("pedestal", [] { return PropModels::pedestal(); });
+            else if (prop.name == "red flag") { cover = 1; m = &model("flag " + v, [&] { return PropModels::flag(variant); }); }
+            else if (prop.name == "anvil" || prop.name == "stove" || prop.name == "stove top" || prop.name == "easel" || prop.name == "mirror" ||
+                     prop.name == "podium" || prop.name == "water trough" || prop.name == "lever" || prop.name == "iron bars" ||
+                     prop.name == "bellows") {
+                // Built along x: turned to the footprint's longer side.
+                turned = false;
+                const bool alongX = size.x >= size.y;
+                fixedTurn = alongX ? 0.f : 1.5707963f;
+                const float length = std::max(w, d), across = std::min(w, d);
+                const std::string key = dims(prop.name.c_str());
+                if (prop.name == "anvil") m = &model(key, [] { return PropModels::anvil(); });
+                else if (prop.name == "stove" || prop.name == "stove top")
+                    m = &model(key, [&] { return PropModels::stove(std::max(length, 0.8f), std::max(across, 0.6f), std::max(h, 0.8f)); });
+                else if (prop.name == "easel") m = &model(key, [] { return PropModels::easel(true); });
+                else if (prop.name == "mirror") m = &model(key, [] { return PropModels::mirror(); });
+                else if (prop.name == "podium") m = &model(key, [] { return PropModels::podium(); });
+                else if (prop.name == "water trough") m = &model(key, [&] { return PropModels::trough(length, across); });
+                else if (prop.name == "lever") m = &model(key, [] { return PropModels::lever(); });
+                else if (prop.name == "iron bars") m = &model(key, [&] { return PropModels::ironBars(length, 2.2f); });
+                else m = &model(key, [] { return PropModels::bellows(); });
+            } else if (prop.name == "cart") {
+                continue;   // all pieces of a wagon as one, below
             } else if (prop.name == "evergreen") {
                 m = &model("evergreen " + v, [&] { return PropModels::evergreen(4.5f + 0.6f * variant, variant + 1); });
                 layer = 3;   // with the trees
             }
         }
         if (!m) continue;
-        const float turn = centred ? float(seed % 628) / 100.f : 0.f, c = std::cos(turn), sn = std::sin(turn);
-        const glm::vec3 anchor = centred ? glm::vec3(centre.x, prop.base, centre.y) : glm::vec3(o.x + 1.f, prop.base, o.y + 1.f);
+        const float turn = !centred ? 0.f : turned ? float(seed % 628) / 100.f : fixedTurn, c = std::cos(turn), sn = std::sin(turn);
+        glm::vec3 anchor = centred ? glm::vec3(centre.x, prop.base, centre.y) : glm::vec3(o.x + 1.f, prop.base, o.y + 1.f);
+        if (wallAt.x >= 0) anchor = glm::vec3(wallAt.x, 0.f, wallAt.y);
         for (int k = 0; k < PropModels::MaterialCount; ++k) {
             const auto& part = m->parts[k];
             if (part.empty()) continue;
@@ -1390,7 +1678,8 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             for (const auto& v : part) {
                 const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
                 const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
-                batch.vertices.push_back({anchor.x + p.x / tm, anchor.y + p.y, anchor.z + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 1.f});
+                batch.vertices.push_back({anchor.x + p.x / tm, anchor.y + p.y, anchor.z + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y,
+                                          k == PropModels::Flame ? 1.8f : 1.f});   // flames glow
             }
         }
     }
@@ -1399,6 +1688,18 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
 void Britannia3dView::buildLamps(const std::vector<glm::vec2>& places) {
     if (places.empty()) return;
     constexpr float tm = U73dScale::TileMetres;
+    // Off the kerbs: a lamp on or beside a street stands back from it, away from the street
+    // (as the signposts).
+    std::vector<glm::vec2> moved(places);
+    for (auto& at : moved) {
+        const int x = int(std::floor(at.x)), y = int(std::floor(at.y));
+        glm::vec2 push(0);
+        for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}})
+            if (m_roadTiles.count({x + dx, y + dy})) push -= glm::vec2(dx, dy);
+        if (m_roadTiles.count({x, y}) || glm::length(push) > 0)
+            at += (glm::length(push) > 0 ? glm::normalize(push) : glm::vec2(0)) *
+                  (m_roadTiles.count({x, y}) ? 0.9f : glm::length(push) > 1.2f ? 0.8f : 0.3f);
+    }
     const auto parts = LampModel::build();
     const auto post = LampModel::postTexture(128), glass = LampModel::glassTexture(128);
     const std::uint8_t iron[4] = {38, 36, 34, 255};
@@ -1410,7 +1711,7 @@ void Britannia3dView::buildLamps(const std::vector<glm::vec2>& places) {
         auto& batch = m_batches.emplace_back();
         batch.texture = part.texture;
         batch.layer = 2;
-        for (const auto& place : places) {
+        for (const auto& place : moved) {
             // Turned like U7's: the crossbar runs from north west to south east.
             const float c = 0.7071f, sn = 0.7071f;
             for (const auto& v : *part.vertices) {
@@ -1755,6 +2056,18 @@ void Britannia3dView::buildThatchRoof() {
 
 void Britannia3dView::buildSlateRoofs(const std::vector<glm::ivec4>& tiles) {
     if (tiles.empty()) return;
+    if (!m_thatchAlbedo) {
+        const auto thatch = ThatchMaterial::loadOrCreate(assetDirectory);
+        m_thatchAlbedo = makeTexture(thatch.size, thatch.size, thatch.albedo.data(), true);
+        m_thatchNormal = makeTexture(thatch.size, thatch.size, thatch.normal.data(), true);
+        loadRepeating(m_thatchAlbedo);
+        loadRepeating(m_thatchNormal);
+    }
+    auto& thatchRoof = m_batches.emplace_back();
+    thatchRoof.planks = 3;
+    thatchRoof.roof = true;
+    thatchRoof.layer = 2;
+    const size_t thatchIndex = m_batches.size() - 1;
     const auto slate = SlateMaterial::loadOrCreate(assetDirectory);
     m_slateAlbedo = makeTexture(slate.size, slate.size, slate.albedo.data(), true);
     m_slateNormal = makeTexture(slate.size, slate.size, slate.normal.data(), true);
@@ -1797,7 +2110,15 @@ void Britannia3dView::buildSlateRoofs(const std::vector<glm::ivec4>& tiles) {
                 if (const auto top = m_wallTop.find({x, y}); top != m_wallTop.end()) eave = std::max(eave, top->second);
         const float x0 = float(start.first) + 0.125f, z0 = float(start.second) + 0.125f;
         const float x1 = float(start.first + w) - 0.125f, z1 = float(start.second + h) - 0.125f;
-        addGableRoof(m_batches[roofIndex], m_batches[gableIndex], x0, z0, x1, z1, eave, 38.f, 0.35f, 0.12f, false);
+        // Stone walls under it: slate; wooden walls: thatch (45 degrees, thick straw, ridge roll).
+        int stone = 0, wood = 0;
+        for (int y = start.second - 1; y <= start.second + h; ++y)
+            for (int x = start.first - 1; x <= start.first + w; ++x) {
+                if (m_stoneTiles.count({x, y})) ++stone;
+                else if (m_solidTiles.count({x, y})) ++wood;
+            }
+        if (wood > stone) addGableRoof(m_batches[thatchIndex], m_batches[gableIndex], x0, z0, x1, z1, eave, 45.f, 0.6f, 0.35f, true);
+        else addGableRoof(m_batches[roofIndex], m_batches[gableIndex], x0, z0, x1, z1, eave, 38.f, 0.35f, 0.12f, false);
     }
 }
 
@@ -2184,7 +2505,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
     std::vector<PropPlace> props;
     std::vector<U7::WorldObject> signPosts, signBoards, townFences;
     std::vector<glm::ivec4> slateTiles;
-    std::vector<U7::WorldObject> windows, houseDoors, pictures;
+    std::vector<U7::WorldObject> windows, houseDoors, pictures, shutters;
     std::map<int, std::string> names;
     struct Placed { const U7::WorldObject* object; int layer; bool roof; float liftMetres; bool wall, thinWall; };
     std::vector<Placed> placed;
@@ -2241,6 +2562,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         // Windows get a 3D frame with panes; paintings and tapestries hang as pictures.
         if (object.shape == 732 || object.shape == 438) { windows.push_back(object); continue; }
         if (name == "painting" || name == "tapestry") { pictures.push_back(object); continue; }
+        if (name == "closed shutters" || name == "open shutters") { shutters.push_back(object); continue; }
         if (name == "door" && !(stableScene && object.x >= m_stableArea.x && object.x < m_stableArea.z &&
                                 object.y >= m_stableArea.y && object.y < m_stableArea.w)) {
             // Becomes a DoorModel door in buildOpenings (or the U7 door again, if it is no door
@@ -2249,15 +2571,16 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             if (seen.insert({object.shape, object.frame}).second) graphics.push_back({object.shape, object.frame});
             continue;
         }
-        // U7's flat slate roofs (on the walls, lift 5) become slate gable roofs.
-        if (name == "slate roof" && object.lift == 5) {
+        // The thatched roof replaces U7's flat wood roof over the shed.
+        if (stableScene && name == "wood roof" && object.x >= 1056 && object.x < 1087 && object.y >= 2180 && object.y < 2211)
+            continue;
+        // U7's flat roofs on the walls (lift 5: slate, wood, tile) become gable roofs: slate on
+        // stone houses, thatch on wooden ones (buildGableRoofs).
+        if ((name == "slate roof" || name == "wood roof" || name == "tile roof") && object.lift == 5) {
             const auto size = data.shapeSize(object.shape);
             slateTiles.push_back({object.x - size.x + 1, object.y - size.y + 1, object.x + 1, object.y + 1});
             continue;
         }
-        // The thatched roof replaces U7's flat wood roof over the shed.
-        if (stableScene && name == "wood roof" && object.x >= 1056 && object.x < 1087 && object.y >= 2180 && object.y < 2211)
-            continue;
         // Ultima7Remake's fences and trough replace U7's in the stable and the paddock north east of it.
         if (stableScene && (name == "fence" || name == "trough" || name == "water trough") &&
             ((object.x >= m_stableArea.x && object.x < m_stableArea.z && object.y >= m_stableArea.y && object.y < m_stableArea.w) ||
@@ -2283,9 +2606,27 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             continue;
         // Furniture, stones and plants become PropModels models.
         static const std::set<std::string> propNames = {"table", "desk", "drawers", "seat", "bed", "chair", "crate", "chest", "locked chest",
-                                                         "rock", "weeds", "small bush", "plant", "evergreen"};
+                                                         "rock", "weeds", "small bush", "plant", "evergreen",
+                                                         "light source", "lit light source", "lit sconce", "spent sconce", "cup", "plate",
+                                                         "pitcher", "bottle", "book", "scroll", "bag", "sack of wheat", "bucket", "pot",
+                                                         "boots", "horseshoe", "pillar", "haystack",
+                                                         "dagger", "knife", "main gauche", "sword", "sword blank", "mace", "morning star", "club",
+                                                         "hammer", "two handed axe", "tongs", "wooden shield", "buckler", "leather helm",
+                                                         "crested helm", "leather armour", "leather leggings", "leather gloves", "cloak", "hood",
+                                                         "cloth", "food item", "potion", "broken dish", "desk item", "gold coin",
+                                                         "kitchen items", "eating utensils", "top", "swamp boots", "backpack", "anvil", "stove",
+                                                         "stove top", "firepit", "easel", "mirror", "sundial", "podium", "pedestal",
+                                                         "water trough", "lever", "iron bars", "red flag", "basket", "bellows", "sealed box",
+                                                         "unsealed box", "cauldron", "cart"};
         std::string propName = name;
         while (!propName.empty() && propName.back() == ' ') propName.pop_back();   // U7 names "bed "
+        if (!propName.empty() && propName[0] == '/') {
+            // U7's "/stem/singular/plural" names: "/dagger//s" -> dagger, "/kni/fe/ves" -> knife.
+            std::vector<std::string> parts;
+            std::stringstream in(propName.substr(1));
+            for (std::string part; std::getline(in, part, '/');) parts.push_back(part);
+            propName = (parts.size() > 0 ? parts[0] : "") + (parts.size() > 1 ? parts[1] : "");
+        }
         if (propNames.count(propName)) {
             const float liftMetres = object.lift >= U73dScale::UpperFloorLift ? U73dScale::StructureLift : U73dScale::FurnitureLift;
             props.push_back({object, propName, layer == 1 || layer == 3 ? layer : 2, object.lift * liftMetres});
@@ -2491,15 +2832,15 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             m_stableTools.reset();
         }
     }
-    buildLamps(lampPlaces);
     buildWells(wellPlaces);
     buildProps(data, props);
     buildTownFences(data, townFences, m_fenceRuns);
-    buildOpenings(data, windows, houseDoors);
+    buildOpenings(data, windows, houseDoors, shutters);
     if (!m_doors.empty()) ensureDoorMeshes();
     buildPictures(data, pictures);
     buildRoads();                      // after all walls and roofs: streets outside the houses
     buildSignposts(data, signPosts, signBoards);   // after the streets: posts keep off the kerbs
+    buildLamps(lampPlaces);                        // as do the lamp posts
     buildTrees(treePlaces);            // after all walls and roofs: the crowns keep clear of them
     for (auto* batches : {&m_batches, &m_globe})
         for (auto& batch : *batches)
