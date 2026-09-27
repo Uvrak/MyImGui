@@ -30,8 +30,9 @@
 namespace {
 
 const char* DefaultStatic = "C:/GOG Galaxy/Games/Ultima 7/STATIC";
-// One model file per object graphic lives in <project>/assets/Objects (see U7ObjectModel).
-const char* AssetDirectory = U73D_PROJECT_DIR "assets";
+// All assets live outside the repository: model files per object graphic (Objects, see
+// U7ObjectModel), materials, the stable scene and the characters.
+const char* AssetDirectory = "C:/Projects/U73dAssets";
 
 // Structures, plus raised floors such as the walkways on top of the town walls.
 bool layerOne(const U7::WorldObject& object, const std::string& name) {
@@ -103,9 +104,7 @@ int exportRegion(const U7::Data& data, const char* file, int x0, int y0, int wid
 // Trinsic with its town walls, the fields around it and the docks in the east.
 constexpr int TrinsicChunkX0 = 57, TrinsicChunkY0 = 129, TrinsicChunkX1 = 70, TrinsicChunkY1 = 146;
 // Sir Canegm from Ultima7Remake, on the street in front of the stable (its door faces south).
-// Large files (Sir Canegm's textures and animations, about 250 MB) live outside the repository.
-const char* LargeAssetDirectory = "C:/Projects/U73dAssets";
-const std::string CanegmFolder = std::string(LargeAssetDirectory) + "/Characters/SirCanegm";
+const std::string CanegmFolder = std::string(AssetDirectory) + "/Characters/SirCanegm";
 constexpr float CanegmTileX = 1068.5f, CanegmTileY = 2213.f;
 
 SDL_Window* createWindow(const char* title, int width, int height, SDL_WindowFlags flags, SDL_GLContext& context) {

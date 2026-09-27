@@ -368,3 +368,6 @@ vcpkg/
 
 # Ultima73d model files are OBJ meshes, not compiler output
 !Ultima73d/assets/Objects/**/*.obj
+
+# Ultima73d assets live outside the repository (C:/Projects/U73dAssets)
+Ultima73d/assets/
