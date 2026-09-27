@@ -133,16 +133,18 @@ private:
         bool alongX = true;
         float length = 4.f, height = 3.f; // tiles, metres
         glm::vec3 winch{0};               // flat centre of its winch
+        bool winchAlongX = true;          // the drum's axis
         bool open = false, locked = false;
         float raised = 0.f;               // metres the portcullis is drawn up
     };
     std::vector<Gate> m_gates;
-    ow3d::Mesh m_gateIron, m_gateWood;
+    ow3d::Mesh m_gateIron, m_gateWood, m_drumIron, m_drumWood, m_drumDark;
     std::string m_gateMessage;
     float m_gateMessageTime = 0.f;
     glm::mat4 gateModel(const Gate& gate) const;
     int pickWinch(glm::vec2 ndc) const;
     void drawGates(unsigned program);
+    std::set<std::pair<int, int>> m_gatewayTiles;               // town gate passages (no kerbs there)
     std::set<std::pair<int, int>> m_fortressTiles;              // town wall and gateway footprints (no kerbs there)
     std::vector<glm::vec3> m_stepTops;                          // stair treads (flat, triangles): Sir Canegm climbs them
     size_t m_groundBatch = 0;
@@ -154,7 +156,8 @@ private:
     std::vector<bool> m_grassLayer;
     std::vector<bool> m_grassEdgeLayer;                         // per ground layer: lawn with some earth                             // per ground layer: a lawn tile
     std::vector<glm::vec3> m_grassColours;                      // U7 grass pixels
-    unsigned m_grassAlbedo = 0, m_grassNormal = 0;
+    unsigned m_grassAlbedo = 0, m_grassNormal = 0, m_mudAlbedo = 0, m_mudNormal = 0;
+    std::vector<glm::vec3> m_mudColours;                        // U7 earth pixels of the lawn edges
     unsigned m_cobbleAlbedo = 0, m_cobbleNormal = 0;
     std::set<std::pair<int, int>> m_roadTiles;                  // raised street tiles (Sir Canegm walks on them)
     static constexpr float RoadHeight = 0.09f;                  // street surface: 3 cm below the kerb (0.12 m)
@@ -229,6 +232,10 @@ private:
     void buildLamps(const std::vector<glm::vec2>& places);
     // 3D wells (WellModel) in place of U7's well and its windlass.
     void buildWells(const std::vector<glm::vec2>& places);
+    // Furniture, stones and plants as high resolution models (PropModels): one model per kind
+    // and size, shared by all objects of that kind. base: height of the object's lift, metres.
+    struct PropPlace { U7::WorldObject object; std::string name; int layer; float base; };
+    void buildProps(const U7::Data& data, const std::vector<PropPlace>& props);
     // 3D signposts from U7's post (713) with its arrow boards (379); a post or board that does
     // not belong to a signpost stays U7's graphic.
     void buildSignposts(const U7::Data& data, const std::vector<U7::WorldObject>& posts, const std::vector<U7::WorldObject>& signs);
@@ -247,4 +254,7 @@ private:
     glm::vec3 m_target{0.f};                                 // free camera target, flat
     float m_yaw = 45.f, m_pitch = 40.f, m_distance = 26.f;   // degrees, metres
     bool m_mouseCaptured = false;
+    // Jumping down: the height (flat metres) Sir Canegm falls from, and his vertical speed.
+    bool m_falling = false;
+    float m_fallHeight = 0.f, m_fallSpeed = 0.f, m_lastHeight = 0.f;
 };

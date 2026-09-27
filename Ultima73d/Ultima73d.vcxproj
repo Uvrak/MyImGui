@@ -107,6 +107,14 @@ xcopy /y /d "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutD
       <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
       <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
     </ClCompile>
+    <ClCompile Include="MudMaterial.cpp">
+      <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
+    </ClCompile>
+    <ClCompile Include="PropModels.cpp">
+      <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
+    </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SlateMaterial.cpp">
       <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
@@ -152,6 +160,8 @@ xcopy /y /d "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutD
     <ClInclude Include="CobbleMaterial.h" />
     <ClInclude Include="GateModels.h" />
     <ClInclude Include="GrassMaterial.h" />
+    <ClInclude Include="MudMaterial.h" />
+    <ClInclude Include="PropModels.h" />
     <ClInclude Include="U7Data.h" />
     <ClInclude Include="WoodMaterial.h" />
     <ClInclude Include="U7GroundGrid.h" />

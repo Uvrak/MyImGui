@@ -63,6 +63,12 @@
     <ClCompile Include="GrassMaterial.cpp">
       <Filter>Britannia3d</Filter>
     </ClCompile>
+    <ClCompile Include="MudMaterial.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="PropModels.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>App</Filter>
     </ClCompile>
@@ -126,6 +132,12 @@
       <Filter>Britannia3d</Filter>
     </ClInclude>
     <ClInclude Include="GrassMaterial.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="MudMaterial.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="PropModels.h">
       <Filter>Britannia3d</Filter>
     </ClInclude>
     <ClInclude Include="U7Data.h">

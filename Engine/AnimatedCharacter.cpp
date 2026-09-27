@@ -1,4 +1,4 @@
-﻿#include "AnimatedCharacter.h"
+#include "AnimatedCharacter.h"
 #include "WorldSettings.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
@@ -377,7 +377,9 @@ void AnimatedCharacter::updateCamera(Camera &camera,float dt)
         // First person: from behind the head to just in front of the face, eyes level,
         // so whoever stands in front is seen face to face.
         const auto face=m_position+up*(m_height*.93f)+viewHeading*(m_height*.10f);
-        const auto ahead=glm::normalize(viewHeading-up*std::tan(glm::radians(firstPersonPitch)));
+        // Looking up and down (right mouse): the orbit pitch moves the view about its default.
+        const float lookDown=std::clamp(firstPersonPitch+glm::degrees(m_pitch-m_topDownPitch),-75.f,75.f);
+        const auto ahead=glm::normalize(viewHeading*std::cos(glm::radians(lookDown))-up*std::sin(glm::radians(lookDown)));
         const auto look=glm::normalize(glm::normalize(direction)*(1-first)+ahead*first);
         resolvedEye+=(face-resolvedEye)*first;
         direction=look*std::max(glm::length(direction),m_height);

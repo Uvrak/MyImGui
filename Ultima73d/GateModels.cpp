@@ -73,30 +73,32 @@ Parts portcullis(float length, float height) {
     return parts;
 }
 
-Parts winch() {
+Parts winch(bool drum) {
     Parts parts;
-    const float half = 0.7f, y = 0.72f, r = 0.2f;
-    // Drum with iron bands, chain wound around it (rings as small boxes).
-    cylinder(parts.wood, {-half + 0.12f, y, 0}, {half - 0.12f, y, 0}, r, 18);
-    for (const float x : {-half + 0.18f, half - 0.18f}) cylinder(parts.iron, {x - 0.02f, y, 0}, {x + 0.02f, y, 0}, r + 0.012f, 18);
-    for (int i = 0; i < 14; ++i)
-        for (int k = 0; k < 16; ++k) {
-            const float a = 2 * Pi * k / 16, x = -half + 0.26f + i * 0.066f;
-            const glm::vec3 c(x, y + std::cos(a) * (r + 0.02f), std::sin(a) * (r + 0.02f));
-            box(parts.iron, c - glm::vec3(0.022f, 0.012f, 0.012f), c + glm::vec3(0.022f, 0.012f, 0.012f));
+    const float half = 0.7f, y = WinchAxle, r = WinchDrumRadius;
+    if (drum) {
+        // Drum with iron bands, chain wound around it (rings as small boxes), axle and cranks.
+        cylinder(parts.wood, {-half + 0.12f, y, 0}, {half - 0.12f, y, 0}, r, 18);
+        for (const float x : {-half + 0.18f, half - 0.18f}) cylinder(parts.iron, {x - 0.02f, y, 0}, {x + 0.02f, y, 0}, r + 0.012f, 18);
+        for (int i = 0; i < 14; ++i)
+            for (int k = 0; k < 16; ++k) {
+                const float a = 2 * Pi * k / 16, x = -half + 0.26f + i * 0.066f;
+                const glm::vec3 c(x, y + std::cos(a) * (r + 0.02f), std::sin(a) * (r + 0.02f));
+                box(parts.iron, c - glm::vec3(0.022f, 0.012f, 0.012f), c + glm::vec3(0.022f, 0.012f, 0.012f));
+            }
+        cylinder(parts.iron, {-half - 0.2f, y, 0}, {half + 0.2f, y, 0}, 0.025f, 8);
+        for (const float s : {-1.f, 1.f}) {
+            const float x = s * (half + 0.2f);
+            cylinder(parts.iron, {x, y, 0}, {x, y - 0.32f, 0.08f}, 0.022f, 8);
+            cylinder(parts.darkWood, {x, y - 0.32f, 0.08f}, {x + s * 0.18f, y - 0.32f, 0.08f}, 0.03f, 8);
         }
-    // Trestles: two legs each, crossing below the axle, a foot beam.
+        return parts;
+    }
+    // Trestles: two legs each, crossing below the axle, a foot beam, the bearings.
     for (const float x : {-half, half}) {
         for (const float z : {-0.42f, 0.42f}) cylinder(parts.darkWood, {x, 0.02f, z}, {x, y + 0.08f, 0}, 0.055f, 8);
         box(parts.darkWood, {x - 0.06f, 0.f, -0.5f}, {x + 0.06f, 0.1f, 0.5f});
-        cylinder(parts.iron, {x - 0.08f, y, 0}, {x + 0.08f, y, 0}, 0.04f, 10);          // bearing
-    }
-    // Axle and cranks at both ends.
-    cylinder(parts.iron, {-half - 0.2f, y, 0}, {half + 0.2f, y, 0}, 0.025f, 8);
-    for (const float s : {-1.f, 1.f}) {
-        const float x = s * (half + 0.2f);
-        cylinder(parts.iron, {x, y, 0}, {x, y - 0.32f, 0.08f}, 0.022f, 8);
-        cylinder(parts.darkWood, {x, y - 0.32f, 0.08f}, {x + s * 0.18f, y - 0.32f, 0.08f}, 0.03f, 8);
+        cylinder(parts.iron, {x - 0.08f, y, 0}, {x + 0.08f, y, 0}, 0.04f, 10);
     }
     return parts;
 }

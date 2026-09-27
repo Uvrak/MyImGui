@@ -21,7 +21,10 @@ struct Parts {
 };
 
 Parts portcullis(float length, float height);
-Parts winch();
+// The standing trestles (drum = false) or the turning part (drum = true: drum, bands, chain,
+// axle and cranks, turning about the x axis at WinchAxle metres).
+inline constexpr float WinchAxle = 0.72f, WinchDrumRadius = 0.2f;
+Parts winch(bool drum);
 void stairStep(Parts& out, glm::vec3 low, glm::vec3 high);
 
 }
