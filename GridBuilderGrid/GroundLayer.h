@@ -2,6 +2,7 @@
 #include <imgui.h>
 #include "GridPaintSelection.h"
 #include <cstdint>
+#include <string>
 #include <vector>
 #include <stdexcept>
 #include <functional>
@@ -29,6 +30,19 @@ using WallDropCallback = std::function<void(int,int,int,std::uint32_t)>;
 struct GroundMaterial {
     ImTextureID texture = 0;
     ImU32 color = IM_COL32_WHITE;
+};
+// Optional image layers drawn over the ground in the given order: each sprite covers a
+// rectangle in cell units and may extend beyond its cell. Texture ownership stays with the
+// caller. Layers can be hidden; the grid knows nothing about what the images show.
+struct GroundSprite {
+    float x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+    ImTextureID texture = 0;
+    ImU32 color = IM_COL32_WHITE;
+};
+struct GroundSpriteLayer {
+    std::string name;
+    bool visible = true;
+    std::vector<GroundSprite> sprites;
 };
 struct GroundLayer {
     int width = 0, height = 0;

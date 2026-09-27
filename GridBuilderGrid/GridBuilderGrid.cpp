@@ -163,6 +163,23 @@ void GridBuilderGrid::setEditorToolsEnabled(bool enabled)
     m_impl->worldViewWindow.setEditorToolsEnabled(enabled);
 }
 
+std::size_t GridBuilderGrid::addSpriteLayer(GroundSpriteLayer layer)
+{
+    return m_impl->worldViewWindow.addSpriteLayer(std::move(layer));
+}
+std::size_t GridBuilderGrid::spriteLayerCount() const
+{
+    return m_impl->worldViewWindow.spriteLayerCount();
+}
+const GroundSpriteLayer& GridBuilderGrid::spriteLayer(std::size_t index) const
+{
+    return m_impl->worldViewWindow.spriteLayer(index);
+}
+void GridBuilderGrid::setSpriteLayerVisible(std::size_t index, bool visible)
+{
+    m_impl->worldViewWindow.setSpriteLayerVisible(index, visible);
+}
+
 void GridBuilderGrid::focusGroundCell(int x, int y)
 {
     m_impl->worldViewWindow.focusGroundCell(x, y);

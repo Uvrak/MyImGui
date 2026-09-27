@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="App">
+      <UniqueIdentifier>{3a8d1c55-7e02-4b6f-a1d9-5c24e8f06b11}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Britannia3d">
+      <UniqueIdentifier>{c4e7a219-6b3f-4d58-9e21-7a0b5d8c3f64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="U7 Daten">
+      <UniqueIdentifier>{9f2e4b70-1c3d-4a85-b6e7-0d8a5c31f422}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Britannia3dView.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>App</Filter>
+    </ClCompile>
+    <ClCompile Include="U7Data.cpp">
+      <Filter>U7 Daten</Filter>
+    </ClCompile>
+    <ClCompile Include="U7GroundGrid.cpp">
+      <Filter>U7 Daten</Filter>
+    </ClCompile>
+    <ClCompile Include="U7ObjectModel.cpp">
+      <Filter>Britannia3d</Filter>
+    </ClCompile>
+    <ClCompile Include="U7ObjectLayer.cpp">
+      <Filter>U7 Daten</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Britannia3dView.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="U7Data.h">
+      <Filter>U7 Daten</Filter>
+    </ClInclude>
+    <ClInclude Include="U7GroundGrid.h">
+      <Filter>U7 Daten</Filter>
+    </ClInclude>
+    <ClInclude Include="U7ObjectModel.h">
+      <Filter>Britannia3d</Filter>
+    </ClInclude>
+    <ClInclude Include="U7ObjectLayer.h">
+      <Filter>U7 Daten</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

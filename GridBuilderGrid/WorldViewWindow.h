@@ -48,6 +48,10 @@ public:
     struct SelectionAction {std::string label;GridSelectionAction callback;bool graphicOnly=false;};
     std::vector<SelectionAction> selectionActions;
     void setGroundLayer(GroundLayer layer, const std::string& title);
+    std::size_t addSpriteLayer(GroundSpriteLayer layer);
+    std::size_t spriteLayerCount() const { return m_spriteLayers.size(); }
+    const GroundSpriteLayer& spriteLayer(std::size_t index) const { return m_spriteLayers.at(index).layer; }
+    void setSpriteLayerVisible(std::size_t index, bool visible) { m_spriteLayers.at(index).layer.visible = visible; }
     void focusGroundCell(int x, int y);
     GroundViewState groundView() const;
     void setGroundView(GroundViewState view);
@@ -135,6 +139,15 @@ public:
 
 private:
     GroundLayer m_ground;
+    // Sprite layers with a bucket index (SpriteBucket cells square) for culling.
+    static constexpr int SpriteBucket = 16;
+    struct IndexedSpriteLayer {
+        GroundSpriteLayer layer;
+        int bucketsX = 0, bucketsY = 0, originX = 0, originY = 0;
+        std::vector<std::vector<std::uint32_t>> buckets;
+    };
+    std::vector<IndexedSpriteLayer> m_spriteLayers;
+    void drawSpriteLayers(ImDrawList* drawList, ImVec2 canvasPosition, ImVec2 canvasEnd);
     GridPlacementQuery m_placementQuery;
     GridPlacementCallback m_placementApply;
     GridPaintSelection m_activeTile;

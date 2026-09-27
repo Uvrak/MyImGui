@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{7c1b8e3a-5d24-4f6a-9b71-2e8c4a6d93f1}</ProjectGuid>
+    <RootNamespace>Ultima73d</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v145</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
+      <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(SolutionDir)Engine;$(SolutionDir)ThirdParty\glm;$(SolutionDir)ThirdParty\glad\include;$(SolutionDir)GridBuilderGrid;$(SolutionDir)GridBuilderCore;$(SolutionDir)MyImGui;$(SolutionDir)ThirdParty\imgui;$(SolutionDir)ThirdParty\imgui\backends;$(SolutionDir)ThirdParty\SDL3\include;$(SolutionDir)ThirdParty\SDL3_image\include;$(SolutionDir)ThirdParty\IconFontCppHeaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>$(SolutionDir)ThirdParty\SDL3\lib\x64;$(SolutionDir)ThirdParty\SDL3_image\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL3.lib;SDL3_image.lib;opengl32.lib;d3d11.lib;d3dcompiler.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>xcopy /y /d "$(SolutionDir)ThirdParty\SDL3\lib\x64\SDL3.dll" "$(OutDir)" &gt;nul
+xcopy /y /d "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutDir)" &gt;nul</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;U73D_PROJECT_DIR="$(ProjectDir.Replace('\','/'))";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;U73D_PROJECT_DIR="$(ProjectDir.Replace('\','/'))";%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Engine\Engine.vcxproj">
+      <Project>{4b2d8f61-93ce-4a07-8e5c-1f7a2b6c9d30}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GridBuilderCore\GridBuilderCore.vcxproj">
+      <Project>{f1e86453-4a0c-4062-a662-38e91def7ccd}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\GridBuilderGrid\GridBuilderGrid.vcxproj">
+      <Project>{f8d2b9b9-56b8-43d6-8d97-d10ea19c7951}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\MyImGui\MyImGui.vcxproj">
+      <Project>{df47b7a7-9d08-45a7-afe0-485bef09fe61}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Britannia3dView.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="U7Data.cpp" />
+    <ClCompile Include="U7GroundGrid.cpp" />
+    <ClCompile Include="U7ObjectLayer.cpp" />
+    <ClCompile Include="U7ObjectModel.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Britannia3dView.h" />
+    <ClInclude Include="U7Data.h" />
+    <ClInclude Include="U7GroundGrid.h" />
+    <ClInclude Include="U7ObjectLayer.h" />
+    <ClInclude Include="U7ObjectModel.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

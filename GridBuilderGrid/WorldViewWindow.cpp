@@ -41,6 +41,68 @@ void WorldViewWindow::setGroundLayer(GroundLayer layer, const std::string& title
     m_viewport.m_followPlayer = false;
 }
 
+std::size_t WorldViewWindow::addSpriteLayer(GroundSpriteLayer layer)
+{
+    IndexedSpriteLayer indexed;
+    float minX = 0, minY = 0, maxX = 1, maxY = 1;
+    if (!layer.sprites.empty()) {
+        minX = maxX = layer.sprites[0].x0; minY = maxY = layer.sprites[0].y0;
+        for (const auto& s : layer.sprites) {
+            minX = (std::min)(minX, s.x0); minY = (std::min)(minY, s.y0);
+            maxX = (std::max)(maxX, s.x1); maxY = (std::max)(maxY, s.y1);
+        }
+    }
+    indexed.originX = int(std::floor(minX / SpriteBucket));
+    indexed.originY = int(std::floor(minY / SpriteBucket));
+    indexed.bucketsX = int(std::floor(maxX / SpriteBucket)) - indexed.originX + 1;
+    indexed.bucketsY = int(std::floor(maxY / SpriteBucket)) - indexed.originY + 1;
+    indexed.buckets.resize(size_t(indexed.bucketsX) * indexed.bucketsY);
+    for (std::uint32_t i = 0; i < layer.sprites.size(); ++i) {
+        const auto& s = layer.sprites[i];
+        const int bx0 = int(std::floor(s.x0 / SpriteBucket)) - indexed.originX, bx1 = int(std::floor(s.x1 / SpriteBucket)) - indexed.originX;
+        const int by0 = int(std::floor(s.y0 / SpriteBucket)) - indexed.originY, by1 = int(std::floor(s.y1 / SpriteBucket)) - indexed.originY;
+        for (int by = by0; by <= by1; ++by)
+            for (int bx = bx0; bx <= bx1; ++bx)
+                indexed.buckets[size_t(by) * indexed.bucketsX + bx].push_back(i);
+    }
+    indexed.layer = std::move(layer);
+    m_spriteLayers.push_back(std::move(indexed));
+    return m_spriteLayers.size() - 1;
+}
+
+void WorldViewWindow::drawSpriteLayers(ImDrawList* drawList, ImVec2 canvasPosition, ImVec2 canvasEnd)
+{
+    const float cell = m_viewport.m_cellSize;
+    if (cell <= 0) return;
+    const float left = m_viewport.m_cameraX / cell, top = m_viewport.m_cameraY / cell;
+    const float right = left + (canvasEnd.x - canvasPosition.x) / cell, bottom = top + (canvasEnd.y - canvasPosition.y) / cell;
+    std::vector<std::uint32_t> visible;
+    for (const auto& indexed : m_spriteLayers) {
+        if (!indexed.layer.visible || indexed.buckets.empty()) continue;
+        const int bx0 = (std::max)(0, int(std::floor(left / SpriteBucket)) - indexed.originX - 1);
+        const int by0 = (std::max)(0, int(std::floor(top / SpriteBucket)) - indexed.originY - 1);
+        const int bx1 = (std::min)(indexed.bucketsX - 1, int(std::floor(right / SpriteBucket)) - indexed.originX + 1);
+        const int by1 = (std::min)(indexed.bucketsY - 1, int(std::floor(bottom / SpriteBucket)) - indexed.originY + 1);
+        visible.clear();
+        for (int by = by0; by <= by1; ++by)
+            for (int bx = bx0; bx <= bx1; ++bx) {
+                const auto& bucket = indexed.buckets[size_t(by) * indexed.bucketsX + bx];
+                visible.insert(visible.end(), bucket.begin(), bucket.end());
+            }
+        // Keep the caller's draw order; sprites spanning several buckets appear once.
+        std::sort(visible.begin(), visible.end());
+        visible.erase(std::unique(visible.begin(), visible.end()), visible.end());
+        for (const auto i : visible) {
+            const auto& s = indexed.layer.sprites[i];
+            if (s.x1 < left || s.y1 < top || s.x0 > right || s.y0 > bottom) continue;
+            const ImVec2 p(canvasPosition.x + s.x0 * cell - m_viewport.m_cameraX, canvasPosition.y + s.y0 * cell - m_viewport.m_cameraY);
+            const ImVec2 q(canvasPosition.x + s.x1 * cell - m_viewport.m_cameraX, canvasPosition.y + s.y1 * cell - m_viewport.m_cameraY);
+            if (s.texture) drawList->AddImage(s.texture, p, q, {0, 0}, {1, 1}, s.color);
+            else drawList->AddRectFilled(p, q, s.color);
+        }
+    }
+}
+
 void WorldViewWindow::focusGroundCell(int x, int y)
 {
     m_viewport.m_fittedChunkSize = 0;
@@ -509,6 +571,7 @@ void WorldViewWindow::draw(
             }
         }
     }
+    if (m_groundOnly && m_editorStyle==GridEditorStyle::GraphicTiles) drawSpriteLayers(drawList, canvasPosition, mapCanvasEnd);
     if(gridLinesVisible)WorldView::drawGrid(m_viewport, m_style, m_chunkSize,
         drawList,
         canvasPosition,

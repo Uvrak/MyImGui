@@ -43,6 +43,11 @@ public:
     GroundViewState groundView() const;
     void setGroundView(GroundViewState view);
     void setGroundCell(int x, int y, GroundMaterial material);
+    // Image layers over the ground (see GroundSpriteLayer); returns the layer index.
+    std::size_t addSpriteLayer(GroundSpriteLayer layer);
+    std::size_t spriteLayerCount() const;
+    const GroundSpriteLayer& spriteLayer(std::size_t index) const;
+    void setSpriteLayerVisible(std::size_t index, bool visible);
     void setGroundBorder(int x, int y, std::uint8_t border);
     void setEditorStyle(GridEditorStyle style);
     void setGridLinesVisible(bool visible);

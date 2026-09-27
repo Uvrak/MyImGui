@@ -1,0 +1,146 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{cf7ac0b9-5a33-4b4a-9081-208fa3470256}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Math">
+      <UniqueIdentifier>{58039e41-47b1-449b-8ddd-979f67637985}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Rendering">
+      <UniqueIdentifier>{3c97018d-cd23-4d89-9f71-1c6ba5bd6210}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="World">
+      <UniqueIdentifier>{b1490ab0-5695-40a8-98d8-7d4d8a30c979}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Input">
+      <UniqueIdentifier>{f068a176-cf54-4dff-8e6b-a2e69c3c4c91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="NewFilter1">
+      <UniqueIdentifier>{f91b5a6b-7ec5-4eac-be12-ff9bdae01e1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UI">
+      <UniqueIdentifier>{210bca30-4507-4a98-b394-a0bf3dd2483c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Application.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Window.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="World.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Shader.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="MainMenu.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="ResolutionWindow.h">
+      <Filter>UI</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldMode.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="IWorld.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="NormalWorld.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="OpeningMotion.h"><Filter>World</Filter></ClInclude>
+    <ClInclude Include="TileChunk.h"><Filter>World</Filter></ClInclude>
+    <ClInclude Include="TileWorld.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="WorldManager.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="Tile.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="CubeFace.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="TileCoord.h">
+      <Filter>World</Filter>
+    </ClInclude>
+    <ClInclude Include="TileRenderBatch.h">
+      <Filter>World</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Application.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Window.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\glad\src\gl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Shader.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Mesh.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldSettings.h">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="MainMenu.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="ResolutionWindow.cpp">
+      <Filter>UI</Filter>
+    </ClCompile>
+    <ClCompile Include="NormalWorld.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="TileWorld.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="WorldManager.cpp">
+      <Filter>World</Filter>
+    </ClCompile>
+    <ClCompile Include="TileMaterial.h">
+      <Filter>World</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>
