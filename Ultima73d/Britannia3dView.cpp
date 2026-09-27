@@ -3,8 +3,12 @@
 #include "PixelArtScale.h"
 #include "U73dScale.h"
 #include "SlateMaterial.h"
+#include "AshlarMaterial.h"
+#include "CobbleMaterial.h"
+#include "GrassMaterial.h"
 #include "StoneMaterial.h"
 #include "ThatchMaterial.h"
+#include "GateModels.h"
 #include "LampModel.h"
 #include "WellModel.h"
 #include "TreeModel.h"
@@ -93,6 +97,15 @@ uniform int planks;             // 0: U7 graphic, 1/2: boards, 3: thatch, 4: sto
 uniform sampler2D stoneAlbedo;
 uniform sampler2D stoneNormal;
 uniform float stoneSize;        // metres along a wall per atlas face
+uniform sampler2D grassAlbedo;
+uniform sampler2D grassNormal;
+uniform float grassSize;
+uniform sampler2D cobbleAlbedo;
+uniform sampler2D cobbleNormal;
+uniform float cobbleSize;
+uniform sampler2D ashlarAlbedo;
+uniform sampler2D ashlarNormal;
+uniform float ashlarSize;
 uniform float stoneHeight;      // metres up per atlas face (a storey)
 uniform sampler2D slateAlbedo;
 uniform sampler2D slateNormal;
@@ -130,13 +143,54 @@ void main() {
         else if (abs(n.x) > 0.5) { uv = vec2(vFlat.z * woodTile, -vFlat.y); t = vec3(0, 0, 1); down = vec3(0, -1, 0); }
         else { uv = vec2(vFlat.x * woodTile, -vFlat.y); t = vec3(1, 0, 0); down = vec3(0, -1, 0); }
         if (planks == 2 && abs(n.y) <= 0.5) { uv = uv.yx; vec3 s = t; t = down; down = s; }
-        const bool stone = planks == 4;
-        uv /= stone ? stoneSize : woodSize;
-        vec3 relief = (stone ? texture(stoneNormal, uv) : texture(woodNormal, uv)).xyz * 2.0 - 1.0;
+        const bool stone = planks == 4, ashlar = planks == 6;
+        uv /= stone ? stoneSize : ashlar ? ashlarSize : woodSize;
+        vec3 relief = (stone ? texture(stoneNormal, uv) : ashlar ? texture(ashlarNormal, uv) : texture(woodNormal, uv)).xyz * 2.0 - 1.0;
         vec3 bumped = normalize(mat3(flatModel) * (t * relief.x + down * relief.y + n * relief.z));
         float light = 0.42 + 0.65 * max(dot(bumped, sun), 0.0);
-        vec3 albedo = stone ? texture(stoneAlbedo, uv).rgb * tint * 2.0 : tint * texture(woodAlbedo, uv).rgb * 2.0;
+        vec3 albedo = stone ? texture(stoneAlbedo, uv).rgb * tint * 2.0 : ashlar ? texture(ashlarAlbedo, uv).rgb * 1.3 : tint * texture(woodAlbedo, uv).rgb * 2.0;
         color = vec4(albedo * light * vShade, 1.0);
+        return;
+    }
+    if (tileArray && vShade >= 4000.0) {
+        // Lawn edge with earth: U7's green pixels become the high resolution grass, its earth stays.
+        vec4 earth = texture(tiles, vec3(vUv, vShade - 4000.0));
+        vec2 uv = vFlat.xz * woodTile / grassSize;
+        vec3 relief = texture(grassNormal, uv).xyz * 2.0 - 1.0;
+        float light = 0.5 + 0.55 * max(dot(normalize(vec3(relief.x, relief.z, relief.y)), sun), 0.0);
+        vec3 lawn = texture(grassAlbedo, uv).rgb * light;
+        float greenness = earth.g - max(earth.r, earth.b);
+        color = vec4(mix(earth.rgb, lawn, smoothstep(0.0, 0.05, greenness)), 1.0);
+        return;
+    }
+    if (tileArray && vShade >= 3000.0) {
+        // Street with dirt: U7's grey stones become the cobblestone, its dirt stays.
+        vec4 dirt = texture(tiles, vec3(vUv, vShade - 3000.0));
+        vec2 uv = vFlat.xz * woodTile / cobbleSize;
+        vec3 relief = texture(cobbleNormal, uv).xyz * 2.0 - 1.0;
+        float light = 0.45 + 0.62 * max(dot(normalize(vec3(relief.x, relief.z, relief.y)), sun), 0.0);
+        vec3 stone = texture(cobbleAlbedo, uv).rgb * light;
+        float saturation = max(max(dirt.r, dirt.g), dirt.b) - min(min(dirt.r, dirt.g), dirt.b);
+        float isStone = 1.0 - smoothstep(0.05, 0.12, saturation);
+        color = vec4(mix(dirt.rgb, stone, isStone), 1.0);
+        return;
+    }
+    if (tileArray && vShade >= 2000.0) {
+        // Lawn: the high resolution grass, mapped in metres.
+        vec2 uv = vFlat.xz * woodTile / grassSize;
+        vec3 relief = texture(grassNormal, uv).xyz * 2.0 - 1.0;
+        vec3 bumped = normalize(vec3(relief.x, relief.z, relief.y));
+        float light = 0.5 + 0.55 * max(dot(bumped, sun), 0.0);
+        color = vec4(texture(grassAlbedo, uv).rgb * light, 1.0);
+        return;
+    }
+    if (tileArray && vShade >= 1000.0) {
+        // Street: cobblestone mapped in metres (x east, y south).
+        vec2 uv = vFlat.xz * woodTile / cobbleSize;
+        vec3 relief = texture(cobbleNormal, uv).xyz * 2.0 - 1.0;
+        vec3 bumped = normalize(vec3(relief.x, relief.z, relief.y));
+        float light = 0.45 + 0.62 * max(dot(bumped, sun), 0.0);
+        color = vec4(texture(cobbleAlbedo, uv).rgb * light, 1.0);
         return;
     }
     vec4 texel = tileArray ? texture(tiles, vec3(vUv, vShade)) : texture(image, vUv);
@@ -172,6 +226,10 @@ void Britannia3dView::destroy() {
     m_models.clear();
     m_walls.clear();
     m_roofTiles.clear();
+    m_fortressTiles.clear();
+    m_gates.clear();
+    m_gateIron.destroy(); m_gateWood.destroy();
+    m_stepTops.clear();
     m_solidTiles.clear();
     m_stableProps.reset();
     m_stableTools.reset();
@@ -365,6 +423,253 @@ void Britannia3dView::loadModels(const U7::Data& data, const std::vector<std::pa
     }
 }
 
+void Britannia3dView::buildGateModels(const U7::Data& data, const std::vector<std::pair<U7::WorldObject, float>>& parts) {
+    if (parts.empty()) return;
+    constexpr float tm = U73dScale::TileMetres;
+    glm::vec3 woodTone(0.45f, 0.32f, 0.24f);
+    for (const auto& batch : m_batches) if (batch.planks == 1 && batch.tint != glm::vec3(1)) { woodTone = batch.tint; break; }
+    const std::uint8_t ironColour[4] = {70, 70, 74, 255};
+    const unsigned ironTexture = makeTexture(1, 1, ironColour, false);
+    GateModels::Parts all;
+    std::vector<glm::vec3> winches;
+    // (x, z) in metres on the flat world; models are placed by a turn and an offset.
+    auto place = [&](const GateModels::Parts& model, glm::vec3 origin, bool turn) {
+        auto put = [&](const std::vector<GateModels::Vertex>& from, std::vector<GateModels::Vertex>& to) {
+            for (auto v : from) {
+                if (turn) { v.position = glm::vec3(-v.position.z, v.position.y, v.position.x); v.normal = glm::vec3(-v.normal.z, v.normal.y, v.normal.x); }
+                v.position += origin;
+                to.push_back(v);
+            }
+        };
+        put(model.iron, all.iron);
+        put(model.wood, all.wood);
+        put(model.darkWood, all.darkWood);
+    };
+    for (const auto& [o, liftMetres] : parts) {
+        const auto size = data.shapeSize(o.shape);
+        const auto name = lower(data.name(o.shape));
+        const float x0 = float(o.x - size.x + 1) * tm, z0 = float(o.y - size.y + 1) * tm;
+        const float x1 = float(o.x + 1) * tm, z1 = float(o.y + 1) * tm;
+        if (name == "portcullis") {
+            Gate gate;
+            gate.alongX = size.x > size.y;
+            gate.length = float(gate.alongX ? size.x : size.y);
+            gate.height = size.z * U73dScale::StructureLift;
+            // Along x it runs from x0 through the tile row's middle; along y turned by 90 degrees.
+            gate.origin = gate.alongX ? glm::vec3(float(o.x - size.x + 1), o.lift * U73dScale::StructureLift, o.y + 0.5f)
+                                      : glm::vec3(o.x + 0.5f, o.lift * U73dScale::StructureLift, float(o.y - size.y + 1));
+            m_gates.push_back(gate);
+        } else if (name == "winch") {
+            winches.push_back(glm::vec3((x0 + x1) / 2 / tm, o.lift * liftMetres, (z0 + z1) / 2 / tm));
+            const bool alongX = size.x > size.y;
+            place(GateModels::winch(), {(x0 + x1) / 2, o.lift * liftMetres, (z0 + z1) / 2}, !alongX);
+        } else {
+            // A stair step: its block from the ground (or its lift) to its top.
+            const float base = o.lift * liftMetres, top = (o.lift + size.z) * liftMetres;
+            GateModels::Parts step;
+            GateModels::stairStep(step, {x0, base, z0}, {x1, top, z1});
+            place(step, glm::vec3(0), false);
+            const glm::vec3 a(x0 / tm, top, z0 / tm), b(x1 / tm, top, z0 / tm), c(x1 / tm, top, z1 / tm), d(x0 / tm, top, z1 / tm);
+            m_stepTops.insert(m_stepTops.end(), {a, b, c, a, c, d});
+        }
+    }
+    // Each gate is worked by its nearest winch; the portcullis mesh is shared (along x, in tiles).
+    for (auto& gate : m_gates) {
+        float best = 1e9f;
+        const glm::vec3 centre = gate.origin + (gate.alongX ? glm::vec3(gate.length / 2, 0, 0) : glm::vec3(0, 0, gate.length / 2));
+        for (const auto& w : winches)
+            if (const float d = glm::distance(glm::vec2(w.x, w.z), glm::vec2(centre.x, centre.z)); d < best) { best = d; gate.winch = w; }
+    }
+    if (!m_gates.empty()) {
+        const auto model = GateModels::portcullis(m_gates.front().length * tm, m_gates.front().height);
+        auto upload = [&](ow3d::Mesh& mesh, const std::vector<GateModels::Vertex>& vertices) {
+            std::vector<float> data;
+            for (const auto& v : vertices)
+                data.insert(data.end(), {v.position.x / tm, v.position.y, v.position.z / tm, v.normal.x, v.normal.y, v.normal.z, v.uv.x, v.uv.y, 1.f});
+            mesh.create(data.data(), unsigned(data.size() / 9), 9);
+        };
+        upload(m_gateIron, model.iron);
+        upload(m_gateWood, model.darkWood);
+        if (!m_ironTexture) { const std::uint8_t iron[4] = {58, 56, 54, 255}; m_ironTexture = makeTexture(1, 1, iron, false); }
+    }
+    struct Part { const std::vector<GateModels::Vertex>* vertices; int planks; glm::vec3 tint; unsigned texture; int layer; };
+    const Part list[3] = {{&all.iron, 0, glm::vec3(1), ironTexture, 1}, {&all.wood, 1, woodTone, 0, 1}, {&all.darkWood, 1, woodTone * 0.7f, 0, 1}};
+    for (const auto& part : list) {
+        auto& batch = m_batches.emplace_back();
+        batch.planks = part.planks;
+        batch.tint = part.tint;
+        batch.texture = part.texture;
+        batch.layer = part.layer;
+        for (const auto& v : *part.vertices)
+            batch.vertices.push_back({v.position.x / tm, v.position.y, v.position.z / tm, v.normal.x, v.normal.y, v.normal.z, v.uv.x, v.uv.y, 1.f});
+    }
+}
+
+void Britannia3dView::buildRoads() {
+    const auto cobble = CobbleMaterial::loadOrCreate(assetDirectory, m_roadColours);
+    m_cobbleAlbedo = makeTexture(cobble.size, cobble.size, cobble.albedo.data(), true);
+    m_cobbleNormal = makeTexture(cobble.size, cobble.size, cobble.normal.data(), true);
+    for (unsigned id : {m_cobbleAlbedo, m_cobbleNormal}) {
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    }
+    const int x0 = m_groundRect.x, y0 = m_groundRect.y, x1 = m_groundRect.z, y1 = m_groundRect.w, w = x1 - x0;
+    auto& road = m_roadTiles;
+    road.clear();
+    std::set<std::pair<int, int>> doorZone, doorCobbles;
+    for (const auto& door : m_doors) {
+        if (door.kind != 0) continue;
+        const glm::vec3 dir = glm::vec3(glm::rotate(glm::mat4(1), door.baseYaw, glm::vec3(0, 1, 0)) * glm::vec4(-1, 0, 0, 0));
+        for (float t = 0.25f; t < door.length; t += 0.5f) {
+            const glm::vec3 p = door.pivot + dir * t;
+            for (int dy = -2; dy <= 2; ++dy)
+                for (int dx = -2; dx <= 2; ++dx) doorZone.insert({int(std::floor(p.x)) + dx, int(std::floor(p.z)) + dy});
+        }
+    }
+    for (int y = y0; y < y1; ++y)
+        for (int x = x0; x < x1; ++x) {
+            const int layer = m_tileLayer[size_t(y - y0) * w + (x - x0)];
+            if (!m_roadLayer[size_t(layer)] || m_roofTiles.count({x, y}) || m_solidTiles.count({x, y})) continue;
+            if (doorZone.count({x, y})) {
+                // In front of a door: the same cobbles, level with the threshold.
+                auto* v = m_batches[m_groundBatch].vertices.data() + (size_t(y - y0) * w + (x - x0)) * 6;
+                for (int i = 0; i < 6; ++i) v[i].shade += 1000.f;
+                doorCobbles.insert({x, y});
+                continue;
+            }
+            road.insert({x, y});
+            auto* v = m_batches[m_groundBatch].vertices.data() + (size_t(y - y0) * w + (x - x0)) * 6;
+            for (int i = 0; i < 6; ++i) { v[i].shade += 1000.f; v[i].y = RoadHeight; }
+        }
+    // Kerbs: dressed stone 0.25 m wide and 0.12 m high along the edges where a street tile meets
+    // other open ground (grass, earth); not against walls or houses.
+    auto& kerb = m_batches.emplace_back();
+    kerb.planks = 6;
+    kerb.layer = 0;
+    constexpr float tm = U73dScale::TileMetres, width = 0.25f / tm, height = 0.12f;
+    auto box = [&](glm::vec2 a, glm::vec2 b) {                // a / b: opposite corners (tiles)
+        const glm::vec3 c[8] = {{a.x, 0, a.y}, {b.x, 0, a.y}, {b.x, 0, b.y}, {a.x, 0, b.y},
+                                {a.x, height, a.y}, {b.x, height, a.y}, {b.x, height, b.y}, {a.x, height, b.y}};
+        const int f[5][4] = {{4, 5, 6, 7}, {0, 1, 5, 4}, {2, 3, 7, 6}, {1, 2, 6, 5}, {3, 0, 4, 7}};
+        const glm::vec3 n[5] = {{0, 1, 0}, {0, 0, -1}, {0, 0, 1}, {1, 0, 0}, {-1, 0, 0}};
+        const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        for (int k = 0; k < 5; ++k) addQuad(kerb, {c[f[k][0]], c[f[k][1]], c[f[k][2]], c[f[k][3]]}, uv, n[k]);
+    };
+    // Street tiles with dirt next to a street: the cobbles with the dirt, level with the ground, no kerb.
+    for (int y = y0; y < y1; ++y)
+        for (int x = x0; x < x1; ++x) {
+            const int layer = m_tileLayer[size_t(y - y0) * w + (x - x0)];
+            // (Under a roof only in a doorway: the threshold of the shed.)
+            if (!m_mixedLayer[size_t(layer)] || (m_roofTiles.count({x, y}) && !doorZone.count({x, y})) || m_solidTiles.count({x, y})) continue;
+            bool near = false;
+            for (int dy = -3; dy <= 3 && !near; ++dy)
+                for (int dx = -3; dx <= 3 && !near; ++dx) near = road.count({x + dx, y + dy}) || doorCobbles.count({x + dx, y + dy});
+            if (!near) continue;
+            auto* v = m_batches[m_groundBatch].vertices.data() + (size_t(y - y0) * w + (x - x0)) * 6;
+            for (int i = 0; i < 6; ++i) v[i].shade = float(layer) + 3000.f;
+            doorCobbles.insert({x, y});
+        }
+    auto free = [&](int x, int y) {
+        return x >= x0 && y >= y0 && x < x1 && y < y1 && !road.count({x, y}) && !m_solidTiles.count({x, y}) && !m_roofTiles.count({x, y}) &&
+               !doorZone.count({x, y}) && !doorCobbles.count({x, y});
+    };
+    // Diagonal corners: an open tile with street on two adjacent sides (and not on the other
+    // two) gets the street's half as a triangle with a diagonal kerb, grass on the other half.
+    // Corners: 0 north west, 1 north east, 2 south east, 3 south west.
+    std::map<std::pair<int, int>, int> diagonal;                 // tile -> corner towards the street
+    for (int y = y0; y < y1; ++y)
+        for (int x = x0; x < x1; ++x) {
+            if (!free(x, y)) continue;
+            const bool n = road.count({x, y - 1}) > 0, e = road.count({x + 1, y}) > 0, so = road.count({x, y + 1}) > 0, w = road.count({x - 1, y}) > 0;
+            if (n + e + so + w != 2) continue;
+            if (n && e) diagonal[{x, y}] = 1;
+            else if (e && so) diagonal[{x, y}] = 2;
+            else if (so && w) diagonal[{x, y}] = 3;
+            else if (w && n) diagonal[{x, y}] = 0;
+        }
+    auto open = [&](int x, int y) { return free(x, y) && !diagonal.count({x, y}); };
+    {
+        auto& ground = m_batches[m_groundBatch];
+        const glm::vec2 corner[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        for (const auto& [tile, c] : diagonal) {
+            const auto [x, y] = tile;
+            // The grass half: the ground layer of the open neighbour away from the street.
+            const glm::ivec2 away[4] = {{1, 1}, {-1, 1}, {-1, -1}, {1, -1}};         // opposite of corner c
+            int grass = -1;
+            for (const glm::ivec2 d : {glm::ivec2(away[c].x, 0), glm::ivec2(0, away[c].y)})
+                if (open(x + d.x, y + d.y)) { grass = m_tileLayer[size_t(y + d.y - y0) * w + (x + d.x - x0)]; break; }
+            auto* v = ground.vertices.data() + (size_t(y - y0) * w + (x - x0)) * 6;
+            if (grass >= 0) for (int i = 0; i < 6; ++i) v[i].shade = float(grass);
+            // Street triangle at street height.
+            const glm::vec2 p0 = glm::vec2(x, y) + corner[(c + 3) % 4], p1 = glm::vec2(x, y) + corner[c], p2 = glm::vec2(x, y) + corner[(c + 1) % 4];
+            for (const auto& p : {p0, p1, p2})
+                ground.vertices.push_back({p.x, RoadHeight, p.y, 0, 1, 0, 0, 0, 1000.f});
+        }
+    }
+    // Where a street meets a house floor or a doorway (no kerb): a stone edge down to the floor.
+    auto skirt = [&](glm::vec2 a, glm::vec2 b, glm::vec3 n) {
+        const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        addQuad(kerb, {glm::vec3(a.x, RoadHeight, a.y), glm::vec3(b.x, RoadHeight, b.y), glm::vec3(b.x, 0, b.y), glm::vec3(a.x, 0, a.y)}, uv, n);
+    };
+    auto lower = [&](int x, int y) { return x >= x0 && y >= y0 && x < x1 && y < y1 && !road.count({x, y}); };
+    for (const auto& [x, y] : road) {
+        if (lower(x, y - 1)) skirt({float(x), float(y)}, {float(x + 1), float(y)}, {0, 0, -1});
+        if (lower(x, y + 1)) skirt({float(x), float(y + 1)}, {float(x + 1), float(y + 1)}, {0, 0, 1});
+        if (lower(x - 1, y)) skirt({float(x), float(y)}, {float(x), float(y + 1)}, {-1, 0, 0});
+        if (lower(x + 1, y)) skirt({float(x + 1), float(y)}, {float(x + 1), float(y + 1)}, {1, 0, 0});
+    }
+    auto inWall = [&](int x, int y) {
+        for (int dy = -1; dy <= 1; ++dy)
+            for (int dx = -1; dx <= 1; ++dx) if (m_fortressTiles.count({x + dx, y + dy})) return true;
+        return false;
+    };
+    // Diagonal kerbs along the corner triangles' long side, on the street side.
+    for (const auto& [tile, c] : diagonal) {
+        if (inWall(tile.first, tile.second)) continue;
+        const glm::vec2 corner[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        const glm::vec2 base(float(tile.first), float(tile.second));
+        glm::vec2 a = base + corner[(c + 3) % 4], b = base + corner[(c + 1) % 4];
+        const glm::vec2 toward = base + corner[c];
+        const glm::vec2 off = glm::normalize(toward - (a + b) * 0.5f) * width;
+        // Mitred into the straight kerbs at both ends.
+        const glm::vec2 dir = glm::normalize(b - a);
+        a -= dir * width; b += dir * width;
+        const glm::vec2 q[4] = {a, b, b + off, a + off};
+        const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        auto at = [&](glm::vec2 p, float h) { return glm::vec3(p.x, h, p.y); };
+        const glm::vec2 along = glm::normalize(b - a), side = glm::normalize(off);
+        addQuad(kerb, {at(q[0], height), at(q[1], height), at(q[2], height), at(q[3], height)}, uv, {0, 1, 0});
+        addQuad(kerb, {at(q[1], height), at(q[0], height), at(q[0], 0), at(q[1], 0)}, uv, {-side.x, 0, -side.y});
+        addQuad(kerb, {at(q[3], height), at(q[2], height), at(q[2], 0), at(q[3], 0)}, uv, {side.x, 0, side.y});
+        addQuad(kerb, {at(q[0], height), at(q[3], height), at(q[3], 0), at(q[0], 0)}, uv, {-along.x, 0, -along.y});
+        addQuad(kerb, {at(q[2], height), at(q[1], height), at(q[1], 0), at(q[2], 0)}, uv, {along.x, 0, along.y});
+    }
+    {
+        const auto grass = GrassMaterial::loadOrCreate(assetDirectory, m_grassColours);
+        m_grassAlbedo = makeTexture(grass.size, grass.size, grass.albedo.data(), true);
+        m_grassNormal = makeTexture(grass.size, grass.size, grass.normal.data(), true);
+        for (unsigned id : {m_grassAlbedo, m_grassNormal}) {
+            glBindTexture(GL_TEXTURE_2D, id);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        }
+        auto* v = m_batches[m_groundBatch].vertices.data();
+        for (size_t i = 0; i < size_t(w) * (y1 - y0) * 6; ++i)
+            if (v[i].shade < 1000.f) {
+                if (m_grassLayer[size_t(v[i].shade)]) v[i].shade += 2000.f;
+                else if (m_grassEdgeLayer[size_t(v[i].shade)]) v[i].shade += 4000.f;
+            }
+    }
+    for (const auto& [x, y] : road) {
+        if (inWall(x, y)) continue;
+        if (open(x, y - 1)) box({float(x), float(y)}, {float(x + 1), y + width});
+        if (open(x, y + 1)) box({float(x), y + 1 - width}, {float(x + 1), float(y + 1)});
+        if (open(x - 1, y)) box({float(x), float(y)}, {x + width, float(y + 1)});
+        if (open(x + 1, y)) box({x + 1 - width, float(y)}, {float(x + 1), float(y + 1)});
+    }
+}
+
 void Britannia3dView::buildGround(const U7::Data& data) {
     // Detail ground: one quad per tile, its flat tile from a texture array of all flat tiles
     // used, each upscaled to TexelsPerTile (as a 3 x 3 repeat, so it stays seamless).
@@ -401,6 +706,60 @@ void Britannia3dView::buildGround(const U7::Data& data) {
         });
     for (auto& thread : threads) thread.join();
 
+    // Street tiles: mostly grey, hardly coloured pixels (U7's cobbles and kerb stones).
+    m_roadLayer.assign(flats.size(), false);
+    m_roadColours.clear();
+    for (size_t i = 0; i < flats.size(); ++i) {
+        const auto pixels = U7GroundGrid::rgba(data, flats[i].first, flats[i].second);
+        int grey = 0;
+        for (int k = 0; k < P * P; ++k) {
+            const auto* p = pixels.data() + k * 4;
+            const int high = std::max({p[0], p[1], p[2]}), low = std::min({p[0], p[1], p[2]});
+            if (high - low < 16 && high > 25 && high < 215) ++grey;
+        }
+        m_roadLayer[i] = grey >= P * P * 7 / 10;
+        if (m_roadLayer[i] && m_roadColours.size() < 4000)
+            for (int k = 0; k < P * P; ++k) {
+                const auto* p = pixels.data() + k * 4;
+                const glm::vec3 c(p[0] / 255.f, p[1] / 255.f, p[2] / 255.f);
+                if (c.r > 0.2f) m_roadColours.push_back(c);
+            }
+    }
+    // Street tiles with dirt: a quarter or more grey stone pixels, not a full street tile.
+    m_mixedLayer.assign(flats.size(), false);
+    for (size_t i = 0; i < flats.size(); ++i) {
+        if (m_roadLayer[i]) continue;
+        const auto pixels = U7GroundGrid::rgba(data, flats[i].first, flats[i].second);
+        int grey = 0;
+        for (int k = 0; k < P * P; ++k) {
+            const auto* p = pixels.data() + k * 4;
+            const int high = std::max({p[0], p[1], p[2]}), low = std::min({p[0], p[1], p[2]});
+            if (high - low < 16 && high > 25 && high < 215) ++grey;
+        }
+        m_mixedLayer[i] = grey >= P * P / 4;
+    }
+    // Lawn tiles: mostly green pixels; lawn edges: a quarter or more green, with earth.
+    m_grassLayer.assign(flats.size(), false);
+    m_grassEdgeLayer.assign(flats.size(), false);
+    m_grassColours.clear();
+    for (size_t i = 0; i < flats.size(); ++i) {
+        const auto pixels = U7GroundGrid::rgba(data, flats[i].first, flats[i].second);
+        int green = 0;
+        for (int k = 0; k < P * P; ++k) {
+            const auto* p = pixels.data() + k * 4;
+            if (p[1] > p[0] + 6 && p[1] > p[2] + 6) ++green;
+        }
+        m_grassLayer[i] = green >= P * P * 9 / 10;
+        m_grassEdgeLayer[i] = !m_grassLayer[i] && green >= P * P / 4 && !m_roadLayer[i];
+        if (m_grassLayer[i] && m_grassColours.size() < 4000)
+            for (int k = 0; k < P * P; ++k) {
+                const auto* p = pixels.data() + k * 4;
+                if (p[1] > p[0] + 6 && p[1] > p[2] + 6) m_grassColours.push_back(glm::vec3(p[0], p[1], p[2]) / 255.f);
+            }
+    }
+    m_groundRect = glm::ivec4(x0, y0, x1, y1);
+    m_tileLayer = tileLayer;
+
     GLuint array = 0;
     glGenTextures(1, &array);
     glBindTexture(GL_TEXTURE_2D_ARRAY, array);
@@ -415,6 +774,7 @@ void Britannia3dView::buildGround(const U7::Data& data) {
     glTexParameterf(GL_TEXTURE_2D_ARRAY, 0x84FE /* GL_TEXTURE_MAX_ANISOTROPY, core 4.6 */, 8.f);
     m_textures.push_back(array);
 
+    m_groundBatch = m_batches.size();
     auto& batch = m_batches.emplace_back();
     batch.texture = array;
     batch.array = true;
@@ -1227,8 +1587,9 @@ unsigned Britannia3dView::railTexture() {
     return m_railTexture;
 }
 
-void Britannia3dView::buildTownFences(const U7::Data& data, const std::vector<U7::WorldObject>& fences) {
-    if (fences.empty()) return;
+void Britannia3dView::buildTownFences(const U7::Data& data, const std::vector<U7::WorldObject>& fences,
+                                      const std::vector<std::pair<glm::vec2, glm::vec2>>& runs) {
+    if (fences.empty() && runs.empty()) return;
     constexpr float tm = U73dScale::TileMetres;
     auto& batch = m_batches.emplace_back();
     batch.texture = railTexture();
@@ -1275,6 +1636,13 @@ void Britannia3dView::buildTownFences(const U7::Data& data, const std::vector<U7
         post(a, dir);
         post(b, dir);
     }
+    for (const auto& [a, b] : runs) {
+        box(a, b, 0.42f, 0.16f, 0.14f);
+        box(a, b, 0.90f, 0.16f, 0.14f);
+        const glm::vec2 dir = glm::normalize(b - a);
+        post(a, dir);
+        post(b, dir);
+    }
 }
 
 void Britannia3dView::buildFences() {
@@ -1286,9 +1654,16 @@ void Britannia3dView::buildFences() {
     std::map<std::tuple<int, int, int>, glm::vec2> shifts;      // edge -> shift in U7 tiles
     std::string line;
     std::getline(in, line);
-    while (edges.size() < count && std::getline(in, line)) {
+    m_fenceRuns.clear();
+    while (std::getline(in, line)) {
         if (line.empty() || line[0] == '#') continue;
         std::istringstream row(line);
+        if (line.rfind("run ", 0) == 0) {
+            std::string word;
+            glm::vec2 a, b;
+            if (row >> word >> a.x >> a.y >> b.x >> b.y) m_fenceRuns.push_back({a, b});
+            continue;
+        }
         int x, y, side;
         if (!(row >> x >> y >> side)) continue;
         glm::vec2 shift(0);
@@ -1368,6 +1743,68 @@ void Britannia3dView::ensureDoorMeshes() {
 bool Britannia3dView::indoors(glm::vec3 point, glm::vec3 direction) const {
     const glm::vec3 p = point + direction * 1.5f;
     return m_roofTiles.count({int(std::floor(p.x)), int(std::floor(p.z))}) > 0;
+}
+
+glm::mat4 Britannia3dView::gateModel(const Gate& gate) const {
+    glm::mat4 m = glm::translate(glm::mat4(1), gate.origin + glm::vec3(0, gate.raised, 0));
+    if (!gate.alongX) m = glm::rotate(m, glm::radians(-90.f), glm::vec3(0, 1, 0));
+    return m;
+}
+
+bool Britannia3dView::operateGate(size_t index, bool immediately) {
+    if (index >= m_gates.size() || m_gates[index].locked) return false;
+    auto& gate = m_gates[index];
+    gate.open = !gate.open;
+    if (immediately) gate.raised = gate.open ? gate.height * 0.8f : 0.f;
+    return true;
+}
+
+int Britannia3dView::pickWinch(glm::vec2 ndc) const {
+    // The winch's box (1.6 x 1 x 1 m) on screen; the nearest hit wins.
+    const auto viewProjection = m_camera.projectionMatrix() * m_camera.viewMatrix();
+    constexpr float tm = U73dScale::TileMetres;
+    int best = -1;
+    float bestDepth = 1e30f;
+    for (size_t i = 0; i < m_gates.size(); ++i) {
+        glm::vec2 low(1e9f), high(-1e9f);
+        float depth = 0;
+        bool visible = true;
+        for (int k = 0; k < 8; ++k) {
+            const glm::vec3 corner = m_gates[i].winch + glm::vec3((k & 1 ? 0.8f : -0.8f) / tm, k & 2 ? 1.0f : 0.f, (k & 4 ? 0.8f : -0.8f) / tm);
+            const auto clip = viewProjection * glm::vec4(planet(corner), 1);
+            if (clip.w <= 0) { visible = false; break; }
+            const glm::vec2 p = glm::vec2(clip) / clip.w;
+            low = glm::min(low, p); high = glm::max(high, p);
+            depth += clip.w / 8;
+        }
+        if (visible && ndc.x >= low.x && ndc.x <= high.x && ndc.y >= low.y && ndc.y <= high.y && depth < bestDepth) {
+            bestDepth = depth;
+            best = int(i);
+        }
+    }
+    return best;
+}
+
+void Britannia3dView::drawGates(unsigned program) {
+    if (m_gates.empty()) return;
+    const GLint model = glGetUniformLocation(program, "flatModel"), planks = glGetUniformLocation(program, "planks"),
+                tint = glGetUniformLocation(program, "tint");
+    glm::vec3 wood(0.45f, 0.32f, 0.24f);
+    for (const auto& batch : m_batches) if (batch.planks == 1 && batch.tint != glm::vec3(1)) { wood = batch.tint * 0.7f; break; }
+    for (const auto& gate : m_gates) {
+        const auto matrix = gateModel(gate);
+        glUniformMatrix4fv(model, 1, GL_FALSE, &matrix[0][0]);
+        glUniform1i(planks, 0);
+        glBindTexture(GL_TEXTURE_2D, m_ironTexture);
+        m_gateIron.bind();
+        glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_gateIron.vertexCount()));
+        glUniform1i(planks, 1);
+        glUniform3f(tint, wood.r, wood.g, wood.b);
+        m_gateWood.bind();
+        glDrawArrays(GL_TRIANGLES, 0, GLsizei(m_gateWood.vertexCount()));
+    }
+    const glm::mat4 identity(1);
+    glUniformMatrix4fv(model, 1, GL_FALSE, &identity[0][0]);
 }
 
 bool Britannia3dView::characterUnderRoof() const {
@@ -1480,7 +1917,10 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         // U7's wells (470) become 3D wells; their windlass (740) is part of the model.
         if (object.shape == 470) {
             const auto size = data.shapeSize(object.shape);
-            wellPlaces.push_back({object.x + 1 - size.x * 0.5f, object.y + 1 - size.y * 0.5f});
+            glm::vec2 at(object.x + 1 - size.x * 0.5f, object.y + 1 - size.y * 0.5f);
+            // The well north of the road junction stands in the corner of its lawn, by the kerbs.
+            if (object.x == 1005 && object.y == 2131) at.x += 3.4f;
+            wellPlaces.push_back(at);
             continue;
         }
         if (object.shape == 740) continue;
@@ -1522,7 +1962,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         if (stableScene && name == "wood roof" && object.x >= 1056 && object.x < 1087 && object.y >= 2180 && object.y < 2211)
             continue;
         // Ultima7Remake's fences and trough replace U7's in the stable and the paddock north east of it.
-        if (stableScene && (name == "fence" || name == "trough") &&
+        if (stableScene && (name == "fence" || name == "trough" || name == "water trough") &&
             ((object.x >= m_stableArea.x && object.x < m_stableArea.z && object.y >= m_stableArea.y && object.y < m_stableArea.w) ||
              (object.x >= 1070 && object.x < 1090 && object.y >= 2158 && object.y < 2182)))
             continue;
@@ -1634,6 +2074,19 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         }
         for (auto& [key, model] : m_models) if (model.stone) model.tint = glm::vec3(0.5f);
+        // Town walls: fortress blocks and crenellations get the dressed stone.
+        for (auto& [key, model] : m_models) {
+            const auto name = lower(data.name(key.first));
+            model.fortress = (name == "fortress" || name == "crenellations") && model.kind == U7ObjectModel::Kind::Box;
+        }
+        const auto ashlar = AshlarMaterial::loadOrCreate(assetDirectory, data);
+        m_ashlarAlbedo = makeTexture(ashlar.width, ashlar.height, ashlar.albedo.data(), true);
+        m_ashlarNormal = makeTexture(ashlar.width, ashlar.height, ashlar.normal.data(), true);
+        for (unsigned id : {m_ashlarAlbedo, m_ashlarNormal}) {
+            glBindTexture(GL_TEXTURE_2D, id);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        }
     }
     // Wooden plank walls get the high resolution plank material (stone and plaster keep U7's).
     m_woodAlbedo = makeTexture(wood.size, wood.size, wood.albedo.data(), true);
@@ -1670,13 +2123,38 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
     for (const auto& p : placed) if (p.wall || (p.layer == 1 && p.thinWall)) footprint(*p.object);
     for (const auto& o : houseDoors) footprint(o);
     for (const auto& o : windows) footprint(o);
+    std::vector<std::pair<U7::WorldObject, float>> gateParts;          // object, metres per lift
     for (const auto& p : placed) {
+        const auto name = lower(data.name(p.object->shape));
+        if (name == "fortress" || name == "crenellations" || name == "fortress gateway") {
+            const auto size = data.shapeSize(p.object->shape);
+            for (int y = p.object->y - size.y + 1; y <= p.object->y; ++y)
+                for (int x = p.object->x - size.x + 1; x <= p.object->x; ++x) m_fortressTiles.insert({x, y});
+        }
+        if (name == "portcullis" || name == "winch" || name == "stairs") {
+            gateParts.push_back({*p.object, p.liftMetres});
+            continue;
+        }
+    }
+    for (const auto& p : placed) {
+        const auto name = lower(data.name(p.object->shape));
+        if (name == "portcullis" || name == "winch" || name == "stairs") continue;
         const auto model = m_models.find({p.object->shape, p.object->frame});
         const bool plank = p.wall && model != m_models.end() && model->second.planks && model->second.kind == U7ObjectModel::Kind::Box;
         const bool stoneWall = p.wall && model != m_models.end() && model->second.stone && model->second.kind == U7ObjectModel::Kind::Box;
-        const int planks = plank ? (model->second.post ? 2 : 1) : stoneWall ? 4 : 0;
+        const bool fortress = model != m_models.end() && model->second.fortress;
+        const int planks = plank ? (model->second.post ? 2 : 1) : stoneWall ? 4 : fortress ? 6 : 0;
+        // Walkways: the tops of the town wall, its gateways and raised floors carry Sir Canegm.
+        if (fortress || name == "fortress gateway" || (name == "floor" && p.object->lift > 0)) {
+            const auto size = data.shapeSize(p.object->shape);
+            const float top = (p.object->lift + std::max(size.z, name == "floor" ? 0 : 1)) * p.liftMetres;
+            const float fx0 = float(p.object->x - size.x + 1), fz0 = float(p.object->y - size.y + 1), fx1 = float(p.object->x + 1), fz1 = float(p.object->y + 1);
+            const glm::vec3 a(fx0, top, fz0), b(fx1, top, fz0), c(fx1, top, fz1), d(fx0, top, fz1);
+            m_stepTops.insert(m_stepTops.end(), {a, b, c, a, c, d});
+        }
         addObject(data, *p.object, p.layer, p.roof, p.liftMetres, planks, p.thinWall);
     }
+    buildGateModels(data, gateParts);
     buildSlateRoofs(slateTiles);
     buildGlobe(data);
     if (stableScene) {
@@ -1704,10 +2182,11 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
     buildLamps(lampPlaces);
     buildWells(wellPlaces);
     buildSignposts(data, signPosts, signBoards);
-    buildTownFences(data, townFences);
+    buildTownFences(data, townFences, m_fenceRuns);
     buildOpenings(data, windows, houseDoors);
     if (!m_doors.empty()) ensureDoorMeshes();
     buildPictures(data, pictures);
+    buildRoads();                      // after all walls and roofs: streets outside the houses
     buildTrees(treePlaces);            // after all walls and roofs: the crowns keep clear of them
     for (auto* batches : {&m_batches, &m_globe})
         for (auto& batch : *batches)
@@ -1725,7 +2204,13 @@ void Britannia3dView::prepareCollision(ow3d::BuildingCollision& collision, glm::
     for (int y = cellY - 2; y <= cellY + 2; ++y)
         for (int x = cellX - 2; x <= cellX + 2; ++x)
             if (auto it = m_walls.find({x, y}); it != m_walls.end())
-                for (const auto& p : it->second) triangles.push_back(planet(p));
+                for (size_t k = 0; k + 2 < it->second.size(); k += 3) {
+                    // A face whose top is at most a step (0.7 m) above Sir Canegm's feet is
+                    // stepped onto (stairs, the wall walk), not a wall.
+                    const auto& t = it->second;
+                    if ((std::max)({t[k].y, t[k + 1].y, t[k + 2].y}) <= here.y + 0.7f) continue;
+                    for (int j = 0; j < 3; ++j) triangles.push_back(planet(t[k + j]));
+                }
     if (layerVisible[1])
         for (const auto& door : m_doors) {
             if (door.kind != 0) continue;
@@ -1733,7 +2218,27 @@ void Britannia3dView::prepareCollision(ow3d::BuildingCollision& collision, glm::
             const auto model = doorModel(door);
             for (const auto& p : m_doorLeaf) triangles.push_back(planet(glm::vec3(model * glm::vec4(p, 1))));
         }
+    for (const auto& gate : m_gates) {
+        if (gate.raised > 1.6f) continue;                     // drawn up far enough to pass under
+        const glm::vec3 a = gate.origin, b = gate.origin + (gate.alongX ? glm::vec3(gate.length, 0, 0) : glm::vec3(0, 0, gate.length));
+        if (glm::distance(glm::vec2(a.x, a.z), glm::vec2(here.x, here.z)) > 12.f) continue;
+        const glm::vec3 low(0, gate.raised, 0), up(0, gate.raised + gate.height, 0);
+        for (const auto& q : {a + low, b + low, b + up, a + low, b + up, a + up}) triangles.push_back(planet(q));
+    }
     collision.setSurfaceGeometry(position, height, triangles);
+    // The raised streets carry Sir Canegm.
+    std::vector<glm::vec3> support;
+    for (int y = int(std::floor(here.z)) - 3; y <= int(std::floor(here.z)) + 3; ++y)
+        for (int x = int(std::floor(here.x)) - 3; x <= int(std::floor(here.x)) + 3; ++x)
+            if (m_roadTiles.count({x, y})) {
+                const glm::vec3 a = planet({float(x), RoadHeight, float(y)}), b = planet({float(x + 1), RoadHeight, float(y)});
+                const glm::vec3 c = planet({float(x + 1), RoadHeight, float(y + 1)}), d = planet({float(x), RoadHeight, float(y + 1)});
+                support.insert(support.end(), {a, b, c, a, c, d});
+            }
+    for (size_t i = 0; i + 2 < m_stepTops.size(); i += 3)
+        if (glm::distance(glm::vec2(m_stepTops[i].x, m_stepTops[i].z), glm::vec2(here.x, here.z)) < 10.f)
+            for (int k = 0; k < 3; ++k) support.push_back(planet(m_stepTops[i + k]));
+    if (!support.empty()) collision.appendSupportGeometry(support);
 }
 
 bool Britannia3dView::loadCharacter(const std::filesystem::path& folder, float tileX, float tileY) {
@@ -1867,8 +2372,25 @@ void Britannia3dView::render(int width, int height) {
     glUniform1i(glGetUniformLocation(GLuint(program), "slateAlbedo"), 8);
     glUniform1i(glGetUniformLocation(GLuint(program), "slateNormal"), 9);
     glUniform1f(glGetUniformLocation(GLuint(program), "slateSize"), SlateMaterial::Size);
-    const unsigned units[4] = {m_stoneAlbedo, m_stoneNormal, m_slateAlbedo, m_slateNormal};
-    for (int k = 0; k < 4; ++k) { glActiveTexture(GL_TEXTURE6 + k); glBindTexture(GL_TEXTURE_2D, units[k]); }
+    glUniform1i(glGetUniformLocation(GLuint(program), "grassAlbedo"), 14);
+    glUniform1i(glGetUniformLocation(GLuint(program), "grassNormal"), 15);
+    glUniform1f(glGetUniformLocation(GLuint(program), "grassSize"), GrassMaterial::Size);
+    glActiveTexture(GL_TEXTURE14);
+    glBindTexture(GL_TEXTURE_2D, m_grassAlbedo);
+    glActiveTexture(GL_TEXTURE15);
+    glBindTexture(GL_TEXTURE_2D, m_grassNormal);
+    glUniform1i(glGetUniformLocation(GLuint(program), "cobbleAlbedo"), 12);
+    glUniform1i(glGetUniformLocation(GLuint(program), "cobbleNormal"), 13);
+    glUniform1f(glGetUniformLocation(GLuint(program), "cobbleSize"), CobbleMaterial::Size);
+    glActiveTexture(GL_TEXTURE12);
+    glBindTexture(GL_TEXTURE_2D, m_cobbleAlbedo);
+    glActiveTexture(GL_TEXTURE13);
+    glBindTexture(GL_TEXTURE_2D, m_cobbleNormal);
+    glUniform1i(glGetUniformLocation(GLuint(program), "ashlarAlbedo"), 10);
+    glUniform1i(glGetUniformLocation(GLuint(program), "ashlarNormal"), 11);
+    glUniform1f(glGetUniformLocation(GLuint(program), "ashlarSize"), AshlarMaterial::Size);
+    const unsigned units[6] = {m_stoneAlbedo, m_stoneNormal, m_slateAlbedo, m_slateNormal, m_ashlarAlbedo, m_ashlarNormal};
+    for (int k = 0; k < 6; ++k) { glActiveTexture(GL_TEXTURE6 + k); glBindTexture(GL_TEXTURE_2D, units[k]); }
     glUniform1i(glGetUniformLocation(GLuint(program), "thatchAlbedo"), 4);
     glUniform1i(glGetUniformLocation(GLuint(program), "thatchNormal"), 5);
     glUniform1f(glGetUniformLocation(GLuint(program), "thatchSize"), ThatchMaterial::Size);
@@ -1903,6 +2425,7 @@ void Britannia3dView::render(int width, int height) {
         glUniform1i(tileArray, 0);
         glUniform1i(wind, 0);
         drawDoors(GLuint(program));
+        drawGates(GLuint(program));
     }
     glBindVertexArray(0);
     glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
@@ -2037,7 +2560,31 @@ void Britannia3dView::draw(bool* open) {
     if (hovered && !m_mouseCaptured && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && io.MouseDragMaxDistanceSqr[0] < 16.f &&
         !ImGui::IsMouseDown(ImGuiMouseButton_Right)) {
         const glm::vec2 ndc(2.f * (io.MousePos.x - corner.x) / width - 1.f, 1.f - 2.f * (io.MousePos.y - corner.y) / height);
-        if (const int door = pickDoor(ndc); door >= 0) toggleDoor(size_t(door));
+        if (const int gate = pickWinch(ndc); gate >= 0) {
+            auto& g = m_gates[size_t(gate)];
+            if (io.KeyShift) {
+                g.locked = !g.locked;
+                m_gateMessage = g.locked ? "Winde verriegelt" : "Winde entriegelt";
+            } else if (!operateGate(size_t(gate))) m_gateMessage = "Die Winde ist verriegelt (Shift + Klick entriegelt)";
+            else m_gateMessage = g.open ? "Das Fallgatter wird hochgezogen" : "Das Fallgatter wird herabgelassen";
+            m_gateMessageTime = 3.f;
+        } else if (const int door = pickDoor(ndc); door >= 0) toggleDoor(size_t(door));
+    }
+    for (auto& gate : m_gates) {
+        // Drawn up slowly (0.6 m/s) into the gateway above, let down faster.
+        const float target = gate.open ? gate.height * 0.8f : 0.f, dt = std::clamp(io.DeltaTime, 0.f, 0.1f);
+        const float step = (gate.open ? 0.6f : 1.5f) * dt;
+        gate.raised += std::clamp(target - gate.raised, -step, step);
+    }
+    if (hovered && !m_mouseCaptured) {
+        const glm::vec2 ndc(2.f * (io.MousePos.x - corner.x) / width - 1.f, 1.f - 2.f * (io.MousePos.y - corner.y) / height);
+        if (const int gate = pickWinch(ndc); gate >= 0)
+            ImGui::SetTooltip("Torwinde (%s)\nKlick: Fallgatter %s | Shift + Klick: %s", m_gates[size_t(gate)].locked ? "verriegelt" : "frei",
+                              m_gates[size_t(gate)].open ? "herablassen" : "hochziehen", m_gates[size_t(gate)].locked ? "entriegeln" : "verriegeln");
+    }
+    if (m_gateMessageTime > 0.f) {
+        m_gateMessageTime -= io.DeltaTime;
+        ImGui::GetWindowDrawList()->AddText(ImVec2(corner.x + 12, corner.y + 12), IM_COL32(255, 230, 160, 255), m_gateMessage.c_str());
     }
     for (auto& door : m_doors) {
         const float target = door.open ? door.openAngle : 0.f, step = glm::radians(120.f) * std::clamp(io.DeltaTime, 0.f, 0.1f);

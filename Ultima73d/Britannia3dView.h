@@ -103,7 +103,7 @@ private:
     // planks: the original graphic is a wooden plank wall (brown, not light plaster); tint: its
     // mean colour, so the material keeps the tone of each wall.
     struct Model { unsigned texture = 0; U7ObjectModel::Kind kind = U7ObjectModel::Kind::File; std::vector<U7ObjectModel::Vertex> vertices;
-                   bool planks = false, post = false, stone = false; glm::vec3 tint{1}; };
+                   bool planks = false, post = false, stone = false, fortress = false; glm::vec3 tint{1}; };
 
     void addQuad(Batch& batch, const glm::vec3 (&p)[4], const glm::vec2 (&uv)[4], const glm::vec3& normal);
     // liftMetres: real height of one lift for this object (U73dScale), for its lift and its model.
@@ -113,6 +113,51 @@ private:
     bool indoors(glm::vec3 point, glm::vec3 direction) const;
     void loadModels(const U7::Data& data, const std::vector<std::pair<int, int>>& graphics);
     void buildGround(const U7::Data& data);
+    // Streets: U7's street tiles (grey cobbles) outside the houses get the high resolution
+    // cobblestone (CobbleMaterial) and a raised kerb where they meet other ground.
+    void buildRoads();
+    // Portcullises, winches and wooden stairs as high resolution models (GateModels).
+    void buildGateModels(const U7::Data& data, const std::vector<std::pair<U7::WorldObject, float>>& parts);
+public:
+    // Town gates: a click on the winch raises the portcullis into the gateway above it (or lets
+    // it down), unless the winch is locked; Shift + click locks or unlocks the winch.
+    size_t gateCount() const { return m_gates.size(); }
+    bool gateOpen(size_t gate) const { return m_gates[gate].open; }
+    bool gateLocked(size_t gate) const { return m_gates[gate].locked; }
+    void setGateLocked(size_t gate, bool locked) { m_gates[gate].locked = locked; }
+    // Returns false (and does nothing) while the gate's winch is locked.
+    bool operateGate(size_t gate, bool immediately = false);
+private:
+    struct Gate {
+        glm::vec3 origin{0};              // flat: west / north end of the portcullis, at its lift
+        bool alongX = true;
+        float length = 4.f, height = 3.f; // tiles, metres
+        glm::vec3 winch{0};               // flat centre of its winch
+        bool open = false, locked = false;
+        float raised = 0.f;               // metres the portcullis is drawn up
+    };
+    std::vector<Gate> m_gates;
+    ow3d::Mesh m_gateIron, m_gateWood;
+    std::string m_gateMessage;
+    float m_gateMessageTime = 0.f;
+    glm::mat4 gateModel(const Gate& gate) const;
+    int pickWinch(glm::vec2 ndc) const;
+    void drawGates(unsigned program);
+    std::set<std::pair<int, int>> m_fortressTiles;              // town wall and gateway footprints (no kerbs there)
+    std::vector<glm::vec3> m_stepTops;                          // stair treads (flat, triangles): Sir Canegm climbs them
+    size_t m_groundBatch = 0;
+    glm::ivec4 m_groundRect{0};                                 // tiles x0, y0, x1, y1 (exclusive)
+    std::vector<int> m_tileLayer;                               // ground layer per tile of the rect
+    std::vector<bool> m_roadLayer;                              // per ground layer: a street tile
+    std::vector<glm::vec3> m_roadColours;                       // U7 street pixels
+    std::vector<bool> m_mixedLayer;                             // per ground layer: street stones with dirt
+    std::vector<bool> m_grassLayer;
+    std::vector<bool> m_grassEdgeLayer;                         // per ground layer: lawn with some earth                             // per ground layer: a lawn tile
+    std::vector<glm::vec3> m_grassColours;                      // U7 grass pixels
+    unsigned m_grassAlbedo = 0, m_grassNormal = 0;
+    unsigned m_cobbleAlbedo = 0, m_cobbleNormal = 0;
+    std::set<std::pair<int, int>> m_roadTiles;                  // raised street tiles (Sir Canegm walks on them)
+    static constexpr float RoadHeight = 0.09f;                  // street surface: 3 cm below the kerb (0.12 m)
     void buildGlobe(const U7::Data& data);
     unsigned makeTexture(int width, int height, const std::uint8_t* rgba, bool mipmaps);
     void prepareCollision(ow3d::BuildingCollision& collision, glm::vec3 position, float height) const;
@@ -155,7 +200,9 @@ private:
     // Ultima7Remake's stall and paddock fences (Maps/stable-fences.txt), as KnownGeometry builds them.
     void buildFences();
     // U7's fences in the whole town, rebuilt as the stable's rail fences (two rails, posts).
-    void buildTownFences(const U7::Data& data, const std::vector<U7::WorldObject>& fences);
+    void buildTownFences(const U7::Data& data, const std::vector<U7::WorldObject>& fences,
+                         const std::vector<std::pair<glm::vec2, glm::vec2>>& runs = {});
+    std::vector<std::pair<glm::vec2, glm::vec2>> m_fenceRuns;  // extra rail runs (tiles) from stable-fences.txt
     unsigned railTexture();
     unsigned m_railTexture = 0;
     // Ultima7Remake's loose straw over the stable floor (Maps/stable-straw.txt, Materials/Straw).
@@ -172,7 +219,7 @@ private:
     // frames, and U7's paintings and tapestries as sharp pictures on the inner wall faces.
     void buildOpenings(const U7::Data& data, const std::vector<U7::WorldObject>& windows, const std::vector<U7::WorldObject>& doors);
     void buildPictures(const U7::Data& data, const std::vector<U7::WorldObject>& pictures);
-    unsigned m_slateAlbedo = 0, m_slateNormal = 0, m_stoneAlbedo = 0, m_stoneNormal = 0;
+    unsigned m_slateAlbedo = 0, m_slateNormal = 0, m_stoneAlbedo = 0, m_stoneNormal = 0, m_ashlarAlbedo = 0, m_ashlarNormal = 0;
     // The horse sign as a high resolution wrought iron silhouette on its bracket at the shed wall,
     // and the pitchfork in the gargoyle's chest drawn with U7's own pitchfork graphic.
     void buildSignAndFork(const U7::Data& data);

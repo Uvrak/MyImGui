@@ -138,6 +138,14 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
         view.roofsVisible = !has("--no-roofs");
         if (has("--toggle-doors"))
             for (size_t d = 0; d < view.doorCount(); ++d) view.toggleDoor(d, true);
+        if (has("--open-gates"))
+            for (size_t g = 0; g < view.gateCount(); ++g) view.operateGate(g, true);
+        if (has("--locked-gates")) {
+            for (size_t g = 0; g < view.gateCount(); ++g) view.setGateLocked(g, true);
+            size_t opened = 0;
+            for (size_t g = 0; g < view.gateCount(); ++g) opened += view.operateGate(g, true);
+            std::cout << "Locked gates opened: " << opened << " of " << view.gateCount() << '\n';
+        }
         std::cout << "Doors: " << view.doorCount() << '\n';
         if (const auto* props = view.stableProps())
             for (const auto& e : props->extents())
@@ -157,6 +165,12 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
             if (has("--close")) view.character.setCameraDistance(.07f);
             const auto start = view.character.position();
             if (has("--walk")) for (int i = 0; i < 180; ++i) view.step(1.f / 60.f, true);
+            if (has("--climb")) {
+                // Walk north 8 s and report the height reached (stairs up the town wall).
+                float highest = 0;
+                for (int i = 0; i < 480; ++i) { view.step(1.f / 60.f, true); highest = (std::max)(highest, view.flat(view.character.position()).y); }
+                std::cout << "Climb: highest " << highest << " m, now " << view.flat(view.character.position()).y << " m" << std::endl;
+            }
             for (int i = 0; i < 30; ++i) view.step(1.f / 60.f, false);
             const auto at = view.flat(view.character.position());
             std::cout << "Sir Canegm at tile " << at.x << ',' << at.z << ", walked " << glm::length(view.character.position() - start) / Britannia3dView::Metre << " m\n";

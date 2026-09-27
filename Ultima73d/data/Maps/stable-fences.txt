@@ -1,4 +1,4 @@
-stable-fences-v1 39
+stable-fences-v1 38
 # Ultima7Remake stall and paddock fence edges (kind 5): cell x, cell y, side (0 north, 1 east, 2 south, 3 west edge), optional shift in U7 tiles (east, south)
 655 1224 0
 655 1226 0
@@ -37,5 +37,9 @@ stable-fences-v1 39
 671 1213 3 3 0
 671 1214 3 3 0
 671 1215 3 3 0
-671 1216 3 3 0
 670 1208 0 3 0
+# The paddock closes against the wooden stairs east of the shed (U7 tiles x0 y0 x1 y1).
+run 1087.94 2178.5 1087.0 2178.5
+run 1072.5 2175.9 1072.5 2178.5
+# Closes the gap where the north run meets its extension towards the road.
+run 1084.9 2162.5 1086.25 2162.5
