@@ -651,7 +651,7 @@ Model mirror() {
     for (const float x : {-0.3f, 0.3f}) box(m.parts[DarkWood], {x - 0.025f, 0, -0.025f}, {x + 0.025f, 1.75f, 0.025f});
     box(m.parts[DarkWood], {-0.3f, 0.35f, -0.03f}, {0.3f, 0.4f, 0.03f});
     box(m.parts[DarkWood], {-0.3f, 1.7f, -0.03f}, {0.3f, 1.75f, 0.03f});
-    box(m.parts[Pewter], {-0.275f, 0.4f, -0.01f}, {0.275f, 1.7f, 0.01f});
+    box(m.parts[Mirror], {-0.275f, 0.4f, -0.01f}, {0.275f, 1.7f, 0.01f});
     return m;
 }
 
@@ -781,5 +781,60 @@ Model wagon(float length, float width) {
     return m;
 }
 
+
+
+float weightKg(const std::string& kind, float width, float depth, float height) {
+    struct Entry { const char* kind; float kg; bool perCubicMetre; };
+    // Solid furniture scales with its bulk (kg per m^3 of its box: oak furniture is mostly air);
+    // everything else has one weight.
+    static const Entry table[] = {
+        {"table", 55, true}, {"desk", 70, true}, {"drawers", 110, true}, {"bed", 45, true}, {"seat", 45, true}, {"chair", 6, false},
+        {"crate", 60, true}, {"chest", 90, true}, {"locked chest", 95, true}, {"sealed box", 60, true}, {"unsealed box", 50, true},
+        {"rock", 1600, true}, {"weeds", 0.2f, false}, {"small bush", 6, false}, {"plant", 4, false}, {"evergreen", 450, false},
+        {"light source", 0.4f, false}, {"lit light source", 0.4f, false}, {"lit sconce", 1.2f, false}, {"spent sconce", 1.1f, false},
+        {"cup", 0.25f, false}, {"plate", 0.5f, false}, {"pitcher", 1.4f, false}, {"bottle", 1.1f, false}, {"book", 1.2f, false},
+        {"scroll", 0.15f, false}, {"bag", 0.6f, false}, {"sack of wheat", 40, false}, {"bucket", 2.5f, false}, {"pot", 4, false},
+        {"boots", 1.8f, false}, {"swamp boots", 2.2f, false}, {"horseshoe", 0.35f, false}, {"pillar", 1400, false}, {"haystack", 250, false},
+        {"dagger", 0.4f, false}, {"knife", 0.15f, false}, {"main gauche", 0.6f, false}, {"sword", 1.3f, false}, {"sword blank", 1.1f, false},
+        {"mace", 2.5f, false}, {"morning star", 3, false}, {"club", 1.5f, false}, {"hammer", 1.2f, false}, {"two handed axe", 3.5f, false},
+        {"tongs", 1, false}, {"wooden shield", 5, false}, {"buckler", 2.5f, false}, {"leather helm", 1, false}, {"crested helm", 2.5f, false},
+        {"leather armour", 7, false}, {"leather leggings", 3.5f, false}, {"leather gloves", 0.4f, false}, {"cloak", 2, false},
+        {"hood", 0.5f, false}, {"cloth", 1.5f, false}, {"food item", 0.5f, false}, {"potion", 0.3f, false}, {"broken dish", 0.3f, false},
+        {"desk item", 0.3f, false}, {"gold coin", 0.01f, false}, {"kitchen items", 0.5f, false}, {"eating utensils", 0.2f, false},
+        {"top", 0.1f, false}, {"backpack", 1.5f, false}, {"basket", 1, false}, {"anvil", 110, false}, {"stove", 180, false},
+        {"stove top", 120, false}, {"firepit", 300, false}, {"easel", 6, false}, {"mirror", 25, false}, {"sundial", 300, false},
+        {"podium", 30, false}, {"pedestal", 400, false}, {"water trough", 90, false}, {"lever", 15, false}, {"iron bars", 120, false},
+        {"red flag", 8, false}, {"bellows", 12, false}, {"cauldron", 25, false}, {"cart", 450, false}, {"painting", 6, false},
+        {"tapestry", 12, false}, {"curtain", 4, false}, {"rug", 15, false},
+    };
+    for (const auto& e : table)
+        if (kind == e.kind) return e.perCubicMetre ? std::max(1.f, e.kg * width * depth * std::max(height, 0.1f)) : e.kg;
+    return 1.f;
+}
+
+std::string germanName(const std::string& kind) {
+    static const std::pair<const char*, const char*> names[] = {
+        {"table", "Tisch"}, {"desk", "Schreibtisch"}, {"drawers", "Kommode"}, {"bed", "Bett"}, {"seat", "Bank"}, {"chair", "Stuhl"},
+        {"crate", "Kiste"}, {"chest", "Truhe"}, {"locked chest", "Verschlossene Truhe"}, {"sealed box", "Versiegelte Kiste"},
+        {"unsealed box", "Kiste"}, {"rock", "Stein"}, {"weeds", "Unkraut"}, {"small bush", "Busch"}, {"plant", "Pflanze"},
+        {"evergreen", "Nadelbaum"}, {"light source", "Kerze"}, {"lit light source", "Brennende Kerze"}, {"lit sconce", "Wandleuchter"},
+        {"spent sconce", "Wandleuchter (abgebrannt)"}, {"cup", "Becher"}, {"plate", "Teller"}, {"pitcher", "Krug"}, {"bottle", "Flasche"},
+        {"book", "Buch"}, {"scroll", "Schriftrolle"}, {"bag", "Beutel"}, {"sack of wheat", "Weizensack"}, {"bucket", "Eimer"},
+        {"pot", "Topf"}, {"boots", "Stiefel"}, {"swamp boots", "Sumpfstiefel"}, {"horseshoe", "Hufeisen"}, {"pillar", "Säule"},
+        {"haystack", "Heuhaufen"}, {"dagger", "Dolch"}, {"knife", "Messer"}, {"main gauche", "Parierdolch"}, {"sword", "Schwert"},
+        {"sword blank", "Schwertrohling"}, {"mace", "Streitkolben"}, {"morning star", "Morgenstern"}, {"club", "Keule"},
+        {"hammer", "Hammer"}, {"two handed axe", "Zweihandaxt"}, {"tongs", "Zange"}, {"wooden shield", "Holzschild"},
+        {"buckler", "Buckler"}, {"leather helm", "Lederhelm"}, {"crested helm", "Kammhelm"}, {"leather armour", "Lederwams"},
+        {"leather leggings", "Lederhose"}, {"leather gloves", "Lederhandschuhe"}, {"cloak", "Umhang"}, {"hood", "Kapuze"},
+        {"cloth", "Stoff"}, {"food item", "Brot"}, {"potion", "Trank"}, {"broken dish", "Scherben"}, {"desk item", "Tintenfass"},
+        {"gold coin", "Goldmünzen"}, {"kitchen items", "Besteck"}, {"eating utensils", "Besteck"}, {"top", "Kreisel"},
+        {"backpack", "Rucksack"}, {"basket", "Korb"}, {"anvil", "Amboss"}, {"stove", "Ofen"}, {"stove top", "Herd"},
+        {"firepit", "Feuerstelle"}, {"easel", "Staffelei"}, {"mirror", "Spiegel"}, {"sundial", "Sonnenuhr"}, {"podium", "Lesepult"},
+        {"pedestal", "Sockel"}, {"water trough", "Wassertrog"}, {"lever", "Hebel"}, {"iron bars", "Eisengitter"}, {"red flag", "Flagge"},
+        {"bellows", "Blasebalg"}, {"cauldron", "Kessel"}, {"cart", "Wagen"},
+    };
+    for (const auto& [en, de] : names) if (kind == en) return de;
+    return kind;
+}
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <string>
 #include <vector>
 
 // High resolution models for Trinsic's furniture, stones and plants, in U7's style. Every
@@ -12,7 +13,7 @@ namespace PropModels {
 
 struct Vertex { glm::vec3 position, normal; glm::vec2 uv; };
 
-enum Material { Wood, DarkWood, Iron, Cloth, Linen, Stone, Leaves, Needles, Blades, Clay, Pewter, Glass, Leather, Burlap, Flame, Straw, Steel, Gold, Water, Food, MaterialCount };
+enum Material { Wood, DarkWood, Iron, Cloth, Linen, Stone, Leaves, Needles, Blades, Clay, Pewter, Glass, Leather, Burlap, Flame, Straw, Steel, Gold, Water, Food, Mirror, MaterialCount };
 
 struct Model {
     std::vector<Vertex> parts[MaterialCount];
@@ -90,5 +91,10 @@ Model basket();
 Model bellows();
 // A farm wagon along x, the shafts towards +x.
 Model wagon(float length, float width);
+
+// Realistic weight (kg) of a thing of this U7 kind; furniture scales with its size (metres).
+float weightKg(const std::string& kind, float width, float depth, float height);
+// The German name shown for a kind ("table" -> "Tisch").
+std::string germanName(const std::string& kind);
 
 }

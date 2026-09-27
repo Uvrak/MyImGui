@@ -13,6 +13,7 @@
 //       renders the Britannia3d view of Trinsic as a bitmap, for checks: from above, the whole
 //       globe, or Sir Canegm's camera (after walking 3 s north with --walk; close up; placed).
 #include "Britannia3dView.h"
+#include "Inventory/BackpackPanel.h"
 #include "U7Data.h"
 #include "U7GroundGrid.h"
 #include "U7ObjectLayer.h"
@@ -232,6 +233,36 @@ int main(int argc, char** argv) {
             britannia3d.build(data, TrinsicChunkX0, TrinsicChunkY0, TrinsicChunkX1, TrinsicChunkY1, layerOf, "Trinsic");
             if (!britannia3d.loadCharacter(CanegmFolder, CanegmTileX, CanegmTileY))
                 std::cerr << "Sir Canegm not found in " << CanegmFolder << '\n';
+            // Ultima7Remake's backpack (B): equipment, compass, portrait; its state in
+            // U73dAssets/settings/Canegm. Things picked up in Trinsic go into it too.
+            struct Scene : BackpackScene {
+                Britannia3dView& view;
+                explicit Scene(Britannia3dView& v) : view(v) {}
+                ow3d::AnimatedCharacter& character() override { return view.character; }
+                ow3d::Camera& camera() override { return view.camera(); }
+                bool pickGround(float x, float y, glm::vec3& ground) const override { return view.pickGround(x, y, ground); }
+            } scene(britannia3d);
+            BackpackPanel backpack;
+            bool backpackReady = false;
+            try {
+                const std::filesystem::path assets = AssetDirectory, settings = assets / "settings/Canegm";
+                std::filesystem::create_directories(settings);
+                backpack.load(assets / "Backpack", settings);
+                if (britannia3d.character.loaded()) {
+                    britannia3d.character.outfit.load(CanegmFolder);
+                    backpack.attach(scene);
+                }
+                backpack.extraItems = [&](ImVec2 p, float size) { britannia3d.drawBagItems(p, size); };
+                britannia3d.equipmentKg = [&] { return backpack.carriedKg(); };
+                britannia3d.overlay = [&](ImVec2 a, ImVec2 b) { return backpack.draw(a, b); };
+                britannia3d.overBag = [&](ImVec2 m) {
+                    const auto [p, size] = backpack.panel;
+                    return size > 0 && m.x >= p.x && m.x <= p.x + size && m.y >= p.y && m.y <= p.y + size;
+                };
+                backpackReady = true;
+            } catch (const std::exception& e) {
+                std::cerr << "Backpack: " << e.what() << '\n';
+            }
             bool open = true, running = true, britannia3dOpen = true;
             while (running) {
                 SDL_Event event;
@@ -274,6 +305,7 @@ int main(int argc, char** argv) {
                 SDL_GL_SwapWindow(window);
                 if (!open) running = false;
             }
+            if (backpackReady) backpack.saveNow();
         }
         MyImGui::shutdown();
         SDL_GL_DestroyContext(context);

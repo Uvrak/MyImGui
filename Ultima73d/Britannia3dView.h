@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+#include <imgui.h>
 #include "U73dScale.h"
 #include "U7Data.h"
 #include "DoorModel.h"
@@ -49,6 +51,20 @@ public:
     // Loads Sir Canegm from an Ultima7Remake character folder and places him on a tile position
     // (fractional), looking north.
     bool loadCharacter(const std::filesystem::path& folder, float tileX, float tileY);
+    ow3d::Camera& camera() { return m_camera; }
+    // The ground under a screen point (normalised device coordinates), in world coordinates.
+    bool pickGround(float x, float y, glm::vec3& ground) const;
+    // Drawn over the view after it (the backpack); returns whether the mouse is over it.
+    std::function<bool(ImVec2, ImVec2)> overlay;
+    // Whether a screen point lies over the open backpack (things dropped there go into it).
+    std::function<bool(ImVec2)> overBag;
+    // The things in the backpack, drawn into its panel (top left, size); they can be dragged
+    // back out onto the ground.
+    void drawBagItems(ImVec2 panel, float size);
+    float bagWeight() const;
+    static constexpr float BagCapacityKg = 30.f;
+    // The weight of what else the backpack holds (its equipment and compass), kg.
+    std::function<float()> equipmentKg;
     // ImGui window "Britannia3d".
     void draw(bool* open);
     // Renders one image with the current camera, for exports and tests (RGBA, top row first).
@@ -98,7 +114,8 @@ private:
     // 1 horizontal boards, 2 upright boards (WoodMaterial, tinted), 3 thatch, 4 stone wall
     // (StoneMaterial), 5 slate (SlateMaterial).
     // wind: 0 still, 1 sways (bark), 2 sways and flutters (leaves).
-    struct Batch { unsigned texture = 0; int layer = 0; bool roof = false, array = false; int planks = 0, wind = 0; glm::vec3 tint{1};
+    // cutout: may be cut away by the see-through circle (not the ground, kerbs and furniture).
+    struct Batch { unsigned texture = 0; int layer = 0; bool roof = false, array = false, cutout = true; int planks = 0, wind = 0; glm::vec3 tint{1};
                    std::vector<Vertex> vertices; ow3d::Mesh mesh; };
     // planks: the original graphic is a wooden plank wall (brown, not light plaster); tint: its
     // mean colour, so the material keeps the tone of each wall.
@@ -154,6 +171,7 @@ private:
     std::vector<glm::vec3> m_roadColours;                       // U7 street pixels
     std::vector<bool> m_mixedLayer;                             // per ground layer: street stones with dirt
     std::vector<bool> m_grassLayer;
+    std::vector<int> m_floorLayer;                              // per ground layer, a house floor: 0 no, 1 boards, 2 flagstones, 3 bricks, 4 carpet
     std::vector<bool> m_grassEdgeLayer;                         // per ground layer: lawn with some earth                             // per ground layer: a lawn tile
     std::vector<glm::vec3> m_grassColours;                      // U7 grass pixels
     unsigned m_grassAlbedo = 0, m_grassNormal = 0, m_mudAlbedo = 0, m_mudNormal = 0;
@@ -238,6 +256,30 @@ private:
     // and size, shared by all objects of that kind. base: height of the object's lift, metres.
     struct PropPlace { U7::WorldObject object; std::string name; int layer; float base; };
     void buildProps(const U7::Data& data, const std::vector<PropPlace>& props);
+    // U7's rugs as woven rugs with fringes (TextileArt), lying on the floor.
+    void buildRugs(const U7::Data& data, const std::vector<U7::WorldObject>& rugs);
+    // Every placed thing with its box (flat tiles x / z, metres y) and weight, for the tooltip.
+    // spans: its vertices (batch, first, count); things under 100 kg can be dragged
+    // with the left button, over the floor or into the backpack.
+    struct Span { size_t batch, first, count; };
+    struct Item { std::string name; glm::vec3 low, high; float kg = 0; std::vector<Span> spans; bool inBag = false;
+                  bool movable() const { return kg < 100.f && !spans.empty(); } };
+    void putInBag(size_t item);
+    void placeItem(size_t item, glm::vec3 flatPoint);
+    void uploadItem(size_t item);
+    bool m_overlayHovered = false;
+    std::string m_bagMessage;
+    float m_bagMessageTime = 0;
+    std::vector<Item> m_items;
+    int pickItem(glm::vec2 ndc) const;
+    // Where the mouse ray meets the level y (metres) in the flat world.
+    glm::vec3 groundUnder(glm::vec2 ndc, float y) const;
+    void moveItem(size_t item, glm::vec2 tiles);
+    int m_dragItem = -1;
+    bool m_itemGrabbed = false;
+    int m_hoverItem = -1, m_hoverDoor = -1, m_hoverGate = -1;     // what the mouse points at (lit up)
+    static constexpr float HoverBrighten = 1.45f;             // this press took a thing (no door click on release)
+    glm::vec3 m_dragGrab{0};
     // 3D signposts from U7's post (713) with its arrow boards (379); a post or board that does
     // not belong to a signpost stays U7's graphic.
     void buildSignposts(const U7::Data& data, const std::vector<U7::WorldObject>& posts, const std::vector<U7::WorldObject>& signs);
