@@ -8,8 +8,10 @@
 //   Ultima73d.exe [U7 STATIC directory]
 //   Ultima73d.exe --export <out.bmp> <x0> <y0> <width> <height> [U7 STATIC directory]
 //       writes a tile rectangle with all layers as a bitmap (no window), for checks.
-//   Ultima73d.exe --export3d <out.bmp> [chunk x0 y0 x1 y1] [--no-layers] [--no-roofs]
-//       renders the Britannia3d view (default: Trinsic) as a bitmap, for checks.
+//   Ultima73d.exe --export3d <out.bmp> [--no-layers] [--no-roofs] [--globe] [--canegm] [--walk]
+//                 [--close] [--at <tile x> <tile y>]
+//       renders the Britannia3d view of Trinsic as a bitmap, for checks: from above, the whole
+//       globe, or Sir Canegm's camera (after walking 3 s north with --walk; close up; placed).
 #include "Britannia3dView.h"
 #include "U7Data.h"
 #include "U7GroundGrid.h"
@@ -20,6 +22,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <algorithm>
+#include <vector>
 #include <cstring>
 #include <iostream>
 #include <string>
@@ -99,6 +102,9 @@ int exportRegion(const U7::Data& data, const char* file, int x0, int y0, int wid
 
 // Trinsic with its town walls, the fields around it and the docks in the east.
 constexpr int TrinsicChunkX0 = 57, TrinsicChunkY0 = 129, TrinsicChunkX1 = 70, TrinsicChunkY1 = 146;
+// Sir Canegm from Ultima7Remake, on the street in front of the stable (its door faces south).
+const char* CanegmFolder = "C:/Projects/OpenWorld3D/Ultima7Remake/assets/Characters/SirCanegm";
+constexpr float CanegmTileX = 1068.5f, CanegmTileY = 2213.f;
 
 SDL_Window* createWindow(const char* title, int width, int height, SDL_WindowFlags flags, SDL_GLContext& context) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
@@ -113,7 +119,9 @@ SDL_Window* createWindow(const char* title, int width, int height, SDL_WindowFla
     return window;
 }
 
-int export3d(const U7::Data& data, const char* file, int x0, int y0, int x1, int y1, bool roofs, bool layers) {
+int export3d(const U7::Data& data, const char* file, const std::vector<std::string>& options) {
+    auto has = [&](const char* option) { return std::find(options.begin(), options.end(), option) != options.end(); };
+    const int x0 = TrinsicChunkX0, y0 = TrinsicChunkY0, x1 = TrinsicChunkX1, y1 = TrinsicChunkY1;
     if (!SDL_Init(SDL_INIT_VIDEO)) throw std::runtime_error(SDL_GetError());
     SDL_GLContext context = nullptr;
     SDL_Window* window = createWindow("Britannia3d", 64, 64, SDL_WINDOW_HIDDEN, context);
@@ -122,8 +130,22 @@ int export3d(const U7::Data& data, const char* file, int x0, int y0, int x1, int
         Britannia3dView view;
         view.assetDirectory = AssetDirectory;
         view.build(data, x0, y0, x1, y1, layerOf, "Trinsic");
-        view.roofsVisible = roofs;
-        view.layerVisible[1] = view.layerVisible[3] = layers;
+        view.roofsVisible = !has("--no-roofs");
+        view.layerVisible[1] = view.layerVisible[3] = !has("--no-layers");
+        if (has("--globe")) view.setFreeCamera((x0 + x1 + 1) * 8.f, (y0 + y1 + 1) * 8.f, 5200.f, 20.f, 55.f);
+        if (has("--canegm")) {
+            float tileX = CanegmTileX, tileY = CanegmTileY;
+            if (const auto at = std::find(options.begin(), options.end(), "--at"); at != options.end() && options.end() - at >= 3) {
+                tileX = std::stof(at[1]); tileY = std::stof(at[2]);
+            }
+            if (!view.loadCharacter(CanegmFolder, tileX, tileY)) throw std::runtime_error("Sir Canegm could not be loaded");
+            if (has("--close")) view.character.setCameraDistance(.07f);
+            const auto start = view.character.position();
+            if (has("--walk")) for (int i = 0; i < 180; ++i) view.step(1.f / 60.f, true);
+            for (int i = 0; i < 30; ++i) view.step(1.f / 60.f, false);
+            const auto at = view.flat(view.character.position());
+            std::cout << "Sir Canegm at tile " << at.x << ',' << at.z << ", walked " << glm::length(view.character.position() - start) / Britannia3dView::Metre << " m\n";
+        }
         constexpr int width = 1200, height = 900;
         auto pixels = view.renderImage(width, height);
         auto* image = SDL_CreateSurfaceFrom(width, height, SDL_PIXELFORMAT_RGBA32, pixels.data(), width * 4);
@@ -145,15 +167,9 @@ int main(int argc, char** argv) {
     try {
         if (argc >= 2 && std::string(argv[argc - 1]) == "--list") { listing = true; --argc; }
         if (argc >= 3 && std::string(argv[1]) == "--export3d") {
-            const bool roofs = std::string(argv[argc - 1]) != "--no-roofs";
-            if (!roofs) --argc;
-            const bool layers = std::string(argv[argc - 1]) != "--no-layers";   // hides layers 1 and 3
-            if (!layers) --argc;
             U7::Data data;
             data.load(DefaultStatic);
-            if (argc >= 7)
-                return export3d(data, argv[2], std::stoi(argv[3]), std::stoi(argv[4]), std::stoi(argv[5]), std::stoi(argv[6]), roofs, layers);
-            return export3d(data, argv[2], TrinsicChunkX0, TrinsicChunkY0, TrinsicChunkX1, TrinsicChunkY1, roofs, layers);
+            return export3d(data, argv[2], std::vector<std::string>(argv + 3, argv + argc));
         }
         const bool exporting = argc >= 7 && std::string(argv[1]) == "--export";
         const std::string staticDirectory = exporting ? (argc >= 8 ? argv[7] : DefaultStatic) : (argc >= 2 ? argv[1] : DefaultStatic);
@@ -183,6 +199,8 @@ int main(int argc, char** argv) {
             Britannia3dView britannia3d;
             britannia3d.assetDirectory = AssetDirectory;
             britannia3d.build(data, TrinsicChunkX0, TrinsicChunkY0, TrinsicChunkX1, TrinsicChunkY1, layerOf, "Trinsic");
+            if (!britannia3d.loadCharacter(CanegmFolder, CanegmTileX, CanegmTileY))
+                std::cerr << "Sir Canegm not found in " << CanegmFolder << '\n';
             bool open = true, running = true, britannia3dOpen = true;
             while (running) {
                 SDL_Event event;
