@@ -1870,6 +1870,21 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 }
         }
     }
+    // Mountain tiles, for their height: the further inside a range, the higher (a massif).
+    std::set<std::pair<int, int>> mountainTiles;
+    for (const auto& prop : props)
+        if (prop.name == "mountain" || prop.name == "cavern") {
+            const auto size = data.shapeSize(prop.object.shape);
+            for (int y = prop.object.y - size.y + 1; y <= prop.object.y; ++y)
+                for (int x = prop.object.x - size.x + 1; x <= prop.object.x; ++x) mountainTiles.insert({x, y});
+        }
+    auto depthInRange = [&](int x, int y) {
+        for (int r = 1; r <= 24; ++r)
+            for (int k = -r; k <= r; ++k)
+                for (const auto [dx, dy] : {std::pair{k, -r}, {k, r}, {-r, k}, {r, k}})
+                    if (!mountainTiles.count({x + dx, y + dy})) return r - 1;
+        return 24;
+    };
     // Tables and desks, for turning the chairs: a chair's back is away from the nearest table.
     std::vector<glm::vec4> tableRects;   // x0, y0, x1, y1 (tiles)
     // Tops of the furniture things can stand on, per tile (metres).
@@ -1907,6 +1922,7 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
         const PropModels::Model* m = nullptr;
         bool centred = false;   // stones and plants: centred on the object, turned at random
         bool turned = true;     // (false: centred, not turned; or turned by fixedTurn)
+        float solid = 0;        // metres: a wall for Sir Canegm around its footprint (stones, mountains)
         float fixedTurn = 0;
         glm::vec2 wallAt(-1);   // a sconce: its wall face, tiles
         int layer = prop.layer, cover = 0;
@@ -2086,6 +2102,43 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             else if (prop.name == "artist's equipment") m = &model("palette", [] { return PropModels::palette(); });
             else if (prop.name == "great dagger") m = &model("great dagger", [] { return PropModels::blade(0.5f, true); });
             else if (prop.name == "body" || prop.name == "victim") { cover = 1; m = &model("body", [] { return PropModels::body(); }); }
+            else if (prop.name == "mountain" || prop.name == "cavern") {
+                turned = false;
+                // A massif: low at the foot of the range, rising towards its middle (cave walls stay
+                // storey-high walls).
+                const bool dark = prop.name == "cavern";
+                const int inside = dark ? 0 : depthInRange(int(centre.x), int(centre.y));
+                const float high = dark ? std::max(1, int(size.z)) * U73dScale::StructureLift
+                                        : std::max(w, d) * (0.5f + 0.1f * float(variant)) + std::min(inside, 12) * 0.6f;
+                const int step = int(high / 1.5f);
+                m = &model(dims(prop.name.c_str()) + v + " " + std::to_string(step), [&] { return PropModels::mountain(w, d, step * 1.5f + 1.f, variant + 1, dark); });
+                solid = high;
+            } else if (prop.name == "crops") m = &model(dims("crops") + v, [&] { return PropModels::crops(w, d, variant + 1); });
+            else if (prop.name == "reeds" || prop.name == "cattails") {
+                const bool heads = prop.name == "cattails";
+                m = &model(prop.name + " " + v, [&] { return PropModels::reeds(0.5f, variant + 1, heads); });
+            } else if (prop.name == "fern") m = &model("fern " + v, [&] { return PropModels::fern(0.9f, variant + 1); });
+            else if (prop.name == "pumpkin") m = &model("pumpkin " + v, [&] { return PropModels::pumpkin(variant); });
+            else if (prop.name == "cactus") { m = &model("cactus " + v, [&] { return PropModels::cactus(variant); }); solid = 1.5f; }
+            else if (prop.name == "lily pads") m = &model("lily " + v, [&] { return PropModels::lilyPads(std::max(w, d), variant + 1); });
+            else if (prop.name == "mushrooms") m = &model("mushrooms " + v, [&] { return PropModels::mushrooms(variant + 1); });
+            else if (prop.name == "piece of wood") m = &model("log " + v, [&] { return PropModels::log(variant); });
+            else if (prop.name == "small rock") m = &model("small rock " + v, [&] { return PropModels::rock(0.3f, variant + 3); });
+            else if (prop.name == "large rock" || prop.name == "boulder") {
+                const float s = std::max(w, d) * (prop.name == "boulder" ? 1.f : 0.9f);
+                m = &model(prop.name + " " + std::to_string(int(s * 10)) + " " + v, [&] { return PropModels::rock(s, variant + 7); });
+                solid = s * 0.5f;
+            } else if (prop.name == "standing stone" || prop.name == "monolith") {
+                const float high = prop.name == "monolith" ? 3.2f : 2.4f;
+                m = &model(prop.name + " " + v, [&] { return PropModels::standingStone(high, variant + 11); });
+                solid = high;
+            } else if (prop.name == "barrel") { centred = false; m = &model(dims("barrel"), [&] { return PropModels::barrel(h); }); }
+            else if (prop.name == "bookshelf") {
+                turned = false;
+                const bool alongX = size.x >= size.y;
+                fixedTurn = alongX ? 0.f : 1.5707963f;
+                m = &model(dims("bookshelf"), [&] { return PropModels::bookshelf(std::max(w, d), std::min(w, d), h); });
+            } else if (prop.name == "corpse") { cover = 1; m = &model("body", [] { return PropModels::body(); }); }
             else if (prop.name == "cart") {
                 continue;   // all pieces of a wagon as one, below
             } else if (prop.name == "evergreen") {
@@ -2159,6 +2212,17 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                     }
                 if (std::min(gaps[0], gaps[1]) < reach) anchor.x += gaps[0] <= gaps[1] ? -(gaps[0] - clear) : gaps[1] - clear;
                 if (std::min(gaps[2], gaps[3]) < reach) anchor.z += gaps[2] <= gaps[3] ? -(gaps[2] - clear) : gaps[3] - clear;
+            }
+        }
+        if (solid > 0) {
+            // Its footprint's sides as wall triangles, as high as the thing.
+            const glm::vec2 lo(centre.x - size.x * 0.5f, centre.y - size.y * 0.5f), hi(centre.x + size.x * 0.5f, centre.y + size.y * 0.5f);
+            auto& cell = m_walls[{o.x / 8, o.y / 8}];
+            const glm::vec3 c[4] = {{lo.x, prop.base, lo.y}, {hi.x, prop.base, lo.y}, {hi.x, prop.base, hi.y}, {lo.x, prop.base, hi.y}};
+            const glm::vec3 up(0, solid, 0);
+            for (int k = 0; k < 4; ++k) {
+                const glm::vec3 a = c[k], b = c[(k + 1) % 4];
+                for (const auto& q : {a, b, b + up, a, b + up, a + up}) cell.push_back(q);
             }
         }
         {
@@ -3412,22 +3476,33 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             lampPlaces.push_back({object.x + 0.5f, object.y + 0.5f});
             continue;
         }
+        // Mountains and cave walls: rocky masses (PropModels::mountain), still walls for Sir Canegm.
+        if (layer == 1 && (name == "mountain" || name == "cavern")) {
+            props.push_back({object, name, 1, object.lift * U73dScale::StructureLift});
+            continue;
+        }
         // Layer 3 (rocks, plants, trees): data/Maps/terrain-variants.txt says which 3D model
         // stands for each U7 graphic (tree, dead-tree, evergreen, bush, rock, weeds, plant, or
         // graphic: its high resolution picture); graphics not listed yet are recognised by name.
         if (layer == 3) {
             const GroundTiles::Key key{object.shape, object.frame};
             auto it = terrainVariants.find(key);
+            std::string recognised = "graphic";
+            if (name == "tree" || name == "maple tree" || name == "baobab tree") recognised = "tree";
+            else if (name == "dead tree") recognised = "dead-tree";
+            else if (name == "evergreen") recognised = "evergreen";
+            else if (name == "small bush" || name == "bush" || name == "brambles" || name == "tropical plant") recognised = "bush";
+            else if (name == "rock" || name == "large rock" || name == "boulder") recognised = name == "rock" ? "rock" : name;
+            else if (name == "weeds") recognised = "weeds";
+            else if (name == "plant") recognised = "plant";
+            else if (name == "crops" || name == "reeds" || name == "cattails" || name == "fern" || name == "pumpkin" || name == "cactus" ||
+                     name == "lily pads")
+                recognised = name;
             if (it == terrainVariants.end()) {
-                std::string v = "graphic";
-                if (name == "tree" || name == "maple tree") v = "tree";
-                else if (name == "dead tree") v = "dead-tree";
-                else if (name == "evergreen") v = "evergreen";
-                else if (name == "small bush" || name == "bush") v = "bush";
-                else if (name == "rock") v = "rock";
-                else if (name == "weeds") v = "weeds";
-                else if (name == "plant") v = "plant";
-                it = terrainVariants.emplace(key, v).first;
+                it = terrainVariants.emplace(key, recognised).first;
+                terrainAdded = true;
+            } else if (it->second == "graphic" && recognised != "graphic") {   // a model made since
+                it->second = recognised;
                 terrainAdded = true;
             }
             const auto& v = it->second;
@@ -3436,7 +3511,9 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             if (v == "tree") { treePlaces.push_back(middle); continue; }
             if (v == "dead-tree") { deadTreePlaces.push_back(middle); continue; }
             static const std::map<std::string, std::string> propKind = {
-                {"evergreen", "evergreen"}, {"bush", "small bush"}, {"rock", "rock"}, {"weeds", "weeds"}, {"plant", "plant"}};
+                {"evergreen", "evergreen"}, {"bush", "small bush"}, {"rock", "rock"}, {"weeds", "weeds"}, {"plant", "plant"},
+                {"large rock", "large rock"}, {"boulder", "boulder"}, {"crops", "crops"}, {"reeds", "reeds"}, {"cattails", "cattails"},
+                {"fern", "fern"}, {"pumpkin", "pumpkin"}, {"cactus", "cactus"}, {"lily pads", "lily pads"}};
             if (const auto kind = propKind.find(v); kind != propKind.end()) {
                 props.push_back({object, kind->second, 3, object.lift * U73dScale::FurnitureLift});
                 continue;
@@ -3527,7 +3604,9 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
                                                          "water trough", "lever", "iron bars", "red flag", "basket", "bellows", "sealed box",
                                                          "unsealed box", "cauldron", "cart", "rake", "shovel", "pitchfork", "key", "amulet",
                                                          "gargoyle jewelry", "fellowship staff", "fellowship icon", "statue", "chimney",
-                                                         "pool of water", "artist's equipment", "great dagger", "body", "victim"};
+                                                         "pool of water", "artist's equipment", "great dagger", "body", "victim", "corpse",
+                                                         "mushrooms", "barrel", "bookshelf", "piece of wood", "small rock", "monolith",
+                                                         "standing stone"};
         std::string propName = name;
         while (!propName.empty() && propName.back() == ' ') propName.pop_back();   // U7 names "bed "
         if (!propName.empty() && propName[0] == '/') {
@@ -3546,6 +3625,9 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             auto it = itemVariants.find(key);
             if (it == itemVariants.end()) {
                 it = itemVariants.emplace(key, propNames.count(propName) ? propName : std::string("graphic")).first;
+                itemAdded = true;
+            } else if (it->second == "graphic" && propNames.count(propName)) {   // a model made since
+                it->second = propName;
                 itemAdded = true;
             }
             propName = it->second;

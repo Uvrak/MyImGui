@@ -102,6 +102,19 @@ Model chimney(float width, float depth, float height);
 Model pool(float width, float depth);
 Model palette();
 Model body();
+// Landscape and more (see PropModels.cpp).
+Model mountain(float width, float depth, float height, unsigned seed, bool dark);
+Model crops(float width, float depth, unsigned seed);
+Model reeds(float size, unsigned seed, bool cattails);
+Model fern(float size, unsigned seed);
+Model pumpkin(unsigned seed);
+Model cactus(unsigned seed);
+Model lilyPads(float size, unsigned seed);
+Model mushrooms(unsigned seed);
+Model barrel(float height);
+Model bookshelf(float width, float depth, float height);
+Model log(unsigned seed);
+Model standingStone(float height, unsigned seed);
 // A farm wagon along x, the shafts towards +x.
 Model wagon(float length, float width);
 

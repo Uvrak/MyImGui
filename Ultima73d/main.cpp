@@ -14,6 +14,7 @@
 //       globe, or Sir Canegm's camera (after walking 3 s north with --walk; close up; placed).
 #include "Britannia3dView.h"
 #include "PropModels.h"
+#include "GroundTiles.h"
 #include <set>
 #include <chrono>
 #include "Inventory/BackpackPanel.h"
@@ -157,7 +158,12 @@ SDL_Window* createWindow(const char* title, int width, int height, SDL_WindowFla
 
 int export3d(const U7::Data& data, const char* file, const std::vector<std::string>& options) {
     auto has = [&](const char* option) { return std::find(options.begin(), options.end(), option) != options.end(); };
-    const int x0 = TrinsicChunkX0, y0 = TrinsicChunkY0, x1 = TrinsicChunkX1, y1 = TrinsicChunkY1;
+    int x0 = TrinsicChunkX0, y0 = TrinsicChunkY0, x1 = TrinsicChunkX1, y1 = TrinsicChunkY1;
+    // --area cx cy: another area of Trinsic's size, its top left chunk.
+    if (const auto area = std::find(options.begin(), options.end(), "--area"); area != options.end() && options.end() - area >= 3) {
+        const int w = x1 - x0, h = y1 - y0;
+        x0 = std::stoi(area[1]); y0 = std::stoi(area[2]); x1 = x0 + w; y1 = y0 + h;
+    }
     if (!SDL_Init(SDL_INIT_VIDEO)) throw std::runtime_error(SDL_GetError());
     SDL_GLContext context = nullptr;
     SDL_Window* window = createWindow("Britannia3d", 64, 64, SDL_WINDOW_HIDDEN, context);
@@ -167,6 +173,22 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
         view.assetDirectory = AssetDirectory;
         view.stableSceneDirectory = AssetDirectory;
         view.dataDirectory = DataDirectory;
+        if (has("--census")) {
+            // How often each thing without a model (graphic in item- or terrain-variants.txt) occurs.
+            std::map<std::string, int> counts;
+            for (const char* table : {"Maps/item-variants.txt", "Maps/terrain-variants.txt", "Maps/structure-variants.txt"}) {
+                const auto variants = GroundTiles::loadStructureVariants(std::filesystem::path(DataDirectory) / table);
+                for (const auto& o : data.objects()) {
+                    const auto it = variants.find({o.shape, o.frame});
+                    if (it != variants.end() && it->second == "graphic") ++counts[std::string(table).substr(5, 4) + " " + std::to_string(o.shape) + " " + data.name(o.shape)];
+                }
+            }
+            std::vector<std::pair<int, std::string>> sorted;
+            for (const auto& [name, count] : counts) sorted.push_back({count, name});
+            std::sort(sorted.rbegin(), sorted.rend());
+            for (size_t i = 0; i < sorted.size() && i < 120; ++i) std::cout << sorted[i].first << " " << sorted[i].second << "\n";
+            return 0;
+        }
         if (has("--world-ground")) view.prepareWorldGround(data);   // once: HD ground tiles for the whole world
         if (has("--build-world")) {
             // Builds the whole world once, area by area (Trinsic's size): every U7 object gets its

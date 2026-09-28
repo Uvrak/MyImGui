@@ -914,11 +914,202 @@ float weightKg(const std::string& kind, float width, float depth, float height) 
         {"rake", 1.8f, false}, {"shovel", 2.2f, false}, {"pitchfork", 2.f, false}, {"key", 0.05f, false}, {"amulet", 0.08f, false},
         {"gargoyle jewelry", 0.1f, false}, {"fellowship staff", 1.5f, false}, {"fellowship icon", 0.6f, false}, {"statue", 900, false},
         {"chimney", 800, false}, {"pool of water", 1000, false}, {"artist's equipment", 0.7f, false}, {"great dagger", 0.8f, false},
-        {"body", 70, false}, {"victim", 70, false},
+        {"body", 70, false}, {"victim", 70, false}, {"corpse", 70, false},
+        {"mountain", 1e6f, false}, {"cavern", 1e6f, false}, {"crops", 2, false}, {"reeds", 0.5f, false}, {"cattails", 0.5f, false},
+        {"brambles", 8, false}, {"fern", 1, false}, {"tropical plant", 6, false}, {"pumpkin", 6, false}, {"cactus", 60, false},
+        {"lily pads", 0.3f, false}, {"mushrooms", 0.1f, false}, {"barrel", 40, false}, {"bookshelf", 60, false}, {"piece of wood", 2, false},
+        {"small rock", 3, false}, {"large rock", 900, false}, {"boulder", 2500, false}, {"standing stone", 6000, false}, {"monolith", 9000, false},
     };
     for (const auto& e : table)
         if (kind == e.kind) return e.perCubicMetre ? std::max(1.f, e.kg * width * depth * std::max(height, 0.1f)) : e.kg;
     return 1.f;
+}
+
+// Landscape: mountains and cave walls, crops and wild plants, stones, and a few things.
+
+Model mountain(float width, float depth, float height, unsigned seed, bool dark) {
+    // A rocky mass filling its footprint: a lumpy dome, steep flanks, craggy top, in field stone
+    // (darker for cave walls).
+    Model m;
+    Random random{seed * 2654435761u + 19u};
+    random.next();
+    constexpr int rings = 10, sides = 16;
+    auto point = [&](int ring, int side) {
+        const float a = 1.5707963f * ring / rings, b = 6.2831853f * (side % sides) / sides;
+        const unsigned h = unsigned(ring * 131 + (side % sides) * 17) + seed * 31u;
+        // Craggy: strong bumps, steep flanks, a broken top; a little wider than the footprint so
+        // neighbouring mountains grow into one another.
+        const float bump = 0.88f + 0.24f * float((h * 2654435761u >> 8) & 0xff) / 255.f;
+        const float r = std::cos(a) * (0.92f + 0.16f * (bump - 0.88f) / 0.24f), y = std::sin(a) * (ring == rings ? 1.f : bump);
+        return glm::vec3(std::cos(b) * r * width * 0.75f, y * height, std::sin(b) * r * depth * 0.75f);
+    };
+    for (int i = 0; i < rings; ++i)
+        for (int k = 0; k < sides; ++k) {
+            const glm::vec3 p[4] = {point(i, k), point(i, k + 1), point(i + 1, k + 1), point(i + 1, k)};
+            const glm::vec3 n = glm::normalize(glm::cross(p[2] - p[0], p[1] - p[0]));
+            const glm::vec2 uv[4] = {{float(k), float(i)}, {float(k + 1), float(i)}, {float(k + 1), float(i + 1)}, {float(k), float(i + 1)}};
+            for (int j : {0, 1, 2, 0, 2, 3}) m.parts[Stone].push_back({p[j], n, uv[j] * (dark ? 0.35f : 0.5f)});
+        }
+    return m;
+}
+
+Model crops(float width, float depth, unsigned seed) {
+    // A field: rows of stalks with ears, golden green.
+    Model m;
+    Random random{seed * 2654435761u + 23u};
+    random.next();
+    for (float x = -width / 2 + 0.08f; x < width / 2; x += 0.16f)
+        for (float z = -depth / 2 + 0.05f; z < depth / 2; z += 0.1f) {
+            const float h = random.range(0.6f, 0.9f), lean = random.range(-0.08f, 0.08f);
+            const glm::vec3 base(x + random.range(-0.03f, 0.03f), 0, z), top = base + glm::vec3(lean, h, 0);
+            const glm::vec3 side(0, 0, 0.006f), n(0, 0, 1);
+            const glm::vec3 p[3] = {base - side, base + side, top};
+            for (int j = 0; j < 3; ++j) m.parts[Blades].push_back({p[j], n, glm::vec2(0.5f, j == 2 ? 1.f : 0.f)});
+            box(m.parts[Straw], top - glm::vec3(0.012f, 0.1f, 0.012f), top + glm::vec3(0.012f, 0.f, 0.012f));
+        }
+    return m;
+}
+
+Model reeds(float size, unsigned seed, bool cattails) {
+    // Tall blades in a clump; cattails with their brown heads.
+    Model m = weeds(size * 2.2f, seed);
+    if (cattails) {
+        Random random{seed * 2654435761u + 29u};
+        random.next();
+        for (int i = 0; i < 6; ++i) {
+            const glm::vec3 base(random.range(-0.1f, 0.1f), 0, random.range(-0.1f, 0.1f));
+            const float h = random.range(0.9f, 1.3f);
+            box(m.parts[Blades], base - glm::vec3(0.006f, 0, 0.006f), base + glm::vec3(0.006f, h, 0.006f));
+            lathe(m.parts[Leather], {{0, 0}, {0.022f, 0.02f}, {0.022f, 0.14f}, {0, 0.16f}}, 8, base + glm::vec3(0, h - 0.16f, 0));
+        }
+    }
+    return m;
+}
+
+Model fern(float size, unsigned seed) {
+    // Fronds: long leaf cards arching out from the middle.
+    Model m;
+    Random random{seed * 2654435761u + 31u};
+    random.next();
+    for (int i = 0; i < 12; ++i) {
+        const float a = 6.2831853f * i / 12 + random.range(-0.2f, 0.2f), l = size * random.range(0.5f, 0.7f);
+        const glm::vec3 d(std::cos(a), 0, std::sin(a));
+        const glm::vec3 p[4] = {glm::vec3(0, 0.02f, 0) - glm::vec3(-d.z, 0, d.x) * 0.06f, glm::vec3(0, 0.02f, 0) + glm::vec3(-d.z, 0, d.x) * 0.06f,
+                                d * l + glm::vec3(0, size * 0.25f, 0) + glm::vec3(-d.z, 0, d.x) * 0.06f, d * l + glm::vec3(0, size * 0.25f, 0) - glm::vec3(-d.z, 0, d.x) * 0.06f};
+        const glm::vec2 uv[4] = {{0, 1}, {1, 1}, {1, 0}, {0, 0}};
+        for (int j : {0, 1, 2, 0, 2, 3}) m.parts[Leaves].push_back({p[j], glm::vec3(0, 1, 0), uv[j]});
+    }
+    return m;
+}
+
+Model pumpkin(unsigned seed) {
+    Model m;
+    const float s = 0.8f + 0.1f * float(seed % 3);
+    std::vector<glm::vec2> profile;
+    for (int i = 0; i <= 8; ++i) { const float a = 3.14159f * i / 8; profile.push_back({std::sin(a) * 0.22f * s, (1 - std::cos(a)) * 0.14f * s}); }
+    lathe(m.parts[Food], profile, 16, glm::vec3(0));
+    lathe(m.parts[Blades], {{0.015f, 0.27f * s}, {0.01f, 0.33f * s}, {0, 0.34f * s}}, 6, glm::vec3(0));
+    Model leaves = fern(0.7f, seed);
+    for (auto& v : leaves.parts[Leaves]) m.parts[Leaves].push_back(v);
+    return m;
+}
+
+Model cactus(unsigned seed) {
+    // A column with two arms.
+    Model m;
+    const float h = 1.4f + 0.3f * float(seed % 3);
+    lathe(m.parts[Blades], {{0.12f, 0}, {0.13f, h * 0.5f}, {0.11f, h * 0.95f}, {0, h}}, 12, glm::vec3(0));
+    for (const float side : {-1.f, 1.f}) {
+        const float y = h * (side > 0 ? 0.45f : 0.6f);
+        box(m.parts[Blades], {side > 0 ? 0.1f : -0.3f, y, -0.05f}, {side > 0 ? 0.3f : -0.1f, y + 0.1f, 0.05f});
+        lathe(m.parts[Blades], {{0.06f, 0}, {0.06f, h * 0.3f}, {0, h * 0.33f}}, 8, glm::vec3(side * 0.28f, y, 0));
+    }
+    return m;
+}
+
+Model lilyPads(float size, unsigned seed) {
+    Model m;
+    Random random{seed * 2654435761u + 37u};
+    random.next();
+    for (int i = 0; i < 5; ++i) {
+        const glm::vec3 c(random.range(-size / 2, size / 2), 0.02f, random.range(-size / 2, size / 2));
+        const float r = random.range(0.1f, 0.18f);
+        for (int k = 0; k < 10; ++k) {
+            const float a0 = 6.2831853f * k / 10 + 0.3f, a1 = 6.2831853f * (k + 1) / 10 + 0.3f;
+            if (k == 0) continue;                                   // the notch
+            const glm::vec3 p[3] = {c, c + glm::vec3(std::cos(a1), 0, std::sin(a1)) * r, c + glm::vec3(std::cos(a0), 0, std::sin(a0)) * r};
+            for (const auto& p0 : p) m.parts[Leaves].push_back({p0, glm::vec3(0, 1, 0), glm::vec2(0.5f)});
+        }
+    }
+    return m;
+}
+
+Model mushrooms(unsigned seed) {
+    Model m;
+    Random random{seed * 2654435761u + 41u};
+    random.next();
+    for (int i = 0; i < 5; ++i) {
+        const glm::vec3 base(random.range(-0.15f, 0.15f), 0, random.range(-0.15f, 0.15f));
+        const float h = random.range(0.04f, 0.1f), r = random.range(0.03f, 0.06f);
+        lathe(m.parts[Linen], {{0.012f, 0}, {0.01f, h}}, 6, base);
+        lathe(m.parts[Food], {{0, h - 0.005f}, {r, h}, {r * 0.8f, h + r * 0.5f}, {0, h + r * 0.7f}}, 10, base);
+    }
+    return m;
+}
+
+Model barrel(float height) {
+    Model m;
+    const float h = std::max(height, 0.8f), r = 0.3f;
+    lathe(m.parts[Wood], {{0, 0}, {r * 0.85f, 0}, {r, h * 0.5f}, {r * 0.85f, h}, {0, h}}, 18, glm::vec3(0));
+    for (const float y : {0.08f, h * 0.35f, h * 0.65f, h - 0.1f}) {
+        const float rr = r * (0.85f + 0.15f * std::sin(3.14159f * y / h)) + 0.004f;
+        lathe(m.parts[Iron], {{rr, y}, {rr, y + 0.03f}}, 18, glm::vec3(0));
+    }
+    return m;
+}
+
+Model bookshelf(float width, float depth, float height) {
+    // A tall shelf along x, its back on the wall (z = -depth/2), rows of books.
+    Model m;
+    const float h = std::max(height, 1.8f), d = std::min(depth, 0.4f);
+    box(m.parts[DarkWood], {-width / 2, 0, -d / 2}, {width / 2, h, -d / 2 + 0.02f});
+    for (const float x : {-width / 2, width / 2 - 0.03f}) box(m.parts[DarkWood], {x, 0, -d / 2}, {x + 0.03f, h, d / 2});
+    Random random{unsigned(width * 1000) + 3u};
+    random.next();
+    for (int s = 0; s < 5; ++s) {
+        const float y = 0.05f + s * (h - 0.1f) / 5;
+        box(m.parts[Wood], {-width / 2 + 0.03f, y, -d / 2}, {width / 2 - 0.03f, y + 0.025f, d / 2});
+        for (float x = -width / 2 + 0.05f; x < width / 2 - 0.08f;) {
+            const float bw = random.range(0.025f, 0.05f), bh = random.range(0.18f, 0.28f);
+            box(m.parts[Cloth], {x, y + 0.025f, -d / 2 + 0.03f}, {x + bw, y + 0.025f + bh, d / 2 - 0.04f});
+            x += bw + 0.004f;
+        }
+    }
+    return m;
+}
+
+Model log(unsigned seed) {
+    // A piece of wood: a short log with its bark.
+    Model m;
+    const float l = 0.4f + 0.1f * float(seed % 3), r = 0.06f;
+    for (int i = 0; i < 10; ++i) {
+        const float a0 = 6.2831853f * i / 10, a1 = 6.2831853f * (i + 1) / 10;
+        const glm::vec3 n0(0, std::sin(a0), std::cos(a0)), n1(0, std::sin(a1), std::cos(a1));
+        const glm::vec3 p[4] = {glm::vec3(-l / 2, r, 0) + n0 * r, glm::vec3(l / 2, r, 0) + n0 * r, glm::vec3(l / 2, r, 0) + n1 * r, glm::vec3(-l / 2, r, 0) + n1 * r};
+        const glm::vec3 n[4] = {n0, n0, n1, n1};
+        const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+        for (int j : {0, 1, 2, 0, 2, 3}) m.parts[DarkWood].push_back({p[j], n[j], uv[j]});
+    }
+    return m;
+}
+
+Model standingStone(float height, unsigned seed) {
+    // A menhir / monolith: an upright rough stone.
+    Model m = rock(1.f, seed);
+    float top = 0;
+    for (const auto& v : m.parts[Stone]) top = std::max(top, v.position.y);
+    for (auto& v : m.parts[Stone]) { v.position.x *= 0.7f; v.position.z *= 0.45f; v.position.y *= height / std::max(top, 0.01f); }
+    return m;
 }
 
 std::string kindOf(const std::string& u7Name) {
@@ -936,11 +1127,11 @@ std::string kindOf(const std::string& u7Name) {
 int layerOf(const std::string& kind) {
     static const char* furniture[] = {"table", "desk", "drawers", "seat", "bed", "chair", "crate", "chest", "locked chest", "sealed box",
                                       "unsealed box", "stove", "stove top", "podium", "pedestal", "water trough", "trough", "anvil", "easel",
-                                      "mirror", "cart", "barrel", "cupboard", "dresser", "cradle", "bench"};
+                                      "mirror", "cart", "barrel", "cupboard", "dresser", "cradle", "bench", "bookshelf"};
     for (const char* f : furniture) if (kind == f) return 2;
     // Not things to pick up: figures, fixed or heavy things.
     static const char* fixed[] = {"body", "victim", "red flag", "pool of water", "statue", "chimney", "sundial", "firepit", "pillar",
-                                  "haystack", "iron bars", "lever"};
+                                  "haystack", "iron bars", "lever", "corpse", "mountain", "cavern"};
     for (const char* f : fixed) if (kind == f) return 6;
     const float kg = weightKg(kind, 0.5f, 0.5f, 0.5f);
     return kg != 1.f && kg < 100.f ? 4 : 6;   // (1 kg: a kind without a weight, so without a model)
@@ -969,7 +1160,11 @@ std::string germanName(const std::string& kind) {
         {"pitchfork", "Heugabel"}, {"key", "Schluessel"}, {"amulet", "Amulett"}, {"gargoyle jewelry", "Gargoyle-Schmuck"},
         {"fellowship staff", "Stab der Fellowship"}, {"fellowship icon", "Symbol der Fellowship"}, {"statue", "Statue"},
         {"chimney", "Schornstein"}, {"pool of water", "Pfuetze"}, {"artist's equipment", "Malerpalette"}, {"great dagger", "Grosser Dolch"},
-        {"body", "Leiche"}, {"victim", "Opfer"},
+        {"body", "Leiche"}, {"victim", "Opfer"}, {"corpse", "Leiche"}, {"mountain", "Berg"}, {"cavern", "Hoehlenwand"},
+        {"crops", "Feld"}, {"reeds", "Schilf"}, {"cattails", "Rohrkolben"}, {"brambles", "Dornengestruepp"}, {"fern", "Farn"},
+        {"tropical plant", "Tropenpflanze"}, {"pumpkin", "Kuerbis"}, {"cactus", "Kaktus"}, {"lily pads", "Seerosen"},
+        {"mushrooms", "Pilze"}, {"barrel", "Fass"}, {"bookshelf", "Buecherregal"}, {"piece of wood", "Holzstueck"},
+        {"small rock", "Stein"}, {"large rock", "Fels"}, {"boulder", "Findling"}, {"standing stone", "Menhir"}, {"monolith", "Monolith"},
     };
     for (const auto& [en, de] : names) if (kind == en) return de;
     return kind;
