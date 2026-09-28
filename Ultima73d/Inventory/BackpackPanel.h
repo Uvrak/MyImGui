@@ -15,6 +15,13 @@ public:
     // The open bag on screen (top left, size); size 0 when closed.
     std::pair<ImVec2,float> panel{{0,0},0};
     bool isVisible() const { return visible; }
+    // false: equipment lying on the ground is drawn by the scene itself (as 3D things).
+    bool groundIcons=true;
+    glm::vec3 groundPoint(int item) const { return groundWorld.at(item); }
+    bool equipmentOnGround(int item) const { return bag.ground.at(item)&&!inventory.fits[item].worn; }
+    // The scene moved equipment: back into the bag, or onto the ground at point (world).
+    void putEquipmentInBag(int item){ if(Equipment::boots(item))item=3; bag.ground[item]=false; saveWorld(true); }
+    void dropEquipment(int item,glm::vec3 point){ if(Equipment::boots(item))item=3; bag.ground[item]=true; groundWorld[item]=point; saveWorld(true); }
     // Things of the world that are clothing (a U73D_ITEM payload): the equipment they are, or -1;
     // wornFromWorld: the thing has been put on (it leaves the world).
     std::function<int(int)> wearableEquipment;
@@ -256,7 +263,7 @@ private:
                 }
             }
         }
-        for(int i=0;i<Equipment::itemCount;++i)if(bag.ground[i]&&!inventory.fits[i].worn){
+        for(int i=0;i<Equipment::itemCount;++i)if(groundIcons&&bag.ground[i]&&!inventory.fits[i].worn){
             auto q=vp*glm::vec4(groundWorld[i],1);if(q.w<=0)continue;
             auto ndc=glm::vec3(q)/q.w;if(std::abs(ndc.x)>1||std::abs(ndc.y)>1||ndc.z>1)continue;
             glm::vec3 visibleGround;if(!scene->pickGround(ndc.x,ndc.y,visibleGround)||glm::distance(visibleGround,groundWorld[i])>.035f)continue;

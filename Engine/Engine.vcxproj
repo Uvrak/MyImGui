@@ -185,7 +185,11 @@
     <ClCompile Include="..\ThirdParty\glad\src\gl.c" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="AnimatedCharacter.cpp" />
-    <ClCompile Include="CharacterOutfit.cpp" />
+    <ClCompile Include="CharacterOutfit.cpp">
+      <!-- Putting clothes on rebuilds and simplifies the character's meshes: optimised in Debug too. -->
+      <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
+    </ClCompile>
     <ClCompile Include="Canegm\GltfModel.cpp" />
     <ClCompile Include="..\ThirdParty\fastgltf-0.9.0\src\fastgltf.cpp" />
     <ClCompile Include="..\ThirdParty\fastgltf-0.9.0\src\base64.cpp" />

@@ -1733,6 +1733,27 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
     textures[PropModels::Needles] = makeTexture(256, 256, needlePixels.data(), true);
     textures[PropModels::Blades] = makeTexture(4, 32, bladePixels.data(), true);
     std::map<std::tuple<int, int, int>, size_t> batchOf;   // material, cover, layer -> index in m_batches
+    // Pictures for the backpack: one per model and cover, in the materials' colours.
+    std::array<glm::vec3, PropModels::MaterialCount> colours{};
+    {
+        const glm::vec3 fixed[PropModels::MaterialCount] = {
+            woodTone, woodTone * 0.62f, {0.16f, 0.16f, 0.15f}, covers[0], {0.87f, 0.83f, 0.73f}, {0.42f, 0.41f, 0.38f}, {0.3f, 0.55f, 0.16f},
+            {0.13f, 0.3f, 0.17f}, {0.32f, 0.47f, 0.16f}, {0.59f, 0.31f, 0.19f}, {0.59f, 0.59f, 0.56f}, {0.18f, 0.38f, 0.23f}, {0.36f, 0.23f, 0.13f},
+            {0.67f, 0.55f, 0.38f}, {1.f, 0.84f, 0.47f}, {0.77f, 0.64f, 0.33f}, {0.77f, 0.78f, 0.8f}, {0.87f, 0.7f, 0.24f}, {0.12f, 0.2f, 0.31f},
+            {0.7f, 0.46f, 0.23f}, {0.82f, 0.84f, 0.85f}};
+        for (int k = 0; k < PropModels::MaterialCount; ++k) colours[size_t(k)] = fixed[k];
+    }
+    std::map<std::pair<const PropModels::Model*, int>, unsigned> icons;
+    auto iconFor = [&](const PropModels::Model& m, int cover) {
+        auto [it, added] = icons.try_emplace({&m, cover}, 0u);
+        if (added) {
+            auto c = colours;
+            c[PropModels::Cloth] = covers[cover & 3];
+            const auto pixels = PropModels::renderIcon(m, c, 96);
+            it->second = makeTexture(96, 96, pixels.data(), true);
+        }
+        return it->second;
+    };
     auto batchFor = [&](int material, int cover, int layer) -> size_t {
         auto [it, added] = batchOf.try_emplace({material, cover, layer}, m_batches.size());
         if (added) {
@@ -1781,7 +1802,7 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             const float c = std::cos(turn), sn = std::sin(turn);
             for (int k = 0; k < PropModels::MaterialCount; ++k)
                 for (const auto& v : wagon.parts[k]) {
-                    auto& batch = m_batches[batchFor(k, 0, 2)];
+                    auto& batch = m_batches[batchFor(k, 0, 4)];
                     const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
                     const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
                     batch.vertices.push_back({centre.x + p.x / tm, p.y, centre.y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 1.f});
@@ -1828,6 +1849,10 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
         float fixedTurn = 0;
         glm::vec2 wallAt(-1);   // a sconce: its wall face, tiles
         int layer = prop.layer, cover = 0;
+        static const std::set<std::string> furnitureKinds = {"table", "desk", "drawers", "seat", "bed", "chair", "crate", "chest", "locked chest",
+                                                             "sealed box", "unsealed box", "stove", "stove top", "podium", "pedestal", "water trough",
+                                                             "anvil", "easel", "mirror"};
+        if (furnitureKinds.count(prop.name) && prop.layer == 2) layer = 4;
         if (prop.name == "table") m = &model(dims("table"), [&] { return PropModels::table(w, d, h); });
         else if (prop.name == "desk") m = &model(dims("desk"), [&] { return PropModels::desk(w, d, h); });
         else if (prop.name == "drawers") m = &model(dims("drawers"), [&] { return PropModels::drawers(w, d, h); });
@@ -2070,6 +2095,8 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 }
             m_items.push_back({PropModels::germanName(prop.name), low, high, PropModels::weightKg(prop.name, w, d, h), {}});
             m_items.back().kind = prop.name;
+            m_items.back().layer = layer;
+            if (PropModels::weightKg(prop.name, w, d, h) < 100.f) m_items.back().icon = iconFor(*m, cover);
         }
         for (int k = 0; k < PropModels::MaterialCount; ++k) {
             const auto& part = m->parts[k];
@@ -2084,6 +2111,51 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                                           k == PropModels::Flame ? 1.8f : k == PropModels::Mirror ? 5.f : 1.f});   // flames glow; 5: mirror glass
             }
         }
+    }
+    // Sir Canegm's equipment: one hidden thing per piece (the boots are one pair), shown in
+    // the world while it lies on the ground.
+    {
+        const char* kinds[10] = {"leather helm", "leather armour", "leather leggings", "boots", nullptr,
+                                 "leather leggings", "leather leggings", "leather leggings", "leather leggings", "leather leggings"};
+        const glm::vec3 anchor(m_centre.x, 0.f, m_centre.y);
+        for (int e = 0; e < 10; ++e) {
+            if (!kinds[e]) continue;
+            const std::string kind = kinds[e];
+            const PropModels::Model* m = kind == "leather helm" ? &model("leather helm", [] { return PropModels::helm(true); })
+                                       : kind == "boots" ? &model("boots", [] { return PropModels::boots(); })
+                                       : &model("armour", [] { return PropModels::armour(); });
+            glm::vec3 low(1e9f), high(-1e9f);
+            Item item{PropModels::germanName(kind), {}, {}, PropModels::weightKg(kind, 0, 0, 0), {}};
+            for (int k = 0; k < PropModels::MaterialCount; ++k) {
+                const auto& part = m->parts[k];
+                if (part.empty()) continue;
+                const size_t batchIndex = batchFor(k, 0, 2);
+                auto& batch = m_batches[batchIndex];
+                item.spans.push_back({batchIndex, batch.vertices.size(), part.size()});
+                for (const auto& v : part) {
+                    const glm::vec3 p = anchor + glm::vec3(v.position.x / tm, v.position.y, v.position.z / tm);
+                    low = glm::min(low, p); high = glm::max(high, p);
+                    batch.vertices.push_back({p.x, p.y - 1000.f, p.z, v.normal.x, v.normal.y, v.normal.z, v.uv.x, v.uv.y, 1.f});
+                }
+            }
+            item.low = low; item.high = high;
+            item.inBag = true;                         // hidden: in the bag or worn
+            item.kind = kind;
+            item.equipment = e;
+            m_equipmentItem[size_t(e)] = int(m_items.size());
+            m_items.push_back(std::move(item));
+        }
+        m_equipmentItem[4] = m_equipmentItem[3];
+    }
+}
+
+void Britannia3dView::placeGroundEquipment(const std::function<glm::vec3(int)>& point) {
+    if (!equipmentOnGround) return;
+    for (int e = 0; e < 10; ++e) {
+        if (e == 4 || m_equipmentItem[size_t(e)] < 0 || !equipmentOnGround(e)) continue;
+        const size_t index = size_t(m_equipmentItem[size_t(e)]);
+        placeItem(index, flat(point(e)));
+        settleItem(index);
     }
 }
 
@@ -2116,6 +2188,7 @@ void Britannia3dView::uploadItem(size_t index) {
 
 void Britannia3dView::wearItem(size_t index) {
     putInBag(index);
+    if (m_items[index].equipment >= 0) return;             // the backpack keeps it as worn
     m_items[index].inBag = false;
     m_items[index].worn = true;
 }
@@ -2199,15 +2272,18 @@ void Britannia3dView::hideCarried() {
     uploadItem(index);
 }
 
-void Britannia3dView::drawDragLabel(const std::string& name) const {
+void Britannia3dView::drawDragLabel(const std::string& name, unsigned icon) const {
     // The thing as the bag shows it (its tile, centred on the mouse) and its name, over the bag.
     const auto mouse = ImGui::GetIO().MousePos;
     auto* ink = ImGui::GetForegroundDrawList();
     const float side = bagPanel ? std::max(24.f, bagPanel().second * 0.085f) : 32.f;
     const ImVec2 q(mouse.x - side * 0.5f, mouse.y - side * 0.5f);
-    ink->AddRectFilled(q, {q.x + side, q.y + side}, IM_COL32(70, 48, 28, 235), 4);
-    const std::string letter = name.substr(0, name[0] & 0x80 ? 2 : 1);
-    ink->AddText({q.x + side * 0.32f, q.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
+    if (icon) ink->AddImage(static_cast<ImTextureID>(icon), q, {q.x + side, q.y + side});
+    else {
+        ink->AddRectFilled(q, {q.x + side, q.y + side}, IM_COL32(70, 48, 28, 235), 4);
+        const std::string letter = name.substr(0, name[0] & 0x80 ? 2 : 1);
+        ink->AddText({q.x + side * 0.32f, q.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
+    }
     const ImVec2 size = ImGui::CalcTextSize(name.c_str());
     ink->AddRectFilled({q.x, q.y + side + 2}, {q.x + size.x + 8, q.y + side + 6 + size.y}, IM_COL32(30, 20, 12, 200), 3);
     ink->AddText({q.x + 4, q.y + side + 4}, IM_COL32(250, 230, 190, 255), name.c_str());
@@ -2215,7 +2291,7 @@ void Britannia3dView::drawDragLabel(const std::string& name) const {
 
 float Britannia3dView::bagWeight() const {
     float kg = equipmentKg ? equipmentKg() : 0.f;
-    for (const auto& item : m_items) if (item.inBag) kg += item.kg;
+    for (const auto& item : m_items) if (item.inBag && item.equipment < 0) kg += item.kg;
     return kg;
 }
 
@@ -2226,26 +2302,27 @@ void Britannia3dView::drawBagItems(ImVec2 p, float size) {
     auto* ink = ImGui::GetWindowDrawList();
     for (size_t i = 0; i < m_items.size(); ++i) {
         const auto& item = m_items[i];
-        if (!item.inBag) continue;
-        const float side = size * 0.085f;
+        if (!item.inBag || item.equipment >= 0) continue;
+        // Its picture, larger for larger things (a sword more than a cup).
+        const float extent = std::max({(item.high.x - item.low.x) * U73dScale::TileMetres, (item.high.z - item.low.z) * U73dScale::TileMetres, item.high.y - item.low.y});
+        const float side = size * std::clamp(0.05f + extent * 0.12f, 0.06f, 0.2f);
         const glm::vec2 place = item.bagPos.x >= 0 ? item.bagPos : glm::vec2(0.24f + (slot % 7) * 0.09f, 0.6f + (slot / 7) * 0.1f);
         const ImVec2 q(p.x + size * place.x - side * 0.5f, p.y + size * place.y - side * 0.5f);
         ++slot;
         ImGui::PushID(int(10000 + i));
         ImGui::SetCursorScreenPos(q);
         ImGui::InvisibleButton("thing", {side, side});
-        ink->AddRectFilled(q, {q.x + side, q.y + side}, IM_COL32(70, 48, 28, 230), 4);
-        ink->AddRect(q, {q.x + side, q.y + side}, IM_COL32(200, 160, 90, 200), 4);
         const std::string letter = item.name.substr(0, item.name[0] & 0x80 ? 2 : 1);
-        ink->AddText({q.x + side * 0.32f, q.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
+        if (item.icon) ink->AddImage(static_cast<ImTextureID>(item.icon), q, {q.x + side, q.y + side});
+        else {
+            ink->AddRectFilled(q, {q.x + side, q.y + side}, IM_COL32(70, 48, 28, 230), 4);
+            ink->AddText({q.x + side * 0.32f, q.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
+        }
         if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s (%.1f kg): im Rucksack verschieben, auf den Boden ziehen; Kleidung auf Sir Canegm ziehen = anziehen", item.name.c_str(), item.kg);
         if (ImGui::BeginDragDropSource()) {
             const int id = int(i);
             ImGui::SetDragDropPayload("U73D_ITEM", &id, sizeof(id));
-            const ImVec2 at = ImGui::GetCursorScreenPos();
-            ImGui::Dummy({side, side});
-            ImGui::GetWindowDrawList()->AddRectFilled(at, {at.x + side, at.y + side}, IM_COL32(70, 48, 28, 230), 4);
-            ImGui::GetWindowDrawList()->AddText({at.x + side * 0.32f, at.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
+            if (item.icon) ImGui::Image(static_cast<ImTextureID>(item.icon), {side, side});
             ImGui::Text("%s", item.name.c_str());
             ImGui::EndDragDropSource();
         }
@@ -2301,7 +2378,7 @@ int Britannia3dView::pickItem(glm::vec2 ndc) const {
     float bestDepth = 1e30f;
     for (size_t i = 0; i < m_items.size(); ++i) {
         const auto& item = m_items[i];
-        if (item.inBag || item.worn) continue;              // not in the world
+        if (item.inBag || item.worn || !layerVisible[size_t(item.layer)]) continue;   // not in the world (or hidden)
         glm::vec2 low(1e9f), high(-1e9f);
         float depth = 0;
         bool visible = true;
@@ -3965,6 +4042,8 @@ void Britannia3dView::draw(bool* open) {
     ImGui::SameLine();
     ImGui::Checkbox("Felsen, Pflanzen, Baeume (Ebene 3)", &layerVisible[3]);
     ImGui::SameLine();
+    ImGui::Checkbox("Moebel", &layerVisible[4]);
+    ImGui::SameLine();
     ImGui::Checkbox("Daecher", &roofsVisible);
     ImGui::SameLine();
     if (m_stableProps || m_stableTools) {
@@ -4022,10 +4101,21 @@ void Britannia3dView::draw(bool* open) {
         const glm::vec2 delta(here.x - m_dragGrab.x, here.z - m_dragGrab.z);
         if (glm::length(delta) > 1e-4f && glm::length(delta) < 20.f) moveItem(size_t(m_dragItem), delta);
         m_dragGrab = here;
-        if (overBag && overBag(io.MousePos)) drawDragLabel(m_items[size_t(m_dragItem)].name);
+        if (overBag && overBag(io.MousePos)) drawDragLabel(m_items[size_t(m_dragItem)].name, m_items[size_t(m_dragItem)].icon);
     }
     if (m_dragItem >= 0 && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-        if (dropOnCharacter && dropOnCharacter(size_t(m_dragItem), io.MousePos)) {
+        const int equipment = m_items[size_t(m_dragItem)].equipment;
+        if (equipment >= 0 && !(dropOnCharacter && dropOnCharacter(size_t(m_dragItem), io.MousePos))) {
+            if (overBag && overBag(io.MousePos)) {
+                putInBag(size_t(m_dragItem));
+                if (equipmentToBag) equipmentToBag(equipment);
+            } else {
+                settleItem(size_t(m_dragItem));
+                if (equipmentDrop) equipmentDrop(equipment, planet((m_items[size_t(m_dragItem)].low + m_items[size_t(m_dragItem)].high) * 0.5f));
+            }
+        } else if (equipment >= 0) {
+            wearItem(size_t(m_dragItem));
+        } else if (dropOnCharacter && dropOnCharacter(size_t(m_dragItem), io.MousePos)) {
             m_bagMessage = "Sir Canegm zieht " + m_items[size_t(m_dragItem)].name + " an";
             m_bagMessageTime = 3.f;
             wearItem(size_t(m_dragItem));
@@ -4112,7 +4202,20 @@ void Britannia3dView::draw(bool* open) {
     // view (not over the bag); back in the bag when the drag ends anywhere else.
     {
         const auto* payload = ImGui::GetDragDropPayload();
-        const int dragged = payload && payload->IsDataType("U73D_ITEM") && payload->DataSize == sizeof(int) ? *static_cast<const int*>(payload->Data) : -1;
+        int dragged = payload && payload->IsDataType("U73D_ITEM") && payload->DataSize == sizeof(int) ? *static_cast<const int*>(payload->Data) : -1;
+        if (payload && (payload->IsDataType("CHARACTER_EQUIPMENT") || payload->IsDataType("WORN_EQUIPMENT")) && payload->DataSize == sizeof(int)) {
+            const int e = *static_cast<const int*>(payload->Data);
+            if (e >= 0 && e < 10) dragged = m_equipmentItem[size_t(e)];
+        }
+        // Equipment let go on the ground (the backpack put it there): it stays where it was shown.
+        if (!payload && m_carried >= 0 && m_items[size_t(m_carried)].equipment >= 0 && equipmentOnGround &&
+            equipmentOnGround(m_items[size_t(m_carried)].equipment)) {
+            const size_t index = size_t(m_carried);
+            m_carried = -1;
+            m_items[index].inBag = false;
+            settleItem(index);
+            if (equipmentDrop) equipmentDrop(m_items[index].equipment, planet((m_items[index].low + m_items[index].high) * 0.5f));
+        }
         const bool overView = io.MousePos.x >= corner.x && io.MousePos.y >= corner.y && io.MousePos.x < corner.x + width && io.MousePos.y < corner.y + height;
         if (dragged >= 0 && size_t(dragged) < m_items.size() && m_items[size_t(dragged)].inBag && overView && !(overBag && overBag(io.MousePos))) {
             const glm::vec2 ndc(2.f * (io.MousePos.x - corner.x) / width - 1.f, 1.f - 2.f * (io.MousePos.y - corner.y) / height);

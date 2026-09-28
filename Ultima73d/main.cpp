@@ -14,6 +14,7 @@
 //       globe, or Sir Canegm's camera (after walking 3 s north with --walk; close up; placed).
 #include "Britannia3dView.h"
 #include <set>
+#include <chrono>
 #include "Inventory/BackpackPanel.h"
 #include "U7Data.h"
 #include "U7GroundGrid.h"
@@ -180,6 +181,15 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
             }
             if (!view.loadCharacter(CanegmFolder, tileX, tileY)) throw std::runtime_error("Sir Canegm could not be loaded");
             if (has("--close")) view.character.setCameraDistance(.07f);
+            if (has("--wear")) {
+                // Times putting clothes on (outfit rebuild), e.g. the trousers.
+                view.character.outfit.load(CanegmFolder);
+                for (const unsigned mask : {4u, 32u, 64u, 128u, 256u, 512u, 2u + 32u + 8u + 16u}) {
+                    const auto start = std::chrono::steady_clock::now();
+                    view.character.outfit.setWorn(mask);
+                    std::cout << "Wear mask " << mask << ": " << std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count() << " s\n";
+                }
+            }
             const auto start = view.character.position();
             if (has("--walk")) for (int i = 0; i < 180; ++i) view.step(1.f / 60.f, true);
             if (has("--climb")) {
@@ -238,7 +248,7 @@ int main(int argc, char** argv) {
             grid.setGroundLayer(ground.build(data), "U7 Original");
             const auto structureLayer = grid.addSpriteLayer(structures.build(data, "Ebene 1: Waende, Tueren, Fenster, Mauern, Fels", layerOne));
             const auto terrainLayer = grid.addSpriteLayer(terrain.build(data, "Ebene 3: Felsen, Pflanzen, Baeume", layerThree));
-            grid.addSpriteLayer(furnishings.build(data, "Ebene 2: Moebel", furniture));
+            const auto furnitureLayer = grid.addSpriteLayer(furnishings.build(data, "Ebene 2: Moebel", furniture));
             grid.addSpriteLayer(things.build(data, "Ebene 4: Gegenstaende", smallThing));
             std::cout << "Layer 0: " << ground.materialCount() << " ground tiles; layer 1: "
                       << grid.spriteLayer(structureLayer).sprites.size() << " objects; layer 3: "
@@ -283,8 +293,14 @@ int main(int argc, char** argv) {
                 };
                 backpack.wearableEquipment = equipmentOf;
                 backpack.wornFromWorld = [&](int id) { britannia3d.wearItem(size_t(id)); };
+                backpack.groundIcons = false;
+                britannia3d.equipmentOnGround = [&](int e) { return backpack.equipmentOnGround(e); };
+                britannia3d.equipmentToBag = [&](int e) { backpack.putEquipmentInBag(e); };
+                britannia3d.equipmentDrop = [&](int e, glm::vec3 point) { backpack.dropEquipment(e, point); };
+                britannia3d.placeGroundEquipment([&](int e) { return backpack.groundPoint(e); });
                 britannia3d.dropOnCharacter = [&](size_t id, ImVec2 mouse) {
-                    const int item = equipmentOf(int(id));
+                    const int own = britannia3d.itemEquipment(id);
+                    const int item = own >= 0 ? own : equipmentOf(int(id));
                     if (item < 0 || !backpack.overCharacterAt(mouse)) return false;
                     backpack.setEquipment(item, true);
                     return true;
@@ -316,11 +332,12 @@ int main(int argc, char** argv) {
                 grid.draw(&open);
                 // Layers 1 and 3 are one switch each for the grid and the 3D view: a change in
                 // either place is applied to the other.
-                const std::pair<std::size_t, int> shared[] = {{structureLayer, 1}, {terrainLayer, 3}};
-                bool before[2];
-                for (int i = 0; i < 2; ++i) before[i] = britannia3d.layerVisible[size_t(shared[i].second)];
+                // (The furniture is layer 2 in the grid, layer 4 in the 3D view.)
+                const std::pair<std::size_t, int> shared[] = {{structureLayer, 1}, {terrainLayer, 3}, {furnitureLayer, 4}};
+                bool before[3];
+                for (int i = 0; i < 3; ++i) before[i] = britannia3d.layerVisible[size_t(shared[i].second)];
                 if (britannia3dOpen) britannia3d.draw(&britannia3dOpen);
-                for (int i = 0; i < 2; ++i)
+                for (int i = 0; i < 3; ++i)
                     if (britannia3d.layerVisible[size_t(shared[i].second)] != before[i])
                         grid.setSpriteLayerVisible(shared[i].first, britannia3d.layerVisible[size_t(shared[i].second)]);
                 if (ImGui::Begin("Ebenen")) {

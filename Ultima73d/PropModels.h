@@ -1,5 +1,7 @@
 #pragma once
 #include <glm/glm.hpp>
+#include <array>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -91,6 +93,10 @@ Model basket();
 Model bellows();
 // A farm wagon along x, the shafts towards +x.
 Model wagon(float length, float width);
+
+// A picture of the model for the backpack (RGBA, size x size, transparent around it): seen
+// from the front and a little above, each material in its colour, lit from the upper left.
+std::vector<std::uint8_t> renderIcon(const Model& model, const std::array<glm::vec3, MaterialCount>& colours, int size);
 
 // Realistic weight (kg) of a thing of this U7 kind; furniture scales with its size (metres).
 float weightKg(const std::string& kind, float width, float depth, float height);

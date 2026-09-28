@@ -837,4 +837,68 @@ std::string germanName(const std::string& kind) {
     return kind;
 }
 
+
+std::vector<std::uint8_t> renderIcon(const Model& model, const std::array<glm::vec3, MaterialCount>& colours, int size) {
+    std::vector<std::uint8_t> image(size_t(size) * size * 4, 0);
+    // View: turned 35 degrees about y, tilted 30 degrees down; orthographic.
+    const float yaw = 0.61f, tilt = 0.52f;
+    auto view = [&](glm::vec3 p) {
+        const glm::vec3 a(std::cos(yaw) * p.x - std::sin(yaw) * p.z, p.y, std::sin(yaw) * p.x + std::cos(yaw) * p.z);
+        return glm::vec3(a.x, std::cos(tilt) * a.y - std::sin(tilt) * a.z, std::sin(tilt) * a.y + std::cos(tilt) * a.z);
+    };
+    glm::vec2 low(1e9f), high(-1e9f);
+    for (const auto& part : model.parts)
+        for (const auto& v : part) { const auto q = view(v.position); low = glm::min(low, glm::vec2(q)); high = glm::max(high, glm::vec2(q)); }
+    if (high.x < low.x) return image;
+    const float extent = std::max(high.x - low.x, high.y - low.y), scale = (size - 4) / std::max(extent, 1e-4f);
+    const glm::vec2 middle = (low + high) * 0.5f;
+    std::vector<float> depth(size_t(size) * size, -1e9f);
+    const glm::vec3 light = glm::normalize(glm::vec3(-0.4f, 0.8f, 0.45f));
+    for (int k = 0; k < MaterialCount; ++k) {
+        const auto& part = model.parts[k];
+        for (size_t i = 0; i + 2 < part.size(); i += 3) {
+            glm::vec3 s[3];
+            for (int j = 0; j < 3; ++j) {
+                const auto q = view(part[i + j].position);
+                s[j] = glm::vec3(size * 0.5f + (q.x - middle.x) * scale, size * 0.5f - (q.y - middle.y) * scale, q.z);
+            }
+            const glm::vec3 n = glm::normalize(view(part[i].normal));
+            // Faces from either side (cards, thin cloth): lit by the side towards the viewer.
+            const float lit = 0.45f + 0.55f * std::abs(glm::dot(n.z >= 0 ? n : -n, glm::normalize(view(light))));
+            const glm::vec3 colour = glm::clamp(colours[size_t(k)] * lit * (k == Flame ? 1.6f : 1.f), 0.f, 1.f);
+            const int x0 = std::max(0, int(std::floor(std::min({s[0].x, s[1].x, s[2].x})))), x1 = std::min(size - 1, int(std::ceil(std::max({s[0].x, s[1].x, s[2].x}))));
+            const int y0 = std::max(0, int(std::floor(std::min({s[0].y, s[1].y, s[2].y})))), y1 = std::min(size - 1, int(std::ceil(std::max({s[0].y, s[1].y, s[2].y}))));
+            const float area = (s[1].x - s[0].x) * (s[2].y - s[0].y) - (s[2].x - s[0].x) * (s[1].y - s[0].y);
+            if (std::abs(area) < 1e-6f) continue;
+            for (int y = y0; y <= y1; ++y)
+                for (int x = x0; x <= x1; ++x) {
+                    const float px = x + 0.5f, py = y + 0.5f;
+                    const float w0 = ((s[1].x - px) * (s[2].y - py) - (s[2].x - px) * (s[1].y - py)) / area;
+                    const float w1 = ((s[2].x - px) * (s[0].y - py) - (s[0].x - px) * (s[2].y - py)) / area;
+                    const float w2 = 1 - w0 - w1;
+                    if (w0 < 0 || w1 < 0 || w2 < 0) continue;
+                    const float z = w0 * s[0].z + w1 * s[1].z + w2 * s[2].z;
+                    auto& d = depth[size_t(y) * size + x];
+                    if (z <= d) continue;
+                    d = z;
+                    auto* p = image.data() + (size_t(y) * size + x) * 4;
+                    p[0] = std::uint8_t(colour.r * 255); p[1] = std::uint8_t(colour.g * 255); p[2] = std::uint8_t(colour.b * 255); p[3] = 255;
+                }
+        }
+    }
+    // A dark outline around the thing, as U7 draws its things.
+    std::vector<std::uint8_t> outlined(image);
+    for (int y = 0; y < size; ++y)
+        for (int x = 0; x < size; ++x) {
+            if (image[(size_t(y) * size + x) * 4 + 3]) continue;
+            bool edge = false;
+            for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                const int nx = x + dx, ny = y + dy;
+                if (nx >= 0 && ny >= 0 && nx < size && ny < size && image[(size_t(ny) * size + nx) * 4 + 3]) edge = true;
+            }
+            if (edge) { auto* p = outlined.data() + (size_t(y) * size + x) * 4; p[0] = p[1] = p[2] = 20; p[3] = 220; }
+        }
+    return outlined;
+}
+
 }

@@ -69,6 +69,14 @@ public:
     void wearItem(size_t item);
     // A thing dragged in the world and let go over Sir Canegm: true when he puts it on.
     std::function<bool(size_t, ImVec2)> dropOnCharacter;
+    // Sir Canegm's equipment (Ultima7Remake's backpack, 10 pieces) as things in the world when it
+    // lies on the ground: the backpack tells where each piece is, and hears where it went.
+    std::function<bool(int)> equipmentOnGround;
+    std::function<void(int)> equipmentToBag;
+    std::function<void(int, glm::vec3)> equipmentDrop;          // world (planet) point
+    int itemEquipment(size_t item) const { return m_items[item].equipment; }
+    // At start: the pieces lying on the ground (point: world) appear there.
+    void placeGroundEquipment(const std::function<glm::vec3(int)>& point);
     static constexpr float BagCapacityKg = 40.f;
     // The weight of what else the backpack holds (its equipment and compass), kg.
     std::function<float()> equipmentKg;
@@ -95,7 +103,7 @@ public:
     void toggleDoor(size_t door, bool immediately = false);
     size_t stablePropCount() const { return (m_stableProps ? m_stableProps->size() : 0) + (m_stableTools ? m_stableTools->size() : 0); }
     bool roofsVisible = true;
-    std::array<bool, 4> layerVisible{true, true, true, true};   // index = layer (0 = ground)
+    std::array<bool, 5> layerVisible{true, true, true, true, true};   // index = layer (0 = ground, 4 = furniture)
     ow3d::AnimatedCharacter character;
     bool followCharacter() const { return character.loaded() && character.follow; }
     // True while Sir Canegm stands under a roof: the roofs are hidden then, as in U7.
@@ -277,6 +285,9 @@ private:
                   std::string kind;                 // U7 name ("leather helm")
                   glm::vec2 bagPos{-1};             // place in the backpack panel (0..1), -1: the next free one
                   bool worn = false;                // put on by Sir Canegm (out of the world and the bag)
+                  int layer = 2;                    // its view layer (4: furniture)
+                  int equipment = -1;               // one of Sir Canegm's equipment (backpack), else -1
+                  unsigned icon = 0;                // its picture in the backpack (texture)
                   bool movable() const { return kg < 100.f && !spans.empty(); } };
     void putInBag(size_t item);
     void placeItem(size_t item, glm::vec3 flatPoint);
@@ -286,11 +297,12 @@ private:
     // A thing dragged out of the backpack shows in the world under the mouse while it is dragged
     // (still in the bag until it is let go there).
     int m_carried = -1;
+    std::array<int, 10> m_equipmentItem{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};   // equipment -> item
     void showCarried(size_t item, glm::vec3 flatPoint);
     void hideCarried();
     // The name of the dragged thing floating at the mouse (over the backpack, where the thing
     // itself cannot be seen).
-    void drawDragLabel(const std::string& name) const;
+    void drawDragLabel(const std::string& name, unsigned icon) const;
     bool m_overlayHovered = false;
     std::string m_bagMessage;
     float m_bagMessageTime = 0;
