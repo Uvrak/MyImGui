@@ -2299,7 +2299,12 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 // Crags: gentle ripples (metres), not spikes.
                 const float crag = 0.5f * std::sin(x * 0.45f + y * 0.21f) * std::sin(y * 0.37f - x * 0.13f) + 0.25f * std::sin(x * 1.1f - y * 0.9f);
                 const float rise = std::clamp(foot(x, y) / 10.f, 0.f, 1.f);
-                return (peak * rise * rise * (3 - 2 * rise) + crag * rise);
+                const float h = peak * rise * rise * (3 - 2 * rise) + crag * rise;
+                // Rock bands: strata about 2.2 m apart, each ending in a small ledge.
+                constexpr float Band = 2.2f;
+                const float b = h / Band, f = b - std::floor(b);
+                const float terrace = (std::floor(b) + f * f * (3 - 2 * f)) * Band;
+                return h + (terrace - h) * 0.85f * std::min(h / 3.f, 1.f);
             };
             // A grid of half tiles over the range's tiles.
             constexpr float S = 0.5f;
@@ -2321,11 +2326,32 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                             // Normal from the heights around (metres over metres).
                             const float dx = (at(ii + 1, jj) - at(ii - 1, jj)) / (2 * S * tm), dz = (at(ii, jj + 1) - at(ii, jj - 1)) / (2 * S * tm);
                             const glm::vec3 n = glm::normalize(glm::vec3(-dx, 1.f, -dz));
-                            // Steep rock darker, the tops lighter.
-                            const float shade = (0.72f + 0.35f * n.y) * (0.9f + 0.2f * std::min(p[k].y / 20.f, 1.f));
+                            // Steep rock darker, the tops lighter; the strata's edges as dark lines,
+                            // the bands themselves a little lighter and darker in turn.
+                            const float band = p[k].y / 2.2f, edge = band - std::floor(band);
+                            const float strata = (edge > 0.8f ? 0.62f : edge < 0.12f ? 1.12f : 1.f) * (0.88f + 0.12f * std::sin(std::floor(band) * 2.1f));
+                            const float shade = (0.72f + 0.35f * n.y) * (0.9f + 0.2f * std::min(p[k].y / 20.f, 1.f)) * strata;
                             stone.vertices.push_back({p[k].x, p[k].y, p[k].z, n.x, n.y, n.z, p[k].x * 0.25f, p[k].z * 0.25f + p[k].y * 0.3f, shade});
                         }
                     }
+            // Scree: loose stones at the foot of the slopes and in the lower gullies, each one of four
+            // stones turned at random, lying on the terrain.
+            for (const auto& [tx, ty] : range) {
+                const float x = tx + hash(tx, ty, 11), y = ty + hash(tx, ty, 12);
+                const float out = foot(x, y);
+                if (out > 9.f || hash(tx, ty, 13) > (out < 5.f ? 0.35f : 0.12f)) continue;
+                const int variant = int(hash(tx, ty, 14) * 4) % 4;
+                const float s = 0.15f + 0.45f * hash(tx, ty, 15);
+                const auto& rock = model("scree " + std::to_string(variant) + " " + std::to_string(int(s * 10)),
+                                         [&] { return PropModels::rock(std::max(s, 0.15f), unsigned(variant + 21)); });
+                const float turn = hash(tx, ty, 16) * 6.2831853f, c = std::cos(turn), sn = std::sin(turn);
+                const float ground = height(x, y) - s * 0.15f;
+                for (const auto& v : rock.parts[PropModels::Stone]) {
+                    const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
+                    const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
+                    stone.vertices.push_back({x + p.x / tm, ground + p.y, y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 0.95f});
+                }
+            }
             // Sir Canegm cannot climb them: walls along the foot of the range.
             for (const auto& [tx, ty] : range)
                 for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
