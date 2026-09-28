@@ -141,8 +141,34 @@ uniform sampler2D halfTimberAlbedo;
 uniform sampler2D halfTimberNormal;
 uniform float halfTimberWidth;   // metres along the wall per repeat; one storey (stoneHeight) high
 uniform vec3 eye;                // the camera in the flat world (x, z tiles; y metres)
+uniform float time;               // seconds (the water's waves)
+uniform bool globeWater;          // drawing the globe: its blue texels are water
+uniform float tileMetresFrag;     // metres per tile
 out vec4 color;
 const vec3 sun = normalize(vec3(-0.35, 1.0, 0.45));
+// Water: waves running in several directions (their slopes as the normal), the sky reflected
+// (stronger at a grazing view, Fresnel), the sun glittering on the crests; own: U7's colour,
+// darkened and cooled to the colour of deep water. p: metres on the flat world, view: the
+// direction from the eye.
+vec3 waterColour(vec2 p, vec3 view, vec3 own) {
+    vec2 slope = vec2(0.0);
+    const vec3 waves[5] = vec3[5](vec3(0.9, 0.4, 1.3), vec3(-0.5, 0.85, 1.9), vec3(0.2, -1.0, 2.7), vec3(-0.8, -0.6, 3.6), vec3(0.6, 0.8, 5.3));
+    for (int k = 0; k < 5; ++k) {
+        vec2 d = normalize(waves[k].xy);
+        float frequency = waves[k].z, speed = sqrt(9.81 / frequency) * 0.6, amplitude = 0.05 / frequency;
+        float phase = dot(d, p) * frequency + time * speed * frequency + float(k) * 1.7;
+        slope += d * cos(phase) * amplitude * frequency;
+    }
+    vec3 n = normalize(vec3(-slope.x, 1.0, -slope.y));
+    vec3 r = reflect(view, n);
+    float up = max(r.y, 0.0);
+    vec3 sky = mix(vec3(0.66, 0.77, 0.87), vec3(0.32, 0.5, 0.78), pow(up, 0.6));
+    vec3 deep = mix(own * 0.45, vec3(0.03, 0.13, 0.2), 0.6);
+    float fresnel = 0.03 + 0.97 * pow(1.0 - max(dot(-view, n), 0.0), 5.0);
+    vec3 water = mix(deep, sky, clamp(fresnel * 1.3 + 0.12, 0.0, 1.0));
+    float glint = pow(max(dot(r, sun), 0.0), 180.0) * 1.4;
+    return water + vec3(glint);
+}
 void shadeFragment() {
     if (cutoutable && cutout.z > 0.0 && vDepth < cutoutDepth) {
         float d = length(gl_FragCoord.xy - cutout.xy) / cutout.z;
@@ -188,6 +214,26 @@ void shadeFragment() {
         float light = 0.42 + 0.65 * max(dot(bumped, sun), 0.0);
         vec3 albedo = stone ? texture(stoneAlbedo, uv).rgb * tint * 2.0 : ashlar ? texture(ashlarAlbedo, uv).rgb * 1.3 : tint * texture(woodAlbedo, uv).rgb * 2.0;
         color = vec4(albedo * light * vShade, 1.0);
+        return;
+    }
+    if (tileArray && vShade >= 10000.0) {
+        // Shore: the tile's water texels (blue) as water, its sand and rock as they are.
+        vec4 texel = texture(tiles, vec3(vUv, vShade - 10000.0));
+        float water = smoothstep(1.2, 1.6, texel.b / max(texel.r, 0.02)) * step(0.2, texel.b);
+        vec3 e = vec3(eye.x * woodTile, eye.y, eye.z * woodTile);
+        vec2 p = vFlat.xz * woodTile;
+        vec3 view = normalize(vec3(p.x, 0.0, p.y) - e);
+        vec3 n = normalize(gl_FrontFacing ? vNormal : -vNormal);
+        float light = 0.62 + 0.38 * max(dot(n, sun), 0.0);
+        color = vec4(mix(texel.rgb * light, waterColour(p, view, vec3(0.1, 0.2, 0.55)), water), 1.0);
+        return;
+    }
+    if (tileArray && vShade >= 9000.0) {
+        // Water (see waterColour): the U7 tile's colour as its depth.
+        vec3 e = vec3(eye.x * woodTile, eye.y, eye.z * woodTile);
+        vec2 p = vFlat.xz * woodTile;                       // metres
+        vec3 view = normalize(vec3(p.x, 0.0, p.y) - e);
+        color = vec4(waterColour(p, view, textureLod(tiles, vec3(vUv, vShade - 9000.0), 12.0).rgb), 1.0);
         return;
     }
     if (tileArray && vShade >= 5000.0) {
@@ -286,6 +332,12 @@ void shadeFragment() {
         return;
     }
     vec4 texel = tileArray ? texture(tiles, vec3(vUv, vShade)) : texture(image, vUv);
+    if (globeWater && texel.b > texel.r * 1.5 && texel.b > texel.g * 1.15) {
+        // The globe's sea: the same water, seen from above at a slant (its metres from the map).
+        vec2 p = vUv * 3072.0 * tileMetresFrag;
+        color = vec4(waterColour(p, normalize(vec3(0.3, -0.8, 0.5)), texel.rgb), 1.0);
+        return;
+    }
     float shade = tileArray ? 1.0 : vShade;
     // Outline at alpha 0.5, antialiased over one screen pixel (alpha to coverage).
     float alpha = clamp((texel.a - 0.5) / max(fwidth(texel.a), 1e-4) + 0.5, 0.0, 1.0);
@@ -922,6 +974,8 @@ void Britannia3dView::buildRoads() {
                     if (t[i].shade >= 1000.f) continue;
                     if (m_grassLayer[size_t(t[i].shade)]) t[i].shade += 2000.f;
                     else if (m_grassEdgeLayer[size_t(t[i].shade)]) t[i].shade += 4000.f;
+                    else if (m_waterLayer[size_t(t[i].shade)]) t[i].shade += 9000.f;
+                    else if (m_shoreLayer[size_t(t[i].shade)]) t[i].shade += 10000.f;
                 }
             }
     }
@@ -995,6 +1049,8 @@ void Britannia3dView::classifyGround(const U7::Data& data, const std::vector<std
     // Lawn tiles: mostly green pixels; lawn edges: a quarter or more green, with earth.
     m_grassLayer.assign(flats.size(), false);
     m_darkLayer.assign(flats.size(), false);
+    m_waterLayer.assign(flats.size(), false);
+    m_shoreLayer.assign(flats.size(), false);
     m_grassEdgeLayer.assign(flats.size(), false);
     m_floorLayer.assign(flats.size(), 0);
     m_grassColours.clear();
@@ -1067,6 +1123,7 @@ void Britannia3dView::classifyGround(const U7::Data& data, const std::vector<std
             if (it == variants.end()) {
                 GroundTiles::Variant v;
                 v.outside = m_roadLayer[i] ? "cobble" : m_mixedLayer[i] ? "cobble-dirt" : m_grassLayer[i] ? "grass" : m_grassEdgeLayer[i] ? "grass-mud" : "tile";
+                // (Water is recognised below from the high resolution tile's colour.)
                 v.inside = insideNames[std::clamp(m_floorLayer[i], 0, 4)];
                 it = variants.emplace(key, v).first;
                 added = true;
@@ -1090,6 +1147,15 @@ void Britannia3dView::classifyGround(const U7::Data& data, const std::vector<std
                 lum /= n; r /= n; g /= n; b /= n;
                 const double colour = std::max({r, g, b}) - std::min({r, g, b});
                 if (i < m_darkLayer.size()) m_darkLayer[i] = lum < 0.2 && colour < 0.1 && v.outside == "tile";
+                // Water: blue (lakes, rivers, the sea). New tiles are recorded as "water".
+                if (i < m_waterLayer.size()) m_waterLayer[i] = v.outside == "water" || (v.outside == "tile" && b > 0.25 && b > r * 1.5 && b > g * 1.15);
+                // Shores: a part of the tile is water (its blue texels get the water, the rest stays).
+                if (i < m_shoreLayer.size() && !m_waterLayer[i] && !m_roadLayer[i]) {
+                    size_t blue = 0;
+                    for (size_t k = 0; k + 3 < images[i].size(); k += 4)
+                        if (images[i][k + 2] > 60 && images[i][k + 2] > images[i][k] * 1.5 && images[i][k + 2] > images[i][k + 1] * 1.15) ++blue;
+                    m_shoreLayer[i] = blue * 12 > images[i].size() / 4;
+                }
             }
         }
         if (added) GroundTiles::saveVariants(file, variants);
@@ -3706,6 +3772,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             else if (name == "rock" || name == "large rock" || name == "boulder") recognised = name == "rock" ? "rock" : name;
             else if (name == "weeds") recognised = "weeds";
             else if (name == "plant") recognised = "plant";
+            else if (name == "waves" || name == "bubbles" || name == "surf") recognised = "none";   // the water has its own waves
             else if (name == "crops" || name == "reeds" || name == "cattails" || name == "fern" || name == "pumpkin" || name == "cactus" ||
                      name == "lily pads")
                 recognised = name;
@@ -3719,6 +3786,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             const auto& v = it->second;
             const auto size = data.shapeSize(object.shape);
             const glm::vec2 middle(object.x + 1 - size.x * 0.5f, object.y + 1 - size.y * 0.5f);
+            if (v == "none") continue;
             if (v == "tree") { treePlaces.push_back(middle); continue; }
             if (v == "dead-tree") { deadTreePlaces.push_back(middle); continue; }
             static const std::map<std::string, std::string> propKind = {
@@ -4325,6 +4393,7 @@ void Britannia3dView::render(int width, int height) {
         glUniform1f(glGetUniformLocation(GLuint(program), "cutoutDepth"), depth);
     }
     glUniform1f(glGetUniformLocation(GLuint(program), "time"), float(SDL_GetTicks()) / 1000.f);
+    glUniform1f(glGetUniformLocation(GLuint(program), "tileMetresFrag"), U73dScale::TileMetres);
     const GLint tileArray = glGetUniformLocation(GLuint(program), "tileArray");
     {
         const glm::mat4 identity(1);
@@ -4391,6 +4460,7 @@ void Britannia3dView::render(int width, int height) {
         for (const auto& batch : *batches) {
             if (batches == &m_batches && ((batch.roof && !roofs) || !layerVisible[size_t(batch.layer)])) continue;
             glUniform1i(direct, batch.layer < 0);
+            glUniform1i(glGetUniformLocation(GLuint(program), "globeWater"), batches == &m_globe);
             glUniform1i(tileArray, batch.array);
             glUniform1i(wind, batch.wind);
             glUniform1i(cutoutable, !batch.array && batch.layer > 0 && batch.cutout);   // not the ground, kerbs (layer 0) and furniture

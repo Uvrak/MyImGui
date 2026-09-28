@@ -199,7 +199,9 @@ private:
     std::vector<glm::vec3> m_roadColours;                       // U7 street pixels
     std::vector<bool> m_mixedLayer;                             // per ground layer: street stones with dirt
     std::vector<bool> m_grassLayer;
-    std::vector<bool> m_darkLayer;                              // per ground layer: dark rock floor (caves) or U7's black
+    std::vector<bool> m_darkLayer;
+    std::vector<bool> m_waterLayer;
+    std::vector<bool> m_shoreLayer;                             // per ground layer: partly water (shore tiles)                             // per ground layer: water (drawn with waves and reflections)                              // per ground layer: dark rock floor (caves) or U7's black
     std::vector<int> m_floorLayer;                              // per ground layer, a house floor: 0 no, 1 boards, 2 flagstones, 3 bricks, 4 carpet
     std::vector<bool> m_grassEdgeLayer;                         // per ground layer: lawn with some earth                             // per ground layer: a lawn tile
     std::vector<glm::vec3> m_grassColours;                      // U7 grass pixels
