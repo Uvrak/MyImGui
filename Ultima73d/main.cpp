@@ -173,6 +173,42 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
         view.assetDirectory = AssetDirectory;
         view.stableSceneDirectory = AssetDirectory;
         view.dataDirectory = DataDirectory;
+        if (has("--find-caves")) {
+            // Where dark floors lie next to cavern rock: counts per area of 8 x 8 chunks.
+            std::map<std::pair<int, int>, bool> darkTile;
+            std::map<std::pair<int, int>, int> counts;
+            std::set<std::pair<int, int>> rock;
+            for (const auto& o : data.objects()) {
+                const auto kind = PropModels::kindOf(data.name(o.shape));
+                if (kind != "cavern" && kind != "mountain") continue;
+                const auto size = data.shapeSize(o.shape);
+                for (int y = o.y - size.y + 1; y <= o.y; ++y)
+                    for (int x = o.x - size.x + 1; x <= o.x; ++x) rock.insert({x, y});
+            }
+            std::map<std::pair<int, int>, bool> dark;
+            for (const auto& [x, y] : rock)
+                for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    if (rock.count({x + dx, y + dy})) continue;          // open floor only
+                    const auto tile = U7GroundGrid::groundTile(data, x + dx, y + dy);
+                    auto [it, added] = dark.try_emplace({tile.shape, tile.frame}, false);
+                    if (added) {
+                        const auto pixels = U7GroundGrid::rgba(data, tile.shape, tile.frame);
+                        double lum = 0;
+                        for (size_t k = 0; k + 3 < pixels.size(); k += 4) lum += pixels[k] * 0.3 + pixels[k + 1] * 0.59 + pixels[k + 2] * 0.11;
+                        double r = 0, g = 0, b = 0;
+                        for (size_t k = 0; k + 3 < pixels.size(); k += 4) { r += pixels[k]; g += pixels[k + 1]; b += pixels[k + 2]; }
+                        const double n = double(pixels.size() / 4) * 255.0;
+                        it->second = lum / n < 0.2 && ((std::max)({r, g, b}) - (std::min)({r, g, b})) / n < 0.1;
+                    }
+                    if (it->second) ++counts[{(x + dx) / 128, (y + dy) / 128}];
+                }
+            std::vector<std::pair<int, std::pair<int, int>>> sorted;
+            for (const auto& [area, n] : counts) sorted.push_back({n, area});
+            std::sort(sorted.rbegin(), sorted.rend());
+            for (size_t i = 0; i < sorted.size() && i < 8; ++i)
+                std::cout << "Caves " << sorted[i].first << " at chunks " << sorted[i].second.first * 8 << ',' << sorted[i].second.second * 8 << "\n";
+            return 0;
+        }
         if (has("--census")) {
             // How often each thing without a model (graphic in item- or terrain-variants.txt) occurs.
             std::map<std::string, int> counts;

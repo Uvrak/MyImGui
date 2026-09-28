@@ -994,6 +994,7 @@ void Britannia3dView::classifyGround(const U7::Data& data, const std::vector<std
     }
     // Lawn tiles: mostly green pixels; lawn edges: a quarter or more green, with earth.
     m_grassLayer.assign(flats.size(), false);
+    m_darkLayer.assign(flats.size(), false);
     m_grassEdgeLayer.assign(flats.size(), false);
     m_floorLayer.assign(flats.size(), 0);
     m_grassColours.clear();
@@ -1077,6 +1078,19 @@ void Britannia3dView::classifyGround(const U7::Data& data, const std::vector<std
             m_grassEdgeLayer[i] = v.outside == "grass-mud";
             m_floorLayer[i] = v.inside == "boards" ? 1 : v.inside == "flagstones" ? 2 : v.inside == "bricks" ? 3 : v.inside == "carpet" ? 4 : 0;
             images[i] = GroundTiles::loadOrCreate(assetDirectory, key, images[i], TexelsPerTile);
+            {
+                // Cave floors: dark, hardly coloured rock (or U7's black), no lawn.
+                // (Not water: deep blue is dark too.)
+                double lum = 0, r = 0, g = 0, b = 0;
+                for (size_t k = 0; k + 3 < images[i].size(); k += 4) {
+                    lum += images[i][k] * 0.3 + images[i][k + 1] * 0.59 + images[i][k + 2] * 0.11;
+                    r += images[i][k]; g += images[i][k + 1]; b += images[i][k + 2];
+                }
+                const double n = std::max<size_t>(1, images[i].size() / 4) * 255.0;
+                lum /= n; r /= n; g /= n; b /= n;
+                const double colour = std::max({r, g, b}) - std::min({r, g, b});
+                if (i < m_darkLayer.size()) m_darkLayer[i] = lum < 0.2 && colour < 0.1 && v.outside == "tile";
+            }
         }
         if (added) GroundTiles::saveVariants(file, variants);
     }
@@ -1719,6 +1733,7 @@ void Britannia3dView::buildWells(const std::vector<glm::vec2>& places) {
 
 void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPlace>& props) {
     m_items.clear();
+    m_caveTiles.clear();
     if (props.empty()) return;
     constexpr float tm = U73dScale::TileMetres;
     // One model per kind and size: every table of a size shares one mesh, placed many times.
@@ -2265,11 +2280,19 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             if (prop.name == "mountain" || prop.name == "cavern") {
                 const auto size = data.shapeSize(prop.object.shape);
                 for (int y = prop.object.y - size.y + 1; y <= prop.object.y; ++y)
-                    for (int x = prop.object.x - size.x + 1; x <= prop.object.x; ++x) {
-                        range.insert({x, y});
-                        if (prop.name == "cavern") cave.insert({x, y});
-                    }
+                    for (int x = prop.object.x - size.x + 1; x <= prop.object.x; ++x) range.insert({x, y});
             }
+        // Caves: rock next to a dark cave floor (U7 calls snowy mountains "cavern" too; they stay
+        // mountains). The floor tiles near cave rock form the cave's room.
+        const int gx0 = m_groundRect.x, gy0 = m_groundRect.y, gx1 = m_groundRect.z, gy1 = m_groundRect.w, gw = gx1 - gx0;
+        auto darkFloor = [&](int x, int y) {
+            if (x < gx0 || y < gy0 || x >= gx1 || y >= gy1 || range.count({x, y})) return false;
+            return bool(m_darkLayer[size_t(m_tileLayer[size_t(y - gy0) * gw + (x - gx0)])]);
+        };
+        for (const auto& [x, y] : range)
+            for (int dy = -2; dy <= 2 && !cave.count({x, y}); ++dy)
+                for (int dx = -2; dx <= 2; ++dx)
+                    if (darkFloor(x + dx, y + dy)) { cave.insert({x, y}); break; }
         if (!range.empty()) {
             auto hash = [](int x, int y, unsigned salt) {
                 std::uint32_t h = std::uint32_t(x) * 374761393u + std::uint32_t(y) * 668265263u + salt * 2246822519u;
@@ -2323,7 +2346,9 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 if (added) it->second = height(i * S, j * S);
                 return it->second;
             };
-            auto& stone = m_batches[batchFor(PropModels::Stone, 0, 1)];
+            // (Found first: the cave ceiling below adds batches, so no reference is kept across that.)
+            const size_t stoneIndex = batchFor(PropModels::Stone, 0, 1);
+            auto& stone = m_batches[stoneIndex];
             for (const auto& [tx, ty] : range)
                 for (int sj = 0; sj < 2; ++sj)
                     for (int si = 0; si < 2; ++si) {
@@ -2363,6 +2388,68 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                     const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
                     // Darker than the rock face, in the shade of its neighbours; each stone its own tone.
                     stone.vertices.push_back({x + p.x / tm, ground + p.y, y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 0.55f + 0.2f * hash(tx, ty, 17)});
+                }
+            }
+            // Caves: the room between cave walls (no lawn, no street, at most 6 tiles from a cave
+            // wall) gets a rough rock ceiling at a storey's height, hidden like a roof when Sir
+            // Canegm is under it or the roofs are off; stalactites hang from it, a few stalagmites
+            // rise from the floor.
+            if (!cave.empty()) {
+                auto open = [&](int x, int y) { return darkFloor(x, y); };
+                std::set<std::pair<int, int>> room;
+                for (const auto& [cx, cy] : cave)
+                    for (int dy = -6; dy <= 6; ++dy)
+                        for (int dx = -6; dx <= 6; ++dx)
+                            if (dx * dx + dy * dy <= 36 && open(cx + dx, cy + dy)) room.insert({cx + dx, cy + dy});
+                if (!room.empty()) {
+                    auto& ceilingBatch = m_batches.emplace_back();
+                    ceilingBatch.texture = textures[PropModels::Stone];
+                    ceilingBatch.layer = 1;
+                    ceilingBatch.roof = true;                  // hidden with the roofs
+                    auto& ceiling = m_batches.back();
+                    const float top = U73dScale::StoreyHeight + 0.4f;
+                    auto underside = [&](float x, float y) {    // the ceiling's height, bumpy
+                        return top - 0.25f - 0.25f * std::sin(x * 1.7f + y * 0.6f) * std::sin(y * 1.3f - x * 0.8f);
+                    };
+                    for (const auto& [tx, ty] : room) {
+                        m_roofTiles.insert({tx, ty});
+                        // The ceiling in quarters, its rough underside facing down.
+                        for (int sj = 0; sj < 2; ++sj)
+                            for (int si = 0; si < 2; ++si) {
+                                const float x0 = tx + si * 0.5f, z0 = ty + sj * 0.5f, x1 = x0 + 0.5f, z1 = z0 + 0.5f;
+                                const glm::vec3 p[4] = {{x0, underside(x0, z0), z0}, {x0, underside(x0, z1), z1}, {x1, underside(x1, z1), z1}, {x1, underside(x1, z0), z0}};
+                                for (int k : {0, 1, 2, 0, 2, 3})
+                                    ceiling.vertices.push_back({p[k].x, p[k].y, p[k].z, 0, -1, 0, p[k].x * 0.25f, p[k].z * 0.25f, 0.45f});
+                            }
+                        // A stalactite on every sixth tile or so, 0.3 to 1.3 m long.
+                        if (hash(tx, ty, 21) < 0.17f) {
+                            const float x = tx + 0.2f + 0.6f * hash(tx, ty, 22), z = ty + 0.2f + 0.6f * hash(tx, ty, 23);
+                            const float length = 0.3f + 1.0f * hash(tx, ty, 24), r = 0.05f + 0.1f * hash(tx, ty, 25), y = underside(x, z) + 0.05f;
+                            constexpr int sides = 7;
+                            for (int k = 0; k < sides; ++k) {
+                                const float a0 = 6.2831853f * k / sides, a1 = 6.2831853f * (k + 1) / sides;
+                                const glm::vec3 b0(x + std::cos(a0) * r / tm, y, z + std::sin(a0) * r / tm), b1(x + std::cos(a1) * r / tm, y, z + std::sin(a1) * r / tm);
+                                const glm::vec3 tip(x, y - length, z);
+                                const glm::vec3 n = glm::normalize(glm::vec3(std::cos((a0 + a1) / 2), -0.3f, std::sin((a0 + a1) / 2)));
+                                for (const auto& q : {b0, b1, tip}) ceiling.vertices.push_back({q.x, q.y, q.z, n.x, n.y, n.z, q.x, q.y, 0.6f});
+                            }
+                        }
+                    }
+                    // Stalagmites (stay when the ceiling is hidden): on every twentieth tile or so.
+                    auto& floorStone = m_batches[stoneIndex];
+                    for (const auto& [tx, ty] : room) {
+                        if (hash(tx, ty, 31) > 0.05f) continue;
+                        const float x = tx + 0.5f, z = ty + 0.5f, height = 0.3f + 0.8f * hash(tx, ty, 32), r = 0.08f + 0.1f * hash(tx, ty, 33);
+                        constexpr int sides = 8;
+                        for (int k = 0; k < sides; ++k) {
+                            const float a0 = 6.2831853f * k / sides, a1 = 6.2831853f * (k + 1) / sides;
+                            const glm::vec3 b0(x + std::cos(a0) * r / tm, 0, z + std::sin(a0) * r / tm), b1(x + std::cos(a1) * r / tm, 0, z + std::sin(a1) * r / tm);
+                            const glm::vec3 tip(x, height, z);
+                            const glm::vec3 n = glm::normalize(glm::vec3(std::cos((a0 + a1) / 2), 0.3f, std::sin((a0 + a1) / 2)));
+                            for (const auto& q : {b0, tip, b1}) floorStone.vertices.push_back({q.x, q.y, q.z, n.x, n.y, n.z, q.x, q.y, 0.6f});
+                        }
+                    }
+                    m_caveTiles.insert(room.begin(), room.end());
                 }
             }
             // Sir Canegm cannot climb them: walls along the foot of the range.

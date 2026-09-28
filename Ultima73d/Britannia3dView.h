@@ -199,6 +199,7 @@ private:
     std::vector<glm::vec3> m_roadColours;                       // U7 street pixels
     std::vector<bool> m_mixedLayer;                             // per ground layer: street stones with dirt
     std::vector<bool> m_grassLayer;
+    std::vector<bool> m_darkLayer;                              // per ground layer: dark rock floor (caves) or U7's black
     std::vector<int> m_floorLayer;                              // per ground layer, a house floor: 0 no, 1 boards, 2 flagstones, 3 bricks, 4 carpet
     std::vector<bool> m_grassEdgeLayer;                         // per ground layer: lawn with some earth                             // per ground layer: a lawn tile
     std::vector<glm::vec3> m_grassColours;                      // U7 grass pixels
@@ -267,6 +268,7 @@ private:
     void buildSlateRoofs(const std::vector<glm::ivec4>& tiles);
     // Roof tiles whose material is set (roof-variants.txt): 1 slate, 2 thatch; others by the walls.
     std::map<std::pair<int, int>, int> m_roofMaterial;
+    std::set<std::pair<int, int>> m_caveTiles;                   // cave rooms: under a rock ceiling, in the dark
     // High resolution windows (frame, mullion, sill, leaded yellow panes as in U7), stone door
     // frames, and U7's paintings and tapestries as sharp pictures on the inner wall faces.
     // shutters: U7's closed / open shutters, as board shutters outside the nearest window.
