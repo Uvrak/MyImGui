@@ -36,6 +36,7 @@
 #include <thread>
 #include <SDL3_image/SDL_image.h>
 #include <atomic>
+#include <chrono>
 
 namespace {
 
@@ -3678,6 +3679,7 @@ void Britannia3dView::buildGlobe(const U7::Data& data) {
 
 void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int chunkX1, int chunkY1, const LayerOf& layerOf,
                             const char* title) {
+    for (const auto& gate : m_gates) m_gateStates[{int(gate.origin.x), int(gate.origin.z)}] = {gate.open, gate.locked};
     destroy();
     m_chunkX = chunkX0; m_chunkY = chunkY0; m_chunkX1 = chunkX1; m_chunkY1 = chunkY1;
     m_title = title;
@@ -4124,6 +4126,12 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
     if (structureAdded) GroundTiles::saveStructureVariants(structureFile, structureVariants, "layer 1 graphic (walls, doors, windows, town walls, rock)",
                                                            "planks, post, stone, ashlar, half-timber, graphic (its high resolution picture)");
     buildGateModels(data, gateParts);
+    for (auto& gate : m_gates)
+        if (const auto state = m_gateStates.find({int(gate.origin.x), int(gate.origin.z)}); state != m_gateStates.end()) {
+            gate.open = state->second.first;
+            gate.locked = state->second.second;
+            gate.raised = gate.open ? gate.height * 0.8f : 0.f;
+        }
     buildSlateRoofs(slateTiles);
     buildGlobe(data);
     if (stableScene) {

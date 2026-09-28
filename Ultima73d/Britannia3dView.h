@@ -243,6 +243,8 @@ private:
     std::set<std::pair<int, int>> m_wallFootprint;             // tiles of walls, doors and windows (known before placing)
     std::map<std::pair<int, int>, float> m_wallTop;             // tile -> top of its wall (metres)
     std::vector<Door> m_doors;
+    // Gates opened or locked stay so when the area is built anew (by their place, tiles).
+    std::map<std::pair<int, int>, std::pair<bool, bool>> m_gateStates;
     std::vector<U7::WorldObject> m_extraObjects;              // added blood of the stable scene
     ow3d::Mesh m_doorPlanks, m_doorBattens, m_doorIron;
     unsigned m_ironTexture = 0;
