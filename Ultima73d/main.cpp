@@ -13,6 +13,7 @@
 //       renders the Britannia3d view of Trinsic as a bitmap, for checks: from above, the whole
 //       globe, or Sir Canegm's camera (after walking 3 s north with --walk; close up; placed).
 #include "Britannia3dView.h"
+#include "PropModels.h"
 #include <set>
 #include <chrono>
 #include "Inventory/BackpackPanel.h"
@@ -50,16 +51,30 @@ bool layerThree(const U7::WorldObject& object, const std::string& name) {
 // The movable things (neither structure nor part of the terrain), split for the U7 grid view:
 // furniture, and all the smaller things. Markers the game never shows are left out.
 bool movableThing(const U7::WorldObject& object, const std::string& name) {
-    return !layerOne(object, name) && !layerThree(object, name) && name != "egg" && name != "path" && name != "light source";
+    return !layerOne(object, name) && !layerThree(object, name) && name.find("roof") == std::string::npos && name != "egg" && name != "path" &&
+           name != "light source";
 }
+// Roofs: a layer of their own in the grid (in the 3D view the roofs switch).
+// (U7's roofs are fixed objects of the map, which the grid otherwise puts into layer 3.)
+bool roof(const U7::WorldObject&, const std::string& name) {
+    return name.find("roof") != std::string::npos;
+}
+bool terrainNoRoof(const U7::WorldObject& object, const std::string& name) {
+    return layerThree(object, name) && !roof(object, name);
+}
+bool structureNoRoof(const U7::WorldObject& object, const std::string& name) {
+    return layerOne(object, name) && !roof(object, name);
+}
+// The same rule as Britannia3d (PropModels::layerOf): 2 furniture, 4 things one can drag,
+// 6 everything else (figures, blood, tracks, heavy or fixed things).
 bool furniture(const U7::WorldObject& object, const std::string& name) {
-    static const std::set<std::string> kinds = {"table", "desk", "drawers", "seat", "bed", "bed ", "chair", "crate", "chest", "locked chest",
-                                                "sealed box", "unsealed box", "stove", "stove top", "podium", "pedestal", "water trough", "trough",
-                                                "anvil", "easel", "mirror", "cart", "barrel", "cupboard", "dresser", "cradle", "bench"};
-    return movableThing(object, name) && kinds.count(name) > 0;
+    return movableThing(object, name) && PropModels::layerOf(PropModels::kindOf(name)) == 2;
 }
 bool smallThing(const U7::WorldObject& object, const std::string& name) {
-    return movableThing(object, name) && !furniture(object, name);
+    return movableThing(object, name) && PropModels::layerOf(PropModels::kindOf(name)) == 4;
+}
+bool miscThing(const U7::WorldObject& object, const std::string& name) {
+    return movableThing(object, name) && PropModels::layerOf(PropModels::kindOf(name)) == 6;
 }
 
 // Paints one decoded frame into an RGBA image, hot spot at (hx, hy), with alpha.
@@ -152,6 +167,7 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
         view.assetDirectory = AssetDirectory;
         view.stableSceneDirectory = AssetDirectory;
         view.dataDirectory = DataDirectory;
+        if (has("--world-ground")) view.prepareWorldGround(data);   // once: HD ground tiles for the whole world
         view.build(data, x0, y0, x1, y1, layerOf, "Trinsic");
         view.roofsVisible = !has("--no-roofs");
         if (has("--toggle-doors"))
@@ -243,13 +259,16 @@ int main(int argc, char** argv) {
 
         {
             U7GroundGrid ground;
-            U7ObjectLayer structures, terrain, furnishings, things;
+            U7ObjectLayer structures, terrain, furnishings, things, roofs, misc;
             GridBuilderGrid grid(nullptr, U7::ChunkTiles);
             grid.setGroundLayer(ground.build(data), "U7 Original");
-            const auto structureLayer = grid.addSpriteLayer(structures.build(data, "Ebene 1: Waende, Tueren, Fenster, Mauern, Fels", layerOne));
-            const auto terrainLayer = grid.addSpriteLayer(terrain.build(data, "Ebene 3: Felsen, Pflanzen, Baeume", layerThree));
+            const auto structureLayer = grid.addSpriteLayer(structures.build(data, "Ebene 1: Waende, Tueren, Fenster, Zaeune, Mauern, Fels", structureNoRoof));
+            const auto terrainLayer = grid.addSpriteLayer(terrain.build(data, "Ebene 3: Felsen, Pflanzen, Baeume", terrainNoRoof));
             const auto furnitureLayer = grid.addSpriteLayer(furnishings.build(data, "Ebene 2: Moebel", furniture));
-            grid.addSpriteLayer(things.build(data, "Ebene 4: Gegenstaende", smallThing));
+            const auto thingsLayer = grid.addSpriteLayer(things.build(data, "Ebene 4: Gegenstaende", smallThing));
+            const auto roofLayer = grid.addSpriteLayer(roofs.build(data, "Ebene 5: Daecher", roof));
+            const auto miscLayer = grid.addSpriteLayer(misc.build(data, "Ebene 6: Sonstiges (Figuren, Spuren, Blut ...)", miscThing));
+            std::cout << "Layer 5 (roofs): " << grid.spriteLayer(roofLayer).sprites.size() << " objects" << std::endl;
             std::cout << "Layer 0: " << ground.materialCount() << " ground tiles; layer 1: "
                       << grid.spriteLayer(structureLayer).sprites.size() << " objects; layer 3: "
                       << grid.spriteLayer(terrainLayer).sprites.size() << " objects" << std::endl;
@@ -258,6 +277,7 @@ int main(int argc, char** argv) {
             britannia3d.assetDirectory = AssetDirectory;
             britannia3d.stableSceneDirectory = AssetDirectory;
             britannia3d.dataDirectory = DataDirectory;
+            britannia3d.prepareWorldGround(data);         // once: HD tiles for the whole world
             britannia3d.build(data, TrinsicChunkX0, TrinsicChunkY0, TrinsicChunkX1, TrinsicChunkY1, layerOf, "Trinsic");
             if (!britannia3d.loadCharacter(CanegmFolder, CanegmTileX, CanegmTileY))
                 std::cerr << "Sir Canegm not found in " << CanegmFolder << '\n';
@@ -332,15 +352,48 @@ int main(int argc, char** argv) {
                 grid.draw(&open);
                 // Layers 1 and 3 are one switch each for the grid and the 3D view: a change in
                 // either place is applied to the other.
-                // (The furniture is layer 2 in the grid, layer 4 in the 3D view.)
-                const std::pair<std::size_t, int> shared[] = {{structureLayer, 1}, {terrainLayer, 3}, {furnitureLayer, 4}};
-                bool before[3];
-                for (int i = 0; i < 3; ++i) before[i] = britannia3d.layerVisible[size_t(shared[i].second)];
+                // (The same numbers in both: 1 structures, 2 furniture, 3 terrain, 4 things.)
+                const std::pair<std::size_t, int> shared[] = {{structureLayer, 1}, {terrainLayer, 3}, {furnitureLayer, 2}, {thingsLayer, 4}, {miscLayer, 6}};
+                bool before[5];
+                for (int i = 0; i < 5; ++i) before[i] = britannia3d.layerVisible[size_t(shared[i].second)];
+                const bool roofsBefore = britannia3d.roofsVisible;
                 if (britannia3dOpen) britannia3d.draw(&britannia3dOpen);
-                for (int i = 0; i < 3; ++i)
+                // Switching between the U7 grid and Britannia3d keeps the part of the map shown.
+                {
+                    static bool shown3d = false, first = true;
+                    const bool now3d = britannia3dOpen && britannia3d.visible;
+                    if (!first && now3d != shown3d) {
+                        if (now3d) {
+                            const auto view = grid.groundView();
+                            // Outside the built area: the area (Trinsic's size) is built anew there,
+                            // Sir Canegm stands in its middle.
+                            const auto region = britannia3d.chunkRegion();
+                            const int cx = int(view.centerX) / U7::ChunkTiles, cy = int(view.centerY) / U7::ChunkTiles;
+                            if (cx < region.x || cx > region.z || cy < region.y || cy > region.w) {
+                                const int w = region.z - region.x + 1, h = region.w - region.y + 1;
+                                const int x0 = std::clamp(cx - w / 2, 0, U7::WorldChunks - w), y0 = std::clamp(cy - h / 2, 0, U7::WorldChunks - h);
+                                britannia3d.build(data, x0, y0, x0 + w - 1, y0 + h - 1, layerOf, "Britannia");
+                                if (britannia3d.character.loaded())
+                                    britannia3d.character.setPosition(britannia3d.planet(glm::vec3(view.centerX, 0, view.centerY)));
+                                if (backpackReady) britannia3d.placeGroundEquipment([&](int e) { return backpack.groundPoint(e); });
+                            }
+                            britannia3d.showArea(view.centerX, view.centerY, view.visibleHeight);
+                        } else {
+                            float x, y, high;
+                            britannia3d.shownArea(x, y, high);
+                            auto view = grid.groundView();
+                            view.centerX = x; view.centerY = y; view.visibleHeight = high; view.visibleWidth = 0;
+                            grid.setGroundView(view);
+                        }
+                    }
+                    shown3d = now3d;
+                    first = false;
+                }
+                if (britannia3d.roofsVisible != roofsBefore) grid.setSpriteLayerVisible(roofLayer, britannia3d.roofsVisible);
+                for (int i = 0; i < 5; ++i)
                     if (britannia3d.layerVisible[size_t(shared[i].second)] != before[i])
                         grid.setSpriteLayerVisible(shared[i].first, britannia3d.layerVisible[size_t(shared[i].second)]);
-                if (ImGui::Begin("Ebenen")) {
+                if (ImGui::Begin("Ebenen", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
                     ImGui::TextUnformatted("Ebene 0: Bodentiles");
                     for (std::size_t i = 0; i < grid.spriteLayerCount(); ++i) {
                         bool visible = grid.spriteLayer(i).visible;
@@ -348,6 +401,7 @@ int main(int argc, char** argv) {
                             grid.setSpriteLayerVisible(i, visible);
                             for (const auto& [layer, view] : shared)
                                 if (layer == i) britannia3d.layerVisible[size_t(view)] = visible;
+                            if (i == roofLayer) britannia3d.roofsVisible = visible;
                         }
                     }
                     ImGui::Separator();

@@ -52,6 +52,15 @@ public:
     // (fractional), looking north.
     bool loadCharacter(const std::filesystem::path& folder, float tileX, float tileY);
     ow3d::Camera& camera() { return m_camera; }
+    // Once for the whole world: every U7 ground tile gets its 3D variant and HD picture.
+    void prepareWorldGround(const U7::Data& data);
+    // The detail chunks built (x0, y0, x1, y1, inclusive).
+    glm::ivec4 chunkRegion() const { return {m_chunkX, m_chunkY, m_chunkX1, m_chunkY1}; }
+    // The part of the map the view shows (tiles: centre and height), so the U7 grid can show the
+    // same when the user switches views, and the other way round (a straight-down free camera).
+    void shownArea(float& tileX, float& tileY, float& tilesHigh) const;
+    void showArea(float tileX, float tileY, float tilesHigh);
+    bool visible = false;                       // drawn this frame (its tab in front)
     // The ground under a screen point (normalised device coordinates), in world coordinates.
     bool pickGround(float x, float y, glm::vec3& ground) const;
     // Drawn over the view after it (the backpack); returns whether the mouse is over it.
@@ -103,7 +112,7 @@ public:
     void toggleDoor(size_t door, bool immediately = false);
     size_t stablePropCount() const { return (m_stableProps ? m_stableProps->size() : 0) + (m_stableTools ? m_stableTools->size() : 0); }
     bool roofsVisible = true;
-    std::array<bool, 5> layerVisible{true, true, true, true, true};   // index = layer (0 = ground, 4 = furniture)
+    std::array<bool, 7> layerVisible{true, true, true, true, true, true, true};   // index = layer (0 ground, 1 structures, 2 furniture, 3 terrain, 4 things, 5 unused (roofs: roofsVisible), 6 misc)
     ow3d::AnimatedCharacter character;
     bool followCharacter() const { return character.loaded() && character.follow; }
     // True while Sir Canegm stands under a roof: the roofs are hidden then, as in U7.
@@ -148,6 +157,7 @@ private:
     bool indoors(glm::vec3 point, glm::vec3 direction) const;
     void loadModels(const U7::Data& data, const std::vector<std::pair<int, int>>& graphics);
     void buildGround(const U7::Data& data);
+    void classifyGround(const U7::Data& data, const std::vector<std::pair<int, int>>& flats, std::vector<std::vector<std::uint8_t>>& images);
     // Streets: U7's street tiles (grey cobbles) outside the houses get the high resolution
     // cobblestone (CobbleMaterial) and a raised kerb where they meet other ground.
     void buildRoads();
@@ -255,6 +265,8 @@ private:
                       float overhang, float thick, bool ridgeCap);
     // Slate gable roofs (SlateMaterial) over the stone houses, from U7's flat slate roof pieces.
     void buildSlateRoofs(const std::vector<glm::ivec4>& tiles);
+    // Roof tiles whose material is set (roof-variants.txt): 1 slate, 2 thatch; others by the walls.
+    std::map<std::pair<int, int>, int> m_roofMaterial;
     // High resolution windows (frame, mullion, sill, leaded yellow panes as in U7), stone door
     // frames, and U7's paintings and tapestries as sharp pictures on the inner wall faces.
     // shutters: U7's closed / open shutters, as board shutters outside the nearest window.
@@ -266,7 +278,8 @@ private:
     // and the pitchfork in the gargoyle's chest drawn with U7's own pitchfork graphic.
     void buildSignAndFork(const U7::Data& data);
     // 3D trees (TreeModel) in place of U7's tree graphics, each of its own height.
-    void buildTrees(const std::vector<glm::vec2>& places);
+    // bare: dead trees (trunk and branches, no leaves).
+    void buildTrees(const std::vector<glm::vec2>& places, const std::vector<glm::vec2>& bare = {});
     // 3D street lamps (LampModel) in place of U7's lamp posts.
     void buildLamps(const std::vector<glm::vec2>& places);
     // 3D wells (WellModel) in place of U7's well and its windlass.
@@ -285,10 +298,10 @@ private:
                   std::string kind;                 // U7 name ("leather helm")
                   glm::vec2 bagPos{-1};             // place in the backpack panel (0..1), -1: the next free one
                   bool worn = false;                // put on by Sir Canegm (out of the world and the bag)
-                  int layer = 2;                    // its view layer (4: furniture)
+                  int layer = 2;                    // its view layer (2 furniture, 4 things)
                   int equipment = -1;               // one of Sir Canegm's equipment (backpack), else -1
                   unsigned icon = 0;                // its picture in the backpack (texture)
-                  bool movable() const { return kg < 100.f && !spans.empty(); } };
+                  bool movable() const { return kg < 100.f && !spans.empty() && layer != 6; } };   // (misc: not to be dragged)
     void putInBag(size_t item);
     void placeItem(size_t item, glm::vec3 flatPoint);
     // Let go: the thing falls onto the furniture under its middle, or onto the floor.

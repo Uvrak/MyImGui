@@ -127,6 +127,7 @@ xcopy /y /d "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutD
       <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
       <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">Default</BasicRuntimeChecks>
     </ClCompile>
+    <ClCompile Include="GroundTiles.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="SlateMaterial.cpp">
       <Optimization Condition="'$(Configuration)'=='Debug'">MaxSpeed</Optimization>
@@ -177,6 +178,7 @@ xcopy /y /d "$(SolutionDir)ThirdParty\SDL3_image\lib\x64\SDL3_image.dll" "$(OutD
     <ClInclude Include="HalfTimber.h" />
     <ClInclude Include="TextileArt.h" />
     <ClInclude Include="HalfTimberMaterial.h" />
+    <ClInclude Include="GroundTiles.h" />
     <ClInclude Include="U7Data.h" />
     <ClInclude Include="WoodMaterial.h" />
     <ClInclude Include="U7GroundGrid.h" />

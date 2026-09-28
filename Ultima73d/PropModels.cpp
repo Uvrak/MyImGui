@@ -783,6 +783,111 @@ Model wagon(float length, float width) {
 
 
 
+// Tools, trinkets and the like, lying or standing, centred.
+
+Model tool(int kind) {
+    // Along x, lying: 0 rake (a crossbar with teeth), 1 shovel (a blade), 2 pitchfork (tines).
+    Model m;
+    box(m.parts[Wood], {-0.75f, 0.01f, -0.015f}, {0.55f, 0.04f, 0.015f});
+    if (kind == 0) {
+        box(m.parts[Wood], {0.55f, 0.005f, -0.22f}, {0.6f, 0.045f, 0.22f});
+        for (int i = 0; i < 9; ++i) box(m.parts[Iron], {0.6f, 0.01f, -0.2f + i * 0.05f - 0.006f}, {0.68f, 0.03f, -0.2f + i * 0.05f + 0.006f});
+    } else if (kind == 1) {
+        box(m.parts[Iron], {0.55f, 0.005f, -0.12f}, {0.85f, 0.02f, 0.12f});
+    } else {
+        box(m.parts[Iron], {0.55f, 0.01f, -0.08f}, {0.58f, 0.035f, 0.08f});
+        for (const float z : {-0.07f, 0.f, 0.07f}) box(m.parts[Iron], {0.58f, 0.015f, z - 0.006f}, {0.88f, 0.03f, z + 0.006f});
+    }
+    return m;
+}
+
+Model key() {
+    Model m;
+    lathe(m.parts[Iron], {{0.015f, 0}, {0.02f, 0.004f}, {0.015f, 0.008f}}, 12, glm::vec3(-0.04f, 0, 0));
+    box(m.parts[Iron], {-0.02f, 0, -0.004f}, {0.05f, 0.006f, 0.004f});
+    box(m.parts[Iron], {0.035f, 0, 0.004f}, {0.05f, 0.006f, 0.016f});
+    return m;
+}
+
+Model amulet() {
+    // A gold pendant on its chain, lying in a loop.
+    Model m;
+    lathe(m.parts[Gold], {{0, 0}, {0.025f, 0}, {0.025f, 0.006f}, {0, 0.008f}}, 16, glm::vec3(0));
+    for (int i = 0; i < 16; ++i) {
+        const float a = 6.2831853f * i / 16;
+        const glm::vec3 c(std::cos(a) * 0.07f, 0.002f, std::sin(a) * 0.07f - 0.07f);
+        box(m.parts[Gold], c - glm::vec3(0.004f), c + glm::vec3(0.004f));
+    }
+    return m;
+}
+
+Model staff(bool icon) {
+    // The Fellowship's staff: a tall rod with the golden triangle; the icon: the triangle on a
+    // small stand.
+    Model m;
+    const float height = icon ? 0.35f : 1.8f;
+    lathe(m.parts[icon ? Wood : DarkWood], {{0.02f, 0}, {0.015f, height}, {0, height}}, 8, glm::vec3(0));
+    if (icon) lathe(m.parts[Wood], {{0.08f, 0}, {0.08f, 0.03f}, {0, 0.03f}}, 12, glm::vec3(0));
+    const float s = icon ? 0.14f : 0.22f, y = height;
+    const glm::vec3 p[3] = {{-s / 2, y, 0}, {s / 2, y, 0}, {0, y + s * 0.87f, 0}};
+    for (const float z : {-0.006f, 0.006f})
+        for (int j = 0; j < 3; ++j) m.parts[Gold].push_back({p[j] + glm::vec3(0, 0, z), glm::vec3(0, 0, z > 0 ? 1.f : -1.f), glm::vec2(0)});
+    return m;
+}
+
+Model statue(float height) {
+    // A stone figure on a plinth: robe, arms, shoulders and head.
+    Model m;
+    box(m.parts[Stone], {-0.35f, 0, -0.35f}, {0.35f, 0.3f, 0.35f});
+    const float h = height - 0.3f;
+    lathe(m.parts[Stone], {{0.26f, 0}, {0.22f, h * 0.45f}, {0.17f, h * 0.7f}, {0.2f, h * 0.78f}, {0.08f, h * 0.82f}, {0.07f, h * 0.84f},
+                           {0.1f, h * 0.9f}, {0.09f, h * 0.97f}, {0, h}}, 16, glm::vec3(0, 0.3f, 0));
+    for (const float x : {-0.23f, 0.19f}) box(m.parts[Stone], {x, 0.3f + h * 0.45f, -0.05f}, {x + 0.05f, 0.3f + h * 0.76f, 0.05f});
+    return m;
+}
+
+Model chimney(float width, float depth, float height) {
+    Model m;
+    box(m.parts[Stone], {-width / 2, 0, -depth / 2}, {width / 2, height, depth / 2});
+    box(m.parts[Stone], {-width / 2 - 0.04f, height, -depth / 2 - 0.04f}, {width / 2 + 0.04f, height + 0.08f, depth / 2 + 0.04f});
+    box(m.parts[Iron], {-width / 2 + 0.08f, height + 0.079f, -depth / 2 + 0.08f}, {width / 2 - 0.08f, height + 0.081f, depth / 2 - 0.08f});
+    return m;
+}
+
+Model pool(float width, float depth) {
+    // A puddle: a flat irregular disc of water, just above the ground.
+    Model m;
+    constexpr int sides = 18;
+    for (int i = 0; i < sides; ++i) {
+        const float a0 = 6.2831853f * i / sides, a1 = 6.2831853f * (i + 1) / sides;
+        auto r = [&](float a) { return 0.85f + 0.15f * std::sin(a * 3.f) * std::cos(a * 2.f); };
+        const glm::vec3 c(0, 0.006f, 0), p0(std::cos(a0) * width * 0.5f * r(a0), 0.006f, std::sin(a0) * depth * 0.5f * r(a0)),
+            p1(std::cos(a1) * width * 0.5f * r(a1), 0.006f, std::sin(a1) * depth * 0.5f * r(a1));
+        for (const auto& p : {c, p1, p0}) m.parts[Water].push_back({p, glm::vec3(0, 1, 0), glm::vec2(p.x, p.z)});
+    }
+    return m;
+}
+
+Model palette() {
+    // A painter's palette with its dabs of paint, and two brushes.
+    Model m;
+    lathe(m.parts[Wood], {{0, 0}, {0.14f, 0}, {0.14f, 0.01f}, {0, 0.01f}}, 18, glm::vec3(0));
+    for (int i = 0; i < 5; ++i) {
+        const float a = 6.2831853f * i / 5;
+        lathe(m.parts[Cloth], {{0, 0.01f}, {0.018f, 0.012f}, {0, 0.02f}}, 8, glm::vec3(std::cos(a) * 0.09f, 0, std::sin(a) * 0.09f));
+    }
+    for (const float z : {0.18f, 0.21f}) box(m.parts[DarkWood], {-0.12f, 0, z - 0.005f}, {0.12f, 0.01f, z + 0.005f});
+    return m;
+}
+
+Model body() {
+    // Someone lying under a cloth: a long mound with the head at one end.
+    Model m = clothHeap(1.1f, 3);
+    for (auto& v : m.parts[Cloth]) { v.position.x *= 1.3f; v.position.z *= 0.45f; }
+    lathe(m.parts[Cloth], {{0, 0}, {0.1f, 0.04f}, {0.09f, 0.12f}, {0, 0.16f}}, 12, glm::vec3(0.85f, 0, 0));
+    return m;
+}
+
 float weightKg(const std::string& kind, float width, float depth, float height) {
     struct Entry { const char* kind; float kg; bool perCubicMetre; };
     // Solid furniture scales with its bulk (kg per m^3 of its box: oak furniture is mostly air);
@@ -806,10 +911,39 @@ float weightKg(const std::string& kind, float width, float depth, float height) 
         {"podium", 30, false}, {"pedestal", 400, false}, {"water trough", 90, false}, {"lever", 15, false}, {"iron bars", 120, false},
         {"red flag", 8, false}, {"bellows", 12, false}, {"cauldron", 25, false}, {"cart", 450, false}, {"painting", 6, false},
         {"tapestry", 12, false}, {"curtain", 4, false}, {"rug", 15, false},
+        {"rake", 1.8f, false}, {"shovel", 2.2f, false}, {"pitchfork", 2.f, false}, {"key", 0.05f, false}, {"amulet", 0.08f, false},
+        {"gargoyle jewelry", 0.1f, false}, {"fellowship staff", 1.5f, false}, {"fellowship icon", 0.6f, false}, {"statue", 900, false},
+        {"chimney", 800, false}, {"pool of water", 1000, false}, {"artist's equipment", 0.7f, false}, {"great dagger", 0.8f, false},
+        {"body", 70, false}, {"victim", 70, false},
     };
     for (const auto& e : table)
         if (kind == e.kind) return e.perCubicMetre ? std::max(1.f, e.kg * width * depth * std::max(height, 0.1f)) : e.kg;
     return 1.f;
+}
+
+std::string kindOf(const std::string& u7Name) {
+    std::string kind = u7Name;
+    while (!kind.empty() && kind.back() == ' ') kind.pop_back();
+    if (!kind.empty() && kind[0] == '/') {
+        const auto second = kind.find('/', 1), third = second == std::string::npos ? second : kind.find('/', second + 1);
+        const std::string stem = kind.substr(1, second == std::string::npos ? std::string::npos : second - 1);
+        const std::string singular = second == std::string::npos ? "" : kind.substr(second + 1, third == std::string::npos ? std::string::npos : third - second - 1);
+        kind = stem + singular;
+    }
+    return kind;
+}
+
+int layerOf(const std::string& kind) {
+    static const char* furniture[] = {"table", "desk", "drawers", "seat", "bed", "chair", "crate", "chest", "locked chest", "sealed box",
+                                      "unsealed box", "stove", "stove top", "podium", "pedestal", "water trough", "trough", "anvil", "easel",
+                                      "mirror", "cart", "barrel", "cupboard", "dresser", "cradle", "bench"};
+    for (const char* f : furniture) if (kind == f) return 2;
+    // Not things to pick up: figures, fixed or heavy things.
+    static const char* fixed[] = {"body", "victim", "red flag", "pool of water", "statue", "chimney", "sundial", "firepit", "pillar",
+                                  "haystack", "iron bars", "lever"};
+    for (const char* f : fixed) if (kind == f) return 6;
+    const float kg = weightKg(kind, 0.5f, 0.5f, 0.5f);
+    return kg != 1.f && kg < 100.f ? 4 : 6;   // (1 kg: a kind without a weight, so without a model)
 }
 
 std::string germanName(const std::string& kind) {
@@ -831,7 +965,11 @@ std::string germanName(const std::string& kind) {
         {"backpack", "Rucksack"}, {"basket", "Korb"}, {"anvil", "Amboss"}, {"stove", "Ofen"}, {"stove top", "Herd"},
         {"firepit", "Feuerstelle"}, {"easel", "Staffelei"}, {"mirror", "Spiegel"}, {"sundial", "Sonnenuhr"}, {"podium", "Lesepult"},
         {"pedestal", "Sockel"}, {"water trough", "Wassertrog"}, {"lever", "Hebel"}, {"iron bars", "Eisengitter"}, {"red flag", "Flagge"},
-        {"bellows", "Blasebalg"}, {"cauldron", "Kessel"}, {"cart", "Wagen"},
+        {"bellows", "Blasebalg"}, {"cauldron", "Kessel"}, {"cart", "Wagen"}, {"rake", "Harke"}, {"shovel", "Schaufel"},
+        {"pitchfork", "Heugabel"}, {"key", "Schluessel"}, {"amulet", "Amulett"}, {"gargoyle jewelry", "Gargoyle-Schmuck"},
+        {"fellowship staff", "Stab der Fellowship"}, {"fellowship icon", "Symbol der Fellowship"}, {"statue", "Statue"},
+        {"chimney", "Schornstein"}, {"pool of water", "Pfuetze"}, {"artist's equipment", "Malerpalette"}, {"great dagger", "Grosser Dolch"},
+        {"body", "Leiche"}, {"victim", "Opfer"},
     };
     for (const auto& [en, de] : names) if (kind == en) return de;
     return kind;

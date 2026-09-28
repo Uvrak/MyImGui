@@ -91,12 +91,30 @@ Model ironBars(float length, float height);
 Model flag(unsigned seed);
 Model basket();
 Model bellows();
+// Tools (0 rake, 1 shovel, 2 pitchfork), trinkets, the Fellowship's staff and icon, a statue,
+// a chimney, a puddle, a painter's palette, a body under a cloth.
+Model tool(int kind);
+Model key();
+Model amulet();
+Model staff(bool icon);
+Model statue(float height);
+Model chimney(float width, float depth, float height);
+Model pool(float width, float depth);
+Model palette();
+Model body();
 // A farm wagon along x, the shafts towards +x.
 Model wagon(float length, float width);
 
 // A picture of the model for the backpack (RGBA, size x size, transparent around it): seen
 // from the front and a little above, each material in its colour, lit from the upper left.
 std::vector<std::uint8_t> renderIcon(const Model& model, const std::array<glm::vec3, MaterialCount>& colours, int size);
+
+// U7's name as a kind: without trailing spaces, "/dagger//s" -> dagger, "/kni/fe/ves" -> knife.
+std::string kindOf(const std::string& u7Name);
+// The view layer of a movable U7 thing, the same in the U7 grid and Britannia3d: 2 furniture,
+// 4 things (can be dragged: a known kind under 100 kg), 6 everything else (figures, blood,
+// tracks, heavy things, whatever has no model).
+int layerOf(const std::string& kind);
 
 // Realistic weight (kg) of a thing of this U7 kind; furniture scales with its size (metres).
 float weightKg(const std::string& kind, float width, float depth, float height);

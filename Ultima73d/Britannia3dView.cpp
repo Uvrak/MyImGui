@@ -15,6 +15,8 @@
 #include "PropModels.h"
 #include "HalfTimber.h"
 #include "HalfTimberMaterial.h"
+#include "GroundTiles.h"
+#include "U7ObjectLayer.h"
 #include "TextileArt.h"
 #include "TreeModel.h"
 #include "WoodMaterial.h"
@@ -503,6 +505,11 @@ void Britannia3dView::loadModels(const U7::Data& data, const std::vector<std::pa
             m_createdFiles += p.created;
             if (p.model.empty()) continue;
             auto& model = m_models[graphics[first + i]];
+            // Every U7 graphic drawn as such (layers 1 to 3): its high resolution picture from the
+            // assets, made from the U7 graphic when missing.
+            const auto [shape, frame] = graphics[first + i];
+            p.texels = GroundTiles::loadOrCreatePicture(std::filesystem::path(assetDirectory) / GroundTiles::objectFile({shape, frame}), std::move(p.texels),
+                                                            p.width, p.height, unsigned(shape * 32 + frame));
             model.texture = makeTexture(p.width, p.height, p.texels.data(), true);
             model.kind = p.model.kind;
             model.halfTimber = p.halfTimber;
@@ -927,22 +934,12 @@ void Britannia3dView::buildRoads() {
     }
 }
 
-void Britannia3dView::buildGround(const U7::Data& data) {
-    // Detail ground: one quad per tile, its flat tile from a texture array of all flat tiles
-    // used, each upscaled to TexelsPerTile (as a 3 x 3 repeat, so it stays seamless).
-    constexpr int c = U7::ChunkTiles, factor = TexelsPerTile / P, tiled = 3 * P;
-    const int x0 = m_chunkX * c, y0 = m_chunkY * c, x1 = (m_chunkX1 + 1) * c, y1 = (m_chunkY1 + 1) * c;
-    std::map<int, int> layers;
-    std::vector<int> tileLayer(size_t(x1 - x0) * (y1 - y0));
-    std::vector<std::pair<int, int>> flats;
-    for (int y = y0; y < y1; ++y)
-        for (int x = x0; x < x1; ++x) {
-            const auto t = U7GroundGrid::groundTile(data, x, y);
-            auto [it, added] = layers.try_emplace(t.shape << 5 | t.frame, int(flats.size()));
-            if (added) flats.push_back({t.shape, t.frame});
-            tileLayer[size_t(y - y0) * (x1 - x0) + (x - x0)] = it->second;
-        }
-    std::vector<std::vector<std::uint8_t>> images(flats.size());
+void Britannia3dView::classifyGround(const U7::Data& data, const std::vector<std::pair<int, int>>& flats,
+                                     std::vector<std::vector<std::uint8_t>>& images) {
+    // Each U7 flat tile upscaled, recognised (street, lawn, floors ...), its 3D variant from
+    // data/Maps/ground-variants.txt and its high resolution picture from the assets.
+    constexpr int factor = TexelsPerTile / P, tiled = 3 * P;
+    images.assign(flats.size(), {});
     std::atomic<size_t> next{0};
     std::vector<std::thread> threads;
     for (unsigned w = 0; w < std::max(1u, std::thread::hardware_concurrency()); ++w)
@@ -1055,6 +1052,70 @@ void Britannia3dView::buildGround(const U7::Data& data) {
                 if (p[1] > p[0] + 6 && p[1] > p[2] + 6) m_grassColours.push_back(glm::vec3(p[0], p[1], p[2]) / 255.f);
             }
     }
+    // U7's tiles and their 3D variants (data/Maps/ground-variants.txt): what is recognised above
+    // for tiles not listed yet (then written back), the file for the others; every tile's high
+    // resolution picture comes from the assets (made from U7's tile when missing).
+    {
+        const auto file = dataDirectory / "Maps/ground-variants.txt";
+        auto variants = GroundTiles::loadVariants(file);
+        bool added = false;
+        const char* insideNames[5] = {"tile", "boards", "flagstones", "bricks", "carpet"};
+        for (size_t i = 0; i < flats.size(); ++i) {
+            const GroundTiles::Key key{flats[i].first, flats[i].second};
+            auto it = variants.find(key);
+            if (it == variants.end()) {
+                GroundTiles::Variant v;
+                v.outside = m_roadLayer[i] ? "cobble" : m_mixedLayer[i] ? "cobble-dirt" : m_grassLayer[i] ? "grass" : m_grassEdgeLayer[i] ? "grass-mud" : "tile";
+                v.inside = insideNames[std::clamp(m_floorLayer[i], 0, 4)];
+                it = variants.emplace(key, v).first;
+                added = true;
+            }
+            const auto& v = it->second;
+            m_roadLayer[i] = v.outside == "cobble";
+            m_mixedLayer[i] = v.outside == "cobble-dirt";
+            m_grassLayer[i] = v.outside == "grass";
+            m_grassEdgeLayer[i] = v.outside == "grass-mud";
+            m_floorLayer[i] = v.inside == "boards" ? 1 : v.inside == "flagstones" ? 2 : v.inside == "bricks" ? 3 : v.inside == "carpet" ? 4 : 0;
+            images[i] = GroundTiles::loadOrCreate(assetDirectory, key, images[i], TexelsPerTile);
+        }
+        if (added) GroundTiles::saveVariants(file, variants);
+    }
+}
+
+void Britannia3dView::prepareWorldGround(const U7::Data& data) {
+    // Once: every ground tile of the whole world gets its 3D variant and its high resolution
+    // picture (marked done by the file Maps/ground-variants.world).
+    const auto done = dataDirectory / "Maps/ground-variants.world";
+    if (std::filesystem::exists(done)) return;
+    std::set<std::pair<int, int>> used;
+    for (int y = 0; y < U7::WorldTiles; ++y)
+        for (int x = 0; x < U7::WorldTiles; ++x) {
+            const auto tile = U7GroundGrid::groundTile(data, x, y);
+            used.insert({tile.shape, tile.frame});
+        }
+    const std::vector<std::pair<int, int>> flats(used.begin(), used.end());
+    std::vector<std::vector<std::uint8_t>> images;
+    classifyGround(data, flats, images);
+    std::ofstream(done) << "All ground tiles of the world are in ground-variants.txt.\n";
+}
+
+void Britannia3dView::buildGround(const U7::Data& data) {
+    // Detail ground: one quad per tile, its flat tile from a texture array of all flat tiles
+    // used, each upscaled to TexelsPerTile (as a 3 x 3 repeat, so it stays seamless).
+    constexpr int c = U7::ChunkTiles, factor = TexelsPerTile / P, tiled = 3 * P;
+    const int x0 = m_chunkX * c, y0 = m_chunkY * c, x1 = (m_chunkX1 + 1) * c, y1 = (m_chunkY1 + 1) * c;
+    std::map<int, int> layers;
+    std::vector<int> tileLayer(size_t(x1 - x0) * (y1 - y0));
+    std::vector<std::pair<int, int>> flats;
+    for (int y = y0; y < y1; ++y)
+        for (int x = x0; x < x1; ++x) {
+            const auto t = U7GroundGrid::groundTile(data, x, y);
+            auto [it, added] = layers.try_emplace(t.shape << 5 | t.frame, int(flats.size()));
+            if (added) flats.push_back({t.shape, t.frame});
+            tileLayer[size_t(y - y0) * (x1 - x0) + (x - x0)] = it->second;
+        }
+    std::vector<std::vector<std::uint8_t>> images;
+    classifyGround(data, flats, images);
     m_groundRect = glm::ivec4(x0, y0, x1, y1);
     m_tileLayer = tileLayer;
 
@@ -1802,7 +1863,7 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             const float c = std::cos(turn), sn = std::sin(turn);
             for (int k = 0; k < PropModels::MaterialCount; ++k)
                 for (const auto& v : wagon.parts[k]) {
-                    auto& batch = m_batches[batchFor(k, 0, 4)];
+                    auto& batch = m_batches[batchFor(k, 0, 2)];   // (the wagon is furniture: layer 2)
                     const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
                     const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
                     batch.vertices.push_back({centre.x + p.x / tm, p.y, centre.y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 1.f});
@@ -1852,7 +1913,9 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
         static const std::set<std::string> furnitureKinds = {"table", "desk", "drawers", "seat", "bed", "chair", "crate", "chest", "locked chest",
                                                              "sealed box", "unsealed box", "stove", "stove top", "podium", "pedestal", "water trough",
                                                              "anvil", "easel", "mirror"};
-        if (furnitureKinds.count(prop.name) && prop.layer == 2) layer = 4;
+        // As the U7 grid: furniture in layer 2, things one can drag in 4, everything else in 6.
+        if (prop.layer == 2) layer = PropModels::layerOf(prop.name);
+        (void)furnitureKinds;
         if (prop.name == "table") m = &model(dims("table"), [&] { return PropModels::table(w, d, h); });
         else if (prop.name == "desk") m = &model(dims("desk"), [&] { return PropModels::desk(w, d, h); });
         else if (prop.name == "drawers") m = &model(dims("drawers"), [&] { return PropModels::drawers(w, d, h); });
@@ -2010,7 +2073,20 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 else if (prop.name == "lever") m = &model(key, [] { return PropModels::lever(); });
                 else if (prop.name == "iron bars") m = &model(key, [&] { return PropModels::ironBars(length, 2.2f); });
                 else m = &model(key, [] { return PropModels::bellows(); });
-            } else if (prop.name == "cart") {
+            } else if (prop.name == "rake") m = &model("rake", [] { return PropModels::tool(0); });
+            else if (prop.name == "shovel") m = &model("shovel", [] { return PropModels::tool(1); });
+            else if (prop.name == "pitchfork") m = &model("pitchfork", [] { return PropModels::tool(2); });
+            else if (prop.name == "key") m = &model("key", [] { return PropModels::key(); });
+            else if (prop.name == "amulet" || prop.name == "gargoyle jewelry") m = &model("amulet", [] { return PropModels::amulet(); });
+            else if (prop.name == "fellowship staff") { turned = false; m = &model("staff", [] { return PropModels::staff(false); }); }
+            else if (prop.name == "fellowship icon") { turned = false; m = &model("icon", [] { return PropModels::staff(true); }); }
+            else if (prop.name == "statue") { turned = false; m = &model(dims("statue"), [&] { return PropModels::statue(std::max(h, 1.8f)); }); }
+            else if (prop.name == "chimney") { turned = false; m = &model(dims("chimney"), [&] { return PropModels::chimney(w * 0.8f, d * 0.8f, std::max(h, 1.f)); }); }
+            else if (prop.name == "pool of water") { turned = false; m = &model(dims("pool"), [&] { return PropModels::pool(w, d); }); }
+            else if (prop.name == "artist's equipment") m = &model("palette", [] { return PropModels::palette(); });
+            else if (prop.name == "great dagger") m = &model("great dagger", [] { return PropModels::blade(0.5f, true); });
+            else if (prop.name == "body" || prop.name == "victim") { cover = 1; m = &model("body", [] { return PropModels::body(); }); }
+            else if (prop.name == "cart") {
                 continue;   // all pieces of a wagon as one, below
             } else if (prop.name == "evergreen") {
                 m = &model("evergreen " + v, [&] { return PropModels::evergreen(4.5f + 0.6f * variant, variant + 1); });
@@ -2129,7 +2205,7 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             for (int k = 0; k < PropModels::MaterialCount; ++k) {
                 const auto& part = m->parts[k];
                 if (part.empty()) continue;
-                const size_t batchIndex = batchFor(k, 0, 2);
+                const size_t batchIndex = batchFor(k, 0, 4);
                 auto& batch = m_batches[batchIndex];
                 item.spans.push_back({batchIndex, batch.vertices.size(), part.size()});
                 for (const auto& v : part) {
@@ -2142,6 +2218,7 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             item.inBag = true;                         // hidden: in the bag or worn
             item.kind = kind;
             item.equipment = e;
+            item.layer = 4;
             m_equipmentItem[size_t(e)] = int(m_items.size());
             m_items.push_back(std::move(item));
         }
@@ -2532,7 +2609,9 @@ void Britannia3dView::buildSignposts(const U7::Data& data, const std::vector<U7:
     }
 }
 
-void Britannia3dView::buildTrees(const std::vector<glm::vec2>& places) {
+void Britannia3dView::buildTrees(const std::vector<glm::vec2>& living, const std::vector<glm::vec2>& bare) {
+    std::vector<glm::vec2> places(living);
+    places.insert(places.end(), bare.begin(), bare.end());
     if (places.empty()) return;
     constexpr float tm = U73dScale::TileMetres;
     const auto bark = TreeModel::barkTexture(256), leaves = TreeModel::leafTexture(512);
@@ -2548,7 +2627,9 @@ void Britannia3dView::buildTrees(const std::vector<glm::vec2>& places) {
     leafBatch.texture = makeTexture(512, 512, leaves.data(), true);
     leafBatch.layer = 3;
     leafBatch.wind = 2;
-    for (const auto& place : places) {
+    for (size_t treeIndex = 0; treeIndex < places.size(); ++treeIndex) {
+        const auto& place = places[treeIndex];
+        const bool dead = treeIndex >= living.size();
         // The place decides the tree: 7 to 11 m, its own branching.
         const std::uint32_t seed = std::uint32_t(int(place.x)) * 73856093u ^ std::uint32_t(int(place.y)) * 19349663u;
         auto tree = TreeModel::build(seed, 7.f, 11.f);
@@ -2616,7 +2697,7 @@ void Britannia3dView::buildTrees(const std::vector<glm::vec2>& places) {
             }
         };
         add(m_batches[barkIndex], tree.bark, 1.f, true);
-        add(leafBatch, tree.leaves, 1.f, false);
+        if (!dead) add(leafBatch, tree.leaves, 1.f, false);
         ++m_quadObjects;
     }
 }
@@ -2881,6 +2962,12 @@ void Britannia3dView::buildSlateRoofs(const std::vector<glm::ivec4>& tiles) {
                 if (m_stoneTiles.count({x, y})) ++stone;
                 else if (m_solidTiles.count({x, y})) ++wood;
             }
+        // A material set in roof-variants.txt comes first.
+        int slateSet = 0, thatchSet = 0;
+        for (int y = start.second; y < start.second + h; ++y)
+            for (int x = start.first; x < start.first + w; ++x)
+                if (const auto m = m_roofMaterial.find({x, y}); m != m_roofMaterial.end()) ++(m->second == 1 ? slateSet : thatchSet);
+        if (slateSet + thatchSet > 0) { wood = thatchSet > slateSet ? 1 : 0; stone = thatchSet > slateSet ? 0 : 1; }
         if (wood > stone) addGableRoof(m_batches[thatchIndex], m_batches[gableIndex], x0, z0, x1, z1, eave, 45.f, 0.6f, 0.35f, true);
         else addGableRoof(m_batches[roofIndex], m_batches[gableIndex], x0, z0, x1, z1, eave, 38.f, 0.35f, 0.12f, false);
     }
@@ -3269,7 +3356,17 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         // The stable itself (U7 tiles 1054 - 1084, 2176 - 2208), not the house north of it.
         m_stableArea = glm::ivec4(1054, 2176, 1086, 2209);
     }
-    std::vector<glm::vec2> treePlaces, lampPlaces, wellPlaces;
+    std::vector<glm::vec2> treePlaces, deadTreePlaces, lampPlaces, wellPlaces;
+    const auto roofFile = dataDirectory / "Maps/roof-variants.txt";
+    auto roofVariants = GroundTiles::loadStructureVariants(roofFile);
+    bool roofAdded = false;
+    m_roofMaterial.clear();
+    const auto itemFile = dataDirectory / "Maps/item-variants.txt";
+    auto itemVariants = GroundTiles::loadStructureVariants(itemFile);
+    bool itemAdded = false;
+    const auto terrainFile = dataDirectory / "Maps/terrain-variants.txt";
+    auto terrainVariants = GroundTiles::loadStructureVariants(terrainFile);
+    bool terrainAdded = false;
     std::vector<PropPlace> props;
     std::vector<U7::WorldObject> signPosts, signBoards, townFences;
     std::vector<glm::ivec4> slateTiles;
@@ -3315,10 +3412,35 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             lampPlaces.push_back({object.x + 0.5f, object.y + 0.5f});
             continue;
         }
-        // U7's trees become 3D trees.
-        if (object.shape == 453) {
-            treePlaces.push_back({object.x + 0.5f, object.y + 0.5f});
-            continue;
+        // Layer 3 (rocks, plants, trees): data/Maps/terrain-variants.txt says which 3D model
+        // stands for each U7 graphic (tree, dead-tree, evergreen, bush, rock, weeds, plant, or
+        // graphic: its high resolution picture); graphics not listed yet are recognised by name.
+        if (layer == 3) {
+            const GroundTiles::Key key{object.shape, object.frame};
+            auto it = terrainVariants.find(key);
+            if (it == terrainVariants.end()) {
+                std::string v = "graphic";
+                if (name == "tree" || name == "maple tree") v = "tree";
+                else if (name == "dead tree") v = "dead-tree";
+                else if (name == "evergreen") v = "evergreen";
+                else if (name == "small bush" || name == "bush") v = "bush";
+                else if (name == "rock") v = "rock";
+                else if (name == "weeds") v = "weeds";
+                else if (name == "plant") v = "plant";
+                it = terrainVariants.emplace(key, v).first;
+                terrainAdded = true;
+            }
+            const auto& v = it->second;
+            const auto size = data.shapeSize(object.shape);
+            const glm::vec2 middle(object.x + 1 - size.x * 0.5f, object.y + 1 - size.y * 0.5f);
+            if (v == "tree") { treePlaces.push_back(middle); continue; }
+            if (v == "dead-tree") { deadTreePlaces.push_back(middle); continue; }
+            static const std::map<std::string, std::string> propKind = {
+                {"evergreen", "evergreen"}, {"bush", "small bush"}, {"rock", "rock"}, {"weeds", "weeds"}, {"plant", "plant"}};
+            if (const auto kind = propKind.find(v); kind != propKind.end()) {
+                props.push_back({object, kind->second, 3, object.lift * U73dScale::FurnitureLift});
+                continue;
+            }
         }
         // The horse sign in front of the shed becomes the iron sign on the wall.
         if (stableScene && object.shape == 361 && object.frame == 7 && object.x == 1067 && object.y == 2211) continue;
@@ -3345,10 +3467,27 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             continue;
         // U7's flat roofs on the walls (lift 5: slate, wood, tile) become gable roofs: slate on
         // stone houses, thatch on wooden ones (buildGableRoofs).
-        if ((name == "slate roof" || name == "wood roof" || name == "tile roof") && object.lift == 5) {
-            const auto size = data.shapeSize(object.shape);
-            slateTiles.push_back({object.x - size.x + 1, object.y - size.y + 1, object.x + 1, object.y + 1});
-            continue;
+        // Layer 5 (roofs): data/Maps/roof-variants.txt says how each U7 roof graphic is drawn -
+        // gable (a gable roof, slate over stone walls, thatch over wooden ones), slate, thatch, or
+        // graphic (its high resolution picture); new ones: gable for the flat roofs on the walls.
+        // (Roofs on the walls, lift 5; the roofs of upper storeys stay graphics.)
+        if (name.find("roof") != std::string::npos && object.lift == 5) {
+            const GroundTiles::Key key{object.shape, object.frame};
+            auto it = roofVariants.find(key);
+            if (it == roofVariants.end()) {
+                const bool flat = name == "slate roof" || name == "wood roof" || name == "tile roof";
+                it = roofVariants.emplace(key, flat ? "gable" : "graphic").first;
+                roofAdded = true;
+            }
+            const auto& v = it->second;
+            if (v == "gable" || v == "slate" || v == "thatch") {
+                const auto size = data.shapeSize(object.shape);
+                slateTiles.push_back({object.x - size.x + 1, object.y - size.y + 1, object.x + 1, object.y + 1});
+                if (v != "gable")
+                    for (int y = object.y - size.y + 1; y <= object.y; ++y)
+                        for (int x = object.x - size.x + 1; x <= object.x; ++x) m_roofMaterial[{x, y}] = v == "slate" ? 1 : 2;
+                continue;
+            }
         }
         // Ultima7Remake's fences and trough replace U7's in the stable and the paddock north east of it.
         if (stableScene && (name == "fence" || name == "trough" || name == "water trough") &&
@@ -3386,7 +3525,9 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
                                                          "kitchen items", "eating utensils", "top", "swamp boots", "backpack", "anvil", "stove",
                                                          "stove top", "firepit", "easel", "mirror", "sundial", "podium", "pedestal",
                                                          "water trough", "lever", "iron bars", "red flag", "basket", "bellows", "sealed box",
-                                                         "unsealed box", "cauldron", "cart"};
+                                                         "unsealed box", "cauldron", "cart", "rake", "shovel", "pitchfork", "key", "amulet",
+                                                         "gargoyle jewelry", "fellowship staff", "fellowship icon", "statue", "chimney",
+                                                         "pool of water", "artist's equipment", "great dagger", "body", "victim"};
         std::string propName = name;
         while (!propName.empty() && propName.back() == ' ') propName.pop_back();   // U7 names "bed "
         if (!propName.empty() && propName[0] == '/') {
@@ -3396,6 +3537,20 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             for (std::string part; std::getline(in, part, '/');) parts.push_back(part);
             propName = (parts.size() > 0 ? parts[0] : "") + (parts.size() > 1 ? parts[1] : "");
         }
+        // Layer 2 (movable things): data/Maps/item-variants.txt says which 3D model stands for
+        // each U7 graphic (a PropModels kind, or graphic: its high resolution picture); the
+        // stable's own things stay as they are.
+        const bool inStable = stableScene && object.x >= m_stableArea.x && object.x < m_stableArea.z && object.y >= m_stableArea.y && object.y < m_stableArea.w;
+        if (layer == 2 && !inStable) {
+            const GroundTiles::Key key{object.shape, object.frame};
+            auto it = itemVariants.find(key);
+            if (it == itemVariants.end()) {
+                it = itemVariants.emplace(key, propNames.count(propName) ? propName : std::string("graphic")).first;
+                itemAdded = true;
+            }
+            propName = it->second;
+        } else if (layer == 2 && (propName == "pitchfork" || propName == "rake" || propName == "shovel"))
+            propName = "graphic";
         if (propNames.count(propName)) {
             const float liftMetres = object.lift >= U73dScale::UpperFloorLift ? U73dScale::StructureLift : U73dScale::FurnitureLift;
             props.push_back({object, propName, layer == 1 || layer == 3 ? layer : 2, object.lift * liftMetres});
@@ -3408,7 +3563,7 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
                                name.find("stairs") != std::string::npos || object.lift >= U73dScale::UpperFloorLift;
         // The wooden stairs beside the shed (east of it) are half as steep.
         const bool shedStairs = name == "stairs" && object.x >= 1084 && object.x < 1089 && object.y >= 2176 && object.y < 2185;
-        placed.push_back({&object, layer == 1 || layer == 3 ? layer : 2, roof,
+        placed.push_back({&object, layer == 1 || layer == 3 ? layer : roof ? 1 : name.find("stairs") != std::string::npos ? 1 : 6, roof,
                           (structure ? U73dScale::StructureLift : U73dScale::FurnitureLift) * (shedStairs ? 0.5f : 1.f), layer == 1 && name == "wall",
                           layer == 1 && name.find("fence") == std::string::npos});
         if (seen.insert({object.shape, object.frame}).second) graphics.push_back({object.shape, object.frame});
@@ -3570,6 +3725,9 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
             continue;
         }
     }
+    const auto structureFile = dataDirectory / "Maps/structure-variants.txt";
+    auto structureVariants = GroundTiles::loadStructureVariants(structureFile);
+    bool structureAdded = false;
     for (const auto& p : placed) {
         const auto name = lower(data.name(p.object->shape));
         if (name == "portcullis" || name == "winch" || name == "stairs") continue;
@@ -3579,6 +3737,18 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         const bool fortress = model != m_models.end() && model->second.fortress;
         int planks = plank ? (model->second.post ? 2 : 1) : stoneWall ? 4 : fortress ? 6 : 0;
         if (p.wall && model != m_models.end() && model->second.halfTimber && model->second.kind == U7ObjectModel::Kind::Box) planks = 7;
+        if (p.layer == 1 && model != m_models.end()) {
+            // How it is drawn: data/Maps/structure-variants.txt (what is recognised, for new ones).
+            static const char* names[8] = {"graphic", "planks", "post", "graphic", "stone", "graphic", "ashlar", "half-timber"};
+            const GroundTiles::Key key{p.object->shape, p.object->frame};
+            auto it = structureVariants.find(key);
+            if (it == structureVariants.end()) {
+                it = structureVariants.emplace(key, names[std::clamp(planks, 0, 7)]).first;
+                structureAdded = true;
+            }
+            const auto& v = it->second;
+            planks = v == "planks" ? 1 : v == "post" ? 2 : v == "stone" ? 4 : v == "ashlar" ? 6 : v == "half-timber" ? 7 : 0;
+        }
         if (name == "floor" && model != m_models.end() && planks == 0) planks = model->second.planks ? 1 : model->second.stone ? 4 : 0;
         // Walkways: the tops of the town wall, its gateways and raised floors carry Sir Canegm.
         if (fortress || name == "fortress gateway" || (name == "floor" && p.object->lift > 0)) {
@@ -3590,6 +3760,8 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
         }
         addObject(data, *p.object, p.layer, p.roof, p.liftMetres, planks, p.thinWall);
     }
+    if (structureAdded) GroundTiles::saveStructureVariants(structureFile, structureVariants, "layer 1 graphic (walls, doors, windows, town walls, rock)",
+                                                           "planks, post, stone, ashlar, half-timber, graphic (its high resolution picture)");
     buildGateModels(data, gateParts);
     buildSlateRoofs(slateTiles);
     buildGlobe(data);
@@ -3625,7 +3797,13 @@ void Britannia3dView::build(const U7::Data& data, int chunkX0, int chunkY0, int 
     buildRoads();                      // after all walls and roofs: streets outside the houses
     buildSignposts(data, signPosts, signBoards);   // after the streets: posts keep off the kerbs
     buildLamps(lampPlaces);                        // as do the lamp posts
-    buildTrees(treePlaces);            // after all walls and roofs: the crowns keep clear of them
+    buildTrees(treePlaces, deadTreePlaces);   // after all walls and roofs: the crowns keep clear of them
+    if (roofAdded) GroundTiles::saveStructureVariants(roofFile, roofVariants, "layer 5 graphic (roofs)",
+                                                      "gable (by the walls: slate or thatch), slate, thatch, graphic (its high resolution picture)");
+    if (itemAdded) GroundTiles::saveStructureVariants(itemFile, itemVariants, "layer 2 graphic (furniture and things)",
+                                                      "a model (table, chair, bed, cup, sword, statue ... as in PropModels), graphic (its high resolution picture)");
+    if (terrainAdded) GroundTiles::saveStructureVariants(terrainFile, terrainVariants, "layer 3 graphic (rocks, plants, trees)",
+                                                         "tree, dead-tree, evergreen, bush, rock, weeds, plant, graphic (its high resolution picture)");
     for (auto* batches : {&m_batches, &m_globe})
         for (auto& batch : *batches)
             batch.mesh.create(reinterpret_cast<const float*>(batch.vertices.data()), unsigned(batch.vertices.size()), 9);
@@ -3727,6 +3905,20 @@ void Britannia3dView::step(float dt, bool forward, float turn, float tilt) {
     }
     m_lastHeight = here.y;
     if (character.follow) character.updateCamera(m_camera, dt);
+}
+
+void Britannia3dView::shownArea(float& tileX, float& tileY, float& tilesHigh) const {
+    // The ground under the middle of the view; the height the view spans there.
+    const glm::vec3 centre = groundUnder({0, 0}, 0.f);
+    tileX = centre.x;
+    tileY = centre.z;
+    const float metres = glm::length(m_camera.position() - planet(centre)) / Metre;
+    tilesHigh = std::max(4.f, 2.f * metres * std::tan(glm::radians(m_camera.fieldOfView()) * 0.5f) / U73dScale::TileMetres);
+}
+
+void Britannia3dView::showArea(float tileX, float tileY, float tilesHigh) {
+    const float metres = tilesHigh * U73dScale::TileMetres / (2.f * std::tan(glm::radians(m_camera.fieldOfView()) * 0.5f));
+    setFreeCamera(tileX, tileY, std::clamp(metres, 2.f, 8000.f), m_yaw, 89.f);
 }
 
 void Britannia3dView::setFreeCamera(float tileX, float tileY, float distance, float yaw, float pitch) {
@@ -4037,14 +4229,20 @@ void Britannia3dView::draw(bool* open) {
         style.PopupBorderSize = dragging ? 0.f : popupBorder;
     }
     ImGui::SetNextWindowSize(ImVec2(900, 650), ImGuiCond_FirstUseEver);
+    visible = false;
     if (!ImGui::Begin("Britannia3d", open)) { ImGui::End(); return; }
-    ImGui::Checkbox("Waende, Tueren, Fenster (Ebene 1)", &layerVisible[1]);
+    visible = true;
+    ImGui::Checkbox("Waende, Tueren, Fenster, Zaeune (Ebene 1)", &layerVisible[1]);
+    ImGui::SameLine();
+    ImGui::Checkbox("Moebel (Ebene 2)", &layerVisible[2]);
+    ImGui::SameLine();
+    ImGui::Checkbox("Gegenstaende (Ebene 4)", &layerVisible[4]);
+    ImGui::SameLine();
+    ImGui::Checkbox("Sonstiges (Ebene 6)", &layerVisible[6]);
     ImGui::SameLine();
     ImGui::Checkbox("Felsen, Pflanzen, Baeume (Ebene 3)", &layerVisible[3]);
     ImGui::SameLine();
-    ImGui::Checkbox("Moebel", &layerVisible[4]);
-    ImGui::SameLine();
-    ImGui::Checkbox("Daecher", &roofsVisible);
+    ImGui::Checkbox("Daecher (Ebene 5)", &roofsVisible);
     ImGui::SameLine();
     if (m_stableProps || m_stableTools) {
         ImGui::Checkbox("Stallszene", &stableSceneVisible);
