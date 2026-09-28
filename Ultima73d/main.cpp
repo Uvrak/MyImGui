@@ -168,6 +168,23 @@ int export3d(const U7::Data& data, const char* file, const std::vector<std::stri
         view.stableSceneDirectory = AssetDirectory;
         view.dataDirectory = DataDirectory;
         if (has("--world-ground")) view.prepareWorldGround(data);   // once: HD ground tiles for the whole world
+        if (has("--build-world")) {
+            // Builds the whole world once, area by area (Trinsic's size): every U7 object gets its
+            // entry in the variant tables, its model file and its high resolution picture.
+            const int w = x1 - x0 + 1, h = y1 - y0 + 1;
+            int first = 0;
+            if (const auto from = std::find(options.begin(), options.end(), "--from"); from != options.end() && options.end() - from >= 2) first = std::stoi(from[1]);
+            int index = 0;
+            for (int cy = 0; cy < U7::WorldChunks; cy += h)
+                for (int cx = 0; cx < U7::WorldChunks; cx += w, ++index) {
+                    if (index < first) continue;
+                    const auto start = std::chrono::steady_clock::now();
+                    view.build(data, cx, cy, (std::min)(cx + w - 1, U7::WorldChunks - 1), (std::min)(cy + h - 1, U7::WorldChunks - 1), layerOf, "Britannia");
+                    std::cout << "World area " << index << " (chunks " << cx << ',' << cy << "): " << view.boxCount() << " boxes, "
+                              << std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count() << " s" << std::endl;
+                }
+            return 0;
+        }
         view.build(data, x0, y0, x1, y1, layerOf, "Trinsic");
         view.roofsVisible = !has("--no-roofs");
         if (has("--toggle-doors"))
@@ -358,6 +375,22 @@ int main(int argc, char** argv) {
                 for (int i = 0; i < 5; ++i) before[i] = britannia3d.layerVisible[size_t(shared[i].second)];
                 const bool roofsBefore = britannia3d.roofsVisible;
                 if (britannia3dOpen) britannia3d.draw(&britannia3dOpen);
+                // Walking Sir Canegm near the edge of the built area (one chunk): the area is built
+                // anew around him, so all of Britannia can be walked in 3D.
+                if (britannia3d.visible && britannia3d.character.loaded() && britannia3d.character.follow) {
+                    const auto here = britannia3d.flat(britannia3d.character.position());
+                    const auto region = britannia3d.chunkRegion();
+                    const float cx = here.x / U7::ChunkTiles, cy = here.z / U7::ChunkTiles;
+                    const bool nearEdge = (cx < region.x + 1 && region.x > 0) || (cx > region.z && region.z < U7::WorldChunks - 1) ||
+                                          (cy < region.y + 1 && region.y > 0) || (cy > region.w && region.w < U7::WorldChunks - 1);
+                    if (nearEdge) {
+                        const int w = region.z - region.x + 1, h = region.w - region.y + 1;
+                        const int x0 = std::clamp(int(cx) - w / 2, 0, U7::WorldChunks - w), y0 = std::clamp(int(cy) - h / 2, 0, U7::WorldChunks - h);
+                        britannia3d.build(data, x0, y0, x0 + w - 1, y0 + h - 1, layerOf, "Britannia");
+                        britannia3d.character.setPosition(britannia3d.planet(glm::vec3(here.x, 0, here.z)));
+                        if (backpackReady) britannia3d.placeGroundEquipment([&](int e) { return backpack.groundPoint(e); });
+                    }
+                }
                 // Switching between the U7 grid and Britannia3d keeps the part of the map shown.
                 {
                     static bool shown3d = false, first = true;
