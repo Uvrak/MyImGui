@@ -67,7 +67,7 @@ public:
     void wearItem(size_t item);
     // A thing dragged in the world and let go over Sir Canegm: true when he puts it on.
     std::function<bool(size_t, ImVec2)> dropOnCharacter;
-    static constexpr float BagCapacityKg = 30.f;
+    static constexpr float BagCapacityKg = 40.f;
     // The weight of what else the backpack holds (its equipment and compass), kg.
     std::function<float()> equipmentKg;
     // ImGui window "Britannia3d".
@@ -216,6 +216,7 @@ private:
     ow3d::Mesh m_windowFrame, m_windowGlass;
     unsigned m_windowWoodTexture = 0, m_windowGlassTexture = 0;
     std::set<std::pair<int, int>> m_stoneTiles;                // tiles of stone walls
+    std::set<std::pair<int, int>> m_halfTimberTiles;           // tiles of half-timbered walls
     std::set<std::pair<int, int>> m_wallFootprint;             // tiles of walls, doors and windows (known before placing)
     std::map<std::pair<int, int>, float> m_wallTop;             // tile -> top of its wall (metres)
     std::vector<Door> m_doors;

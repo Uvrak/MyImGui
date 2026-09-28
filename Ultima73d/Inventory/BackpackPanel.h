@@ -97,6 +97,23 @@ public:
         if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_B, false)) visible = !visible;
         if (b.x-a.x<80 || b.y-a.y<80) return false;
         bool portraitHovered=scene&&portrait.draw(a,b,scene->character());
+        // Clothing dropped on the portrait is put on too (Sir Canegm may stand behind the bag).
+        if(scene&&portrait.lastMax.x>portrait.lastMin.x&&ImGui::GetDragDropPayload()){
+            const auto* dragged=ImGui::GetDragDropPayload();
+            const bool wearable=dragged->IsDataType("CHARACTER_EQUIPMENT")||(dragged->IsDataType("U73D_ITEM")&&dragged->DataSize==sizeof(int)&&wearableEquipment&&wearableEquipment(*static_cast<const int*>(dragged->Data))>=0);
+            if(wearable){
+                const ImRect target(portrait.lastMin,portrait.lastMax);
+                if(target.Contains(ImGui::GetIO().MousePos))ImGui::GetWindowDrawList()->AddRect(target.Min,target.Max,IM_COL32(110,220,100,230),6.f,0,3.f);
+                if(ImGui::BeginDragDropTargetCustom(target,ImGui::GetID("SirCanegm-portrait-equip"))){
+                    if(auto payload=ImGui::AcceptDragDropPayload("CHARACTER_EQUIPMENT",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))if(payload->DataSize==sizeof(int))setEquipment(*static_cast<const int*>(payload->Data),true);
+                    if(auto payload=ImGui::AcceptDragDropPayload("U73D_ITEM",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))if(payload->DataSize==sizeof(int)&&wearableEquipment){
+                        const int id=*static_cast<const int*>(payload->Data),item=wearableEquipment(id);
+                        if(item>=0){setEquipment(item,true);if(wornFromWorld)wornFromWorld(id);}
+                    }
+                    ImGui::EndDragDropTarget();
+                }
+            }
+        }
         bool compassHovered=compass.blocks(a,b)||portraitHovered;
         bool groundHovered=compassHovered?false:drawWorldItems(a,b);
         if (!visible) { panel.second=0; return (scene&&compass.drawWindow(a,b,scene->camera(),scene->character().position()))||groundHovered||portraitHovered; }

@@ -55,12 +55,14 @@ public:
         auto surface=SDL_CreateSurfaceFrom(resolution,resolution,SDL_PIXELFORMAT_RGBA32,pixels.data(),resolution*4);
         if(!surface)return false;bool ok=SDL_SaveBMP(surface,path);SDL_DestroySurface(surface);return ok;
     }
+    ImVec2 lastMin{0,0},lastMax{0,0};   // where the portrait was drawn (a drop target for clothing)
     bool draw(ImVec2 a,ImVec2 b,ow3d::AnimatedCharacter& actor){
         if(!actor.loaded())return false;refresh(actor);
         auto cursor=ImGui::GetCursorScreenPos();auto* d=ImGui::GetWindowDrawList();
         float size=std::min(106.f,std::min(b.x-a.x,b.y-a.y)*.24f);float bar=12,space=5;
         ImVec2 p(a.x+14,b.y-size-2*(bar+space)-14),end(p.x+size,p.y+size+2*(bar+space));
         ImGui::SetCursorScreenPos(p);ImGui::InvisibleButton("Sir Canegm portrait",{size,end.y-p.y});bool hover=ImGui::IsItemHovered();
+        lastMin=p;lastMax={p.x+size,end.y};
         if(hover)ImGui::SetTooltip("Sir Canegm\nLeben: %.0f / %.0f\nMana: %.0f / %.0f",actor.health,actor.maxHealth,actor.mana,actor.maxMana);
         d->AddRectFilled({p.x-4,p.y-4},{end.x+4,end.y+4},IM_COL32(37,29,20,235),7);
         d->AddRectFilled(p,{p.x+size,p.y+size},IM_COL32(43,52,39,255),5);

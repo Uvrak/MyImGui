@@ -419,6 +419,7 @@ void Britannia3dView::addObject(const U7::Data& data, const U7::WorldObject& obj
             for (int x = object.x - size.x + 1; x <= object.x; ++x) {
                 m_solidTiles.insert({x, y});
                 if (planks == 4) m_stoneTiles.insert({x, y});
+                if (planks == 7) m_halfTimberTiles.insert({x, y});
                 auto& t = m_wallTop[{x, y}];
                 t = std::max(t, top);
             }
@@ -1219,6 +1220,12 @@ void Britannia3dView::buildOpenings(const U7::Data& data, const std::vector<U7::
         const glm::vec2 uv[4] = {{0, 0}, {1, 0}, {1, 1}, {0, 1}};
         for (int k = 0; k < 6; ++k) addQuad(m_batches[batch], {c[f[k][0]], c[f[k][1]], c[f[k][2]], c[f[k][3]]}, uv, run.axis(n[k]));
     };
+    // Oak for the lintels and sills in half-timbered walls.
+    auto& oak = m_batches.emplace_back();
+    oak.planks = 1;
+    oak.tint = glm::vec3(0.16f, 0.1f, 0.06f);
+    oak.layer = 1;
+    const size_t oakIndex = m_batches.size() - 1;
     const float wall = U73dScale::WallThickness * tm;           // metres
     glm::vec2 leafSize(0);
     for (const auto& w : windows) {
@@ -1253,9 +1260,21 @@ void Britannia3dView::buildOpenings(const U7::Data& data, const std::vector<U7::
                 m_doors.push_back(casement);
             }
         }
-        box(stoneIndex, run, a0 - 0.1f / tm, a1 + 0.1f / tm, -wall / 2 - 0.06f, wall / 2 + 0.06f, y0 - 0.1f, y0);
-        // Reveals: the wall below and above the window in the opening (dressed stone).
-        box(stoneIndex, run, a0, a1, -wall / 2, wall / 2, y1, y1 + 0.12f);
+        // In a half-timbered wall: an oak lintel over the window, 15 cm past it on each side, and
+        // an oak sill; in other walls dressed stone.
+        bool timbered = false;
+        for (int k = int(std::floor(a0)) - 1; k <= int(std::floor(a1)); ++k) {
+            const int line = int(std::floor(alongX ? w.y + 0.5f : w.x + 0.5f));
+            timbered = timbered || m_halfTimberTiles.count(alongX ? std::pair{k, line} : std::pair{line, k});
+        }
+        if (timbered) {
+            box(oakIndex, run, a0 - 0.15f / tm, a1 + 0.15f / tm, -wall / 2 - 0.015f, wall / 2 + 0.015f, y1, y1 + 0.18f);
+            box(oakIndex, run, a0 - 0.08f / tm, a1 + 0.08f / tm, -wall / 2 - 0.04f, wall / 2 + 0.04f, y0 - 0.08f, y0);
+        } else {
+            box(stoneIndex, run, a0 - 0.1f / tm, a1 + 0.1f / tm, -wall / 2 - 0.06f, wall / 2 + 0.06f, y0 - 0.1f, y0);
+            // Reveals: the wall below and above the window in the opening (dressed stone).
+            box(stoneIndex, run, a0, a1, -wall / 2, wall / 2, y1, y1 + 0.12f);
+        }
     }
     // Shutters: two board leaves with battens on the outside of the window; closed across it,
     // open folded back flat against the wall beside it.
@@ -1978,9 +1997,21 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
         glm::vec3 anchor = centred ? glm::vec3(centre.x, base, centre.y) : glm::vec3(o.x + 1.f, base, o.y + 1.f);
         if (wallAt.x >= 0) anchor = glm::vec3(wallAt.x, 0.f, wallAt.y);
         else {
-            // Out of any wall it reaches into, to 0.1 cm in front of the wall face. A wall tile's
+            // Out of any wall it reaches into, to 0.5 cm in front of the wall face. A wall tile's
             // wall runs through its middle, WallThickness thick, and on to the neighbouring walls.
-            const float half = U73dScale::WallThickness * 0.5f, gap = 0.001f / tm;
+            const float half = U73dScale::WallThickness * 0.5f, gap = 0.005f / tm;
+            // A wall tile as drawn: an arm through its middle towards each neighbouring wall
+            // (WallThickness thick), a post when it stands alone.
+            auto arms = [&](int tx, int ty) {
+                std::vector<std::pair<glm::vec2, glm::vec2>> out;
+                const float cx = tx + 0.5f, cy = ty + 0.5f;
+                const bool west = m_solidTiles.count({tx - 1, ty}) > 0, east = m_solidTiles.count({tx + 1, ty}) > 0;
+                const bool north = m_solidTiles.count({tx, ty - 1}) > 0, south = m_solidTiles.count({tx, ty + 1}) > 0;
+                if (west || east) out.push_back({{west ? float(tx) : cx - half, cy - half}, {east ? tx + 1.f : cx + half, cy + half}});
+                if (north || south) out.push_back({{cx - half, north ? float(ty) : cy - half}, {cx + half, south ? ty + 1.f : cy + half}});
+                if (out.empty()) out.push_back({{cx - half, cy - half}, {cx + half, cy + half}});
+                return out;
+            };
             for (int pass = 0; pass < 3; ++pass) {
                 glm::vec2 low, high;                       // footprint, tiles
                 if (centred) {
@@ -1995,8 +2026,7 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 for (int ty = int(std::floor(low.y)); ty <= int(std::floor(high.y)); ++ty)
                     for (int tx = int(std::floor(low.x)); tx <= int(std::floor(high.x)); ++tx) {
                         if (!m_solidTiles.count({tx, ty})) continue;
-                        const glm::vec2 wl(m_solidTiles.count({tx - 1, ty}) ? float(tx) : tx + 0.5f - half, m_solidTiles.count({tx, ty - 1}) ? float(ty) : ty + 0.5f - half);
-                        const glm::vec2 wh(m_solidTiles.count({tx + 1, ty}) ? tx + 1.f : tx + 0.5f + half, m_solidTiles.count({tx, ty + 1}) ? ty + 1.f : ty + 0.5f + half);
+                        for (const auto& [wl, wh] : arms(tx, ty)) {
                         if (high.x <= wl.x || low.x >= wh.x || high.y <= wl.y || low.y >= wh.y) continue;
                         // The shortest way out, towards the side the object mostly stands on.
                         const float left = high.x - wl.x + gap, right = wh.x - low.x + gap, up = high.y - wl.y + gap, down = wh.y - low.y + gap;
@@ -2005,25 +2035,26 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                         else if (best == right) push.x = std::max(push.x, right);
                         else if (best == up) push.y = std::min(push.y, -up);
                         else push.y = std::max(push.y, down);
+                        }
                     }
                 if (push == glm::vec2(0)) break;
                 anchor.x += push.x; anchor.z += push.y;
             }
-            // Beds stand in the corner: moved to the nearer wall on each side, 0.1 cm clear.
+            // Beds stand in the corner: moved to the nearer wall on each side, 0.5 cm clear.
             if (prop.name == "bed" && !centred) {
                 const glm::vec2 low(anchor.x - w / tm, anchor.z - d / tm), high(anchor.x, anchor.z);
-                const float reach = 0.8f / tm, clear = 0.001f / tm;
+                const float reach = 0.8f / tm, clear = 0.005f / tm;
                 float gaps[4] = {1e9f, 1e9f, 1e9f, 1e9f};                 // west, east, north, south (tiles)
                 for (int ty = int(std::floor(low.y)) - 3; ty <= int(std::floor(high.y)) + 3; ++ty)
                     for (int tx = int(std::floor(low.x)) - 3; tx <= int(std::floor(high.x)) + 3; ++tx) {
                         if (!m_solidTiles.count({tx, ty})) continue;
-                        const glm::vec2 wl(m_solidTiles.count({tx - 1, ty}) ? float(tx) : tx + 0.5f - half, m_solidTiles.count({tx, ty - 1}) ? float(ty) : ty + 0.5f - half);
-                        const glm::vec2 wh(m_solidTiles.count({tx + 1, ty}) ? tx + 1.f : tx + 0.5f + half, m_solidTiles.count({tx, ty + 1}) ? ty + 1.f : ty + 0.5f + half);
+                        for (const auto& [wl, wh] : arms(tx, ty)) {
                         const bool rows = wh.y > low.y + 0.05f && wl.y < high.y - 0.05f, columns = wh.x > low.x + 0.05f && wl.x < high.x - 0.05f;
                         if (rows && wh.x <= low.x + 1e-3f) gaps[0] = std::min(gaps[0], low.x - wh.x);
                         if (rows && wl.x >= high.x - 1e-3f) gaps[1] = std::min(gaps[1], wl.x - high.x);
                         if (columns && wh.y <= low.y + 1e-3f) gaps[2] = std::min(gaps[2], low.y - wh.y);
                         if (columns && wl.y >= high.y - 1e-3f) gaps[3] = std::min(gaps[3], wl.y - high.y);
+                        }
                     }
                 if (std::min(gaps[0], gaps[1]) < reach) anchor.x += gaps[0] <= gaps[1] ? -(gaps[0] - clear) : gaps[1] - clear;
                 if (std::min(gaps[2], gaps[3]) < reach) anchor.z += gaps[2] <= gaps[3] ? -(gaps[2] - clear) : gaps[3] - clear;
@@ -2159,7 +2190,7 @@ void Britannia3dView::drawBagItems(ImVec2 p, float size) {
         }
         ImGui::EndDragDropTarget();
     }
-    // The load, top right on the bag: "0,1/30Kg" of the 30 kg it carries, with a bar.
+    // The load, top right on the bag: "0,1/40Kg" of the 40 kg it carries, with a bar.
     {
         const float kg = bagWeight(), share = std::min(kg / BagCapacityKg, 1.f);
         char text[48];
@@ -3880,6 +3911,8 @@ void Britannia3dView::draw(bool* open) {
     const ImVec2 size = ImGui::GetContentRegionAvail();
     const int width = std::max(1, int(size.x)), height = std::max(1, int(size.y));
     const ImVec2 corner = ImGui::GetCursorScreenPos();
+    // The backpack drawn over the view later takes the mouse where it lies.
+    ImGui::SetNextItemAllowOverlap();
     ImGui::InvisibleButton("Britannia3d view", ImVec2(float(width), float(height)),
                            ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
     const bool hovered = ImGui::IsItemHovered() && !m_overlayHovered;
@@ -3909,7 +3942,7 @@ void Britannia3dView::draw(bool* open) {
             m_bagMessageTime = 3.f;
             wearItem(size_t(m_dragItem));
         } else if (overBag && overBag(io.MousePos)) {
-            // The backpack carries up to 30 kg.
+            // The backpack carries up to 40 kg (BagCapacityKg).
             const auto& thing = m_items[size_t(m_dragItem)];
             if (bagWeight() + thing.kg <= BagCapacityKg) {
                 putInBag(size_t(m_dragItem));
