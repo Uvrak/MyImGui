@@ -2102,9 +2102,9 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             else if (prop.name == "artist's equipment") m = &model("palette", [] { return PropModels::palette(); });
             else if (prop.name == "great dagger") m = &model("great dagger", [] { return PropModels::blade(0.5f, true); });
             else if (prop.name == "body" || prop.name == "victim") { cover = 1; m = &model("body", [] { return PropModels::body(); }); }
-            else if (prop.name == "mountain") {
+            else if (prop.name == "mountain" || prop.name == "cavern") {
                 continue;                                    // part of the range's terrain (below)
-            } else if (prop.name == "cavern") {
+            } else if (prop.name == "cavern-old") {
                 turned = false;
                 // A massif: low at the foot of the range, rising towards its middle (cave walls stay
                 // storey-high walls).
@@ -2259,12 +2259,16 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
     // wide; the ground between them forms saddles and gullies, and the slopes run out over the
     // outer 10 tiles of the range.
     {
-        std::set<std::pair<int, int>> range;
+        // (Cave walls belong to it too, as closed rock walls up to the cave's ceiling.)
+        std::set<std::pair<int, int>> range, cave;
         for (const auto& prop : props)
-            if (prop.name == "mountain") {
+            if (prop.name == "mountain" || prop.name == "cavern") {
                 const auto size = data.shapeSize(prop.object.shape);
                 for (int y = prop.object.y - size.y + 1; y <= prop.object.y; ++y)
-                    for (int x = prop.object.x - size.x + 1; x <= prop.object.x; ++x) range.insert({x, y});
+                    for (int x = prop.object.x - size.x + 1; x <= prop.object.x; ++x) {
+                        range.insert({x, y});
+                        if (prop.name == "cavern") cave.insert({x, y});
+                    }
             }
         if (!range.empty()) {
             auto hash = [](int x, int y, unsigned salt) {
@@ -2299,11 +2303,16 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 // Crags: gentle ripples (metres), not spikes.
                 const float crag = 0.5f * std::sin(x * 0.45f + y * 0.21f) * std::sin(y * 0.37f - x * 0.13f) + 0.25f * std::sin(x * 1.1f - y * 0.9f);
                 const float rise = std::clamp(foot(x, y) / 10.f, 0.f, 1.f);
-                const float h = peak * rise * rise * (3 - 2 * rise) + crag * rise;
-                // Rock bands: strata about 2.2 m apart, each ending in a small ledge.
+                float h = peak * rise * rise * (3 - 2 * rise) + crag * rise;
+                // Cave walls: steep, rising within 1.5 m to the ceiling (a storey) and flat on top.
+                if (cave.count({int(std::floor(x)), int(std::floor(y))}))
+                    h = std::min(U73dScale::StoreyHeight + 0.4f, std::clamp(foot(x, y) / 3.f, 0.f, 1.f) * (U73dScale::StoreyHeight + 0.4f) + crag * 0.3f);
+                // Rock bands: strata about 2.2 m apart, each ending in a small ledge. The strata dip
+                // and bend across the range, and their thickness changes, so they are no contour lines.
                 constexpr float Band = 2.2f;
-                const float b = h / Band, f = b - std::floor(b);
-                const float terrace = (std::floor(b) + f * f * (3 - 2 * f)) * Band;
+                const float dip = 0.9f * std::sin(x * 0.043f + y * 0.017f) + 0.6f * std::sin(y * 0.071f - x * 0.029f) + 0.25f * std::sin(x * 0.19f + y * 0.13f);
+                const float b = (h + dip) / Band + 0.25f * std::sin(h * 0.9f + x * 0.05f), f = b - std::floor(b);
+                const float terrace = (std::floor(b) + f * f * (3 - 2 * f)) * Band - dip - 0.25f * std::sin(h * 0.9f + x * 0.05f) * Band;
                 return h + (terrace - h) * 0.85f * std::min(h / 3.f, 1.f);
             };
             // A grid of half tiles over the range's tiles.
@@ -2328,7 +2337,9 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                             const glm::vec3 n = glm::normalize(glm::vec3(-dx, 1.f, -dz));
                             // Steep rock darker, the tops lighter; the strata's edges as dark lines,
                             // the bands themselves a little lighter and darker in turn.
-                            const float band = p[k].y / 2.2f, edge = band - std::floor(band);
+                            const float wx = p[k].x, wz = p[k].z;
+                            const float dip = 0.9f * std::sin(wx * 0.043f + wz * 0.017f) + 0.6f * std::sin(wz * 0.071f - wx * 0.029f) + 0.25f * std::sin(wx * 0.19f + wz * 0.13f);
+                            const float band = (p[k].y + dip) / 2.2f + 0.25f * std::sin(p[k].y * 0.9f + wx * 0.05f), edge = band - std::floor(band);
                             const float strata = (edge > 0.8f ? 0.62f : edge < 0.12f ? 1.12f : 1.f) * (0.88f + 0.12f * std::sin(std::floor(band) * 2.1f));
                             const float shade = (0.72f + 0.35f * n.y) * (0.9f + 0.2f * std::min(p[k].y / 20.f, 1.f)) * strata;
                             stone.vertices.push_back({p[k].x, p[k].y, p[k].z, n.x, n.y, n.z, p[k].x * 0.25f, p[k].z * 0.25f + p[k].y * 0.3f, shade});
@@ -2339,7 +2350,8 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             for (const auto& [tx, ty] : range) {
                 const float x = tx + hash(tx, ty, 11), y = ty + hash(tx, ty, 12);
                 const float out = foot(x, y);
-                if (out > 9.f || hash(tx, ty, 13) > (out < 5.f ? 0.35f : 0.12f)) continue;
+                // Dense at the foot and in the lower gullies, thinning out higher up.
+                if (out > 9.5f || hash(tx, ty, 13) > (out < 4.f ? 0.75f : out < 7.f ? 0.45f : 0.2f)) continue;
                 const int variant = int(hash(tx, ty, 14) * 4) % 4;
                 const float s = 0.15f + 0.45f * hash(tx, ty, 15);
                 const auto& rock = model("scree " + std::to_string(variant) + " " + std::to_string(int(s * 10)),
@@ -2349,7 +2361,8 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 for (const auto& v : rock.parts[PropModels::Stone]) {
                     const glm::vec3 p(c * v.position.x - sn * v.position.z, v.position.y, sn * v.position.x + c * v.position.z);
                     const glm::vec3 n(c * v.normal.x - sn * v.normal.z, v.normal.y, sn * v.normal.x + c * v.normal.z);
-                    stone.vertices.push_back({x + p.x / tm, ground + p.y, y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 0.95f});
+                    // Darker than the rock face, in the shade of its neighbours; each stone its own tone.
+                    stone.vertices.push_back({x + p.x / tm, ground + p.y, y + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y, 0.55f + 0.2f * hash(tx, ty, 17)});
                 }
             }
             // Sir Canegm cannot climb them: walls along the foot of the range.
