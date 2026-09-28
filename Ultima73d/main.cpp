@@ -290,6 +290,7 @@ int main(int argc, char** argv) {
                     return true;
                 };
                 britannia3d.overlay = [&](ImVec2 a, ImVec2 b) { return backpack.draw(a, b); };
+                britannia3d.bagPanel = [&] { return backpack.panel; };
                 britannia3d.overBag = [&](ImVec2 m) {
                     const auto [p, size] = backpack.panel;
                     return size > 0 && m.x >= p.x && m.x <= p.x + size && m.y >= p.y && m.y <= p.y + size;

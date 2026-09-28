@@ -58,6 +58,8 @@ public:
     std::function<bool(ImVec2, ImVec2)> overlay;
     // Whether a screen point lies over the open backpack (things dropped there go into it).
     std::function<bool(ImVec2)> overBag;
+    // The open backpack panel on screen (top left, size), size 0 when closed.
+    std::function<std::pair<ImVec2, float>()> bagPanel;
     // The things in the backpack, drawn into its panel (top left, size); they can be dragged
     // back out onto the ground.
     void drawBagItems(ImVec2 panel, float size);
@@ -278,7 +280,17 @@ private:
                   bool movable() const { return kg < 100.f && !spans.empty(); } };
     void putInBag(size_t item);
     void placeItem(size_t item, glm::vec3 flatPoint);
+    // Let go: the thing falls onto the furniture under its middle, or onto the floor.
+    void settleItem(size_t item);
     void uploadItem(size_t item);
+    // A thing dragged out of the backpack shows in the world under the mouse while it is dragged
+    // (still in the bag until it is let go there).
+    int m_carried = -1;
+    void showCarried(size_t item, glm::vec3 flatPoint);
+    void hideCarried();
+    // The name of the dragged thing floating at the mouse (over the backpack, where the thing
+    // itself cannot be seen).
+    void drawDragLabel(const std::string& name) const;
     bool m_overlayHovered = false;
     std::string m_bagMessage;
     float m_bagMessageTime = 0;

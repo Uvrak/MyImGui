@@ -103,7 +103,6 @@ public:
             const bool wearable=dragged->IsDataType("CHARACTER_EQUIPMENT")||(dragged->IsDataType("U73D_ITEM")&&dragged->DataSize==sizeof(int)&&wearableEquipment&&wearableEquipment(*static_cast<const int*>(dragged->Data))>=0);
             if(wearable){
                 const ImRect target(portrait.lastMin,portrait.lastMax);
-                if(target.Contains(ImGui::GetIO().MousePos))ImGui::GetWindowDrawList()->AddRect(target.Min,target.Max,IM_COL32(110,220,100,230),6.f,0,3.f);
                 if(ImGui::BeginDragDropTargetCustom(target,ImGui::GetID("SirCanegm-portrait-equip"))){
                     if(auto payload=ImGui::AcceptDragDropPayload("CHARACTER_EQUIPMENT",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))if(payload->DataSize==sizeof(int))setEquipment(*static_cast<const int*>(payload->Data),true);
                     if(auto payload=ImGui::AcceptDragDropPayload("U73D_ITEM",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))if(payload->DataSize==sizeof(int)&&wearableEquipment){
@@ -136,7 +135,7 @@ public:
         if(scene)compass.drawIcon(p,size,scene->camera(),scene->character().position());
         if(extraItems)extraItems(p,size);
         if(ImGui::BeginDragDropTargetCustom(ImRect({p.x+size*.15f,p.y+size*.26f},{p.x+size*.85f,p.y+size*.78f}),ImGui::GetID("Compass-to-backpack"))){
-            if(ImGui::AcceptDragDropPayload("INVENTORY_COMPASS"))compass.putInBag({(mouse.x-p.x)/size,(mouse.y-p.y)/size});
+            if(ImGui::AcceptDragDropPayload("INVENTORY_COMPASS",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))compass.putInBag({(mouse.x-p.x)/size,(mouse.y-p.y)/size});
             ImGui::EndDragDropTarget();
         }
         // Claim the flap drag so ImGui cannot move/undock the underlying viewport.
@@ -190,10 +189,10 @@ public:
             auto mid=project(actor.position()+up*actor.height()*.5f);float radius=std::max(25.f,std::abs(foot.y-head.y)*.4f);
             ImRect target({mid.x-radius,std::min(head.y,foot.y)-15},{mid.x+radius,std::max(head.y,foot.y)+15});
             overCharacter=target.Contains(mouse)&&enabled&&!hovered;
-            if(overCharacter){ImGui::GetWindowDrawList()->AddRect(target.Min,target.Max,IM_COL32(110,220,100,230),6.f);
+            if(overCharacter){
                 if(ImGui::BeginDragDropTargetCustom(target,ImGui::GetID("SirCanegm-equip"))){
-                    if(auto payload=ImGui::AcceptDragDropPayload("CHARACTER_EQUIPMENT"))if(payload->DataSize==sizeof(int))setEquipment(*static_cast<const int*>(payload->Data),true);
-                    if(auto payload=ImGui::AcceptDragDropPayload("U73D_ITEM"))if(payload->DataSize==sizeof(int)&&wearableEquipment){
+                    if(auto payload=ImGui::AcceptDragDropPayload("CHARACTER_EQUIPMENT",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))if(payload->DataSize==sizeof(int))setEquipment(*static_cast<const int*>(payload->Data),true);
+                    if(auto payload=ImGui::AcceptDragDropPayload("U73D_ITEM",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))if(payload->DataSize==sizeof(int)&&wearableEquipment){
                         const int id=*static_cast<const int*>(payload->Data),item=wearableEquipment(id);
                         if(item>=0){setEquipment(item,true);if(wornFromWorld)wornFromWorld(id);}
                     }
@@ -204,7 +203,6 @@ public:
         if(scene && enabled && !hovered && !overCharacter && ImGui::GetDragDropPayload() && !ImGui::GetDragDropPayload()->IsDataType("BRITANNIA_STONE") && !ImGui::GetDragDropPayload()->IsDataType("U73D_ITEM")) {
             glm::vec3 point;
             if(scene->pickGround(2*(mouse.x-a.x)/(b.x-a.x)-1,1-2*(mouse.y-a.y)/(b.y-a.y),point)){
-                ink->AddCircle(mouse,18,IM_COL32(130,220,110,240),24,2);
                 if(ImGui::BeginDragDropTargetCustom(ImRect(a,b),ImGui::GetID("world-ground-drop"))){
                     if(ImGui::AcceptDragDropPayload("INVENTORY_COMPASS",ImGuiDragDropFlags_AcceptNoDrawDefaultRect))compass.drop(point);
                     auto payload=ImGui::AcceptDragDropPayload("CHARACTER_EQUIPMENT",ImGuiDragDropFlags_AcceptNoDrawDefaultRect);

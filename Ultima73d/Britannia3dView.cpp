@@ -2130,6 +2130,31 @@ void Britannia3dView::putInBag(size_t index) {
     uploadItem(index);
 }
 
+void Britannia3dView::settleItem(size_t index) {
+    static const std::set<std::string> surfaces = {"table", "desk", "drawers", "chest", "locked chest", "crate", "stove", "stove top", "podium",
+                                                   "pedestal", "sealed box", "unsealed box", "bed", "seat", "chair"};
+    auto& item = m_items[index];
+    if (item.inBag || item.worn) return;
+    const glm::vec3 middle = (item.low + item.high) * 0.5f;
+    float support = 0.f;
+    // (Furniture itself stands on the floor.)
+    if (!surfaces.count(item.kind))
+        for (size_t k = 0; k < m_items.size(); ++k) {
+            const auto& other = m_items[k];
+            if (k == index || other.inBag || other.worn || !surfaces.count(other.kind)) continue;
+            if (middle.x < other.low.x || middle.x > other.high.x || middle.z < other.low.z || middle.z > other.high.z) continue;
+            // (Beds and seats: onto the mattress and the seat, not the headboard or the back.)
+            const float top = other.kind == "bed" ? other.low.y + 0.6f : other.kind == "chair" || other.kind == "seat" ? other.low.y + 0.45f : other.high.y;
+            support = std::max(support, top);
+        }
+    const float drop = support - item.low.y;
+    if (std::abs(drop) < 1e-4f) return;
+    for (const auto& span : item.spans)
+        for (size_t i = span.first; i < span.first + span.count; ++i) m_batches[span.batch].vertices[i].y += drop;
+    item.low.y += drop; item.high.y += drop;
+    uploadItem(index);
+}
+
 void Britannia3dView::placeItem(size_t index, glm::vec3 point) {
     // Stood on the ground at point (flat tiles), its middle there.
     auto& item = m_items[index];
@@ -2144,6 +2169,48 @@ void Britannia3dView::placeItem(size_t index, glm::vec3 point) {
     item.low += boxShift; item.high += boxShift;
     item.inBag = false;
     uploadItem(index);
+}
+
+void Britannia3dView::showCarried(size_t index, glm::vec3 point) {
+    // Its vertices come up from 1000 m below (first time) or move along, its middle at point.
+    auto& item = m_items[index];
+    const bool rising = m_carried != int(index);
+    if (m_carried >= 0 && m_carried != int(index)) hideCarried();
+    const glm::vec3 middle = (item.low + item.high) * 0.5f;
+    const glm::vec3 shift(point.x - middle.x, (rising ? 1000.f : 0.f) - item.low.y + std::max(point.y, 0.f), point.z - middle.z);
+    for (const auto& span : item.spans)
+        for (size_t i = span.first; i < span.first + span.count; ++i) {
+            auto& v = m_batches[span.batch].vertices[i];
+            v.x += shift.x; v.y += shift.y; v.z += shift.z;
+        }
+    const glm::vec3 boxShift(shift.x, shift.y - (rising ? 1000.f : 0.f), shift.z);
+    item.low += boxShift; item.high += boxShift;
+    m_carried = int(index);
+    uploadItem(index);
+}
+
+void Britannia3dView::hideCarried() {
+    if (m_carried < 0) return;
+    const size_t index = size_t(m_carried);
+    m_carried = -1;
+    if (!m_items[index].inBag) return;
+    for (const auto& span : m_items[index].spans)
+        for (size_t i = span.first; i < span.first + span.count; ++i) m_batches[span.batch].vertices[i].y -= 1000.f;
+    uploadItem(index);
+}
+
+void Britannia3dView::drawDragLabel(const std::string& name) const {
+    // The thing as the bag shows it (its tile, centred on the mouse) and its name, over the bag.
+    const auto mouse = ImGui::GetIO().MousePos;
+    auto* ink = ImGui::GetForegroundDrawList();
+    const float side = bagPanel ? std::max(24.f, bagPanel().second * 0.085f) : 32.f;
+    const ImVec2 q(mouse.x - side * 0.5f, mouse.y - side * 0.5f);
+    ink->AddRectFilled(q, {q.x + side, q.y + side}, IM_COL32(70, 48, 28, 235), 4);
+    const std::string letter = name.substr(0, name[0] & 0x80 ? 2 : 1);
+    ink->AddText({q.x + side * 0.32f, q.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
+    const ImVec2 size = ImGui::CalcTextSize(name.c_str());
+    ink->AddRectFilled({q.x, q.y + side + 2}, {q.x + size.x + 8, q.y + side + 6 + size.y}, IM_COL32(30, 20, 12, 200), 3);
+    ink->AddText({q.x + 4, q.y + side + 4}, IM_COL32(250, 230, 190, 255), name.c_str());
 }
 
 float Britannia3dView::bagWeight() const {
@@ -2175,6 +2242,10 @@ void Britannia3dView::drawBagItems(ImVec2 p, float size) {
         if (ImGui::BeginDragDropSource()) {
             const int id = int(i);
             ImGui::SetDragDropPayload("U73D_ITEM", &id, sizeof(id));
+            const ImVec2 at = ImGui::GetCursorScreenPos();
+            ImGui::Dummy({side, side});
+            ImGui::GetWindowDrawList()->AddRectFilled(at, {at.x + side, at.y + side}, IM_COL32(70, 48, 28, 230), 4);
+            ImGui::GetWindowDrawList()->AddText({at.x + side * 0.32f, at.y + side * 0.22f}, IM_COL32(250, 230, 190, 255), letter.c_str());
             ImGui::Text("%s", item.name.c_str());
             ImGui::EndDragDropSource();
         }
@@ -3538,6 +3609,9 @@ bool Britannia3dView::loadCharacter(const std::filesystem::path& folder, float t
     // Settings of Ultima7Remake (scene scale 0.6 there, so its distances are taken x 0.6).
     character.setHeight(U73dScale::CharacterHeight * Metre);
     character.minimumCameraDistance = .12f * .6f;
+    // Zooming out from 2 m behind him, the camera quickly tilts to straight down (90 degrees at 3.5 m).
+    character.overheadStart = 2.f * Metre;
+    character.overheadFull = 3.5f * Metre;
     character.preferOutwardCamera = true;
     m_camera.minimumFieldOfView = 12.f;
     character.setPosition(planet({tileX, 0, tileY}));
@@ -3549,7 +3623,7 @@ bool Britannia3dView::loadCharacter(const std::filesystem::path& folder, float t
     character.setTopDownAngle(55.95f);
     const auto north = glm::normalize(planet({tileX, 0, tileY - 1}) - character.position());
     character.restoreCameraOrbit(north, {glm::radians(55.95f), 0.f});
-    character.setCameraDistance(.40f);
+    character.setCameraDistance(2.f * Metre);         // starts 2 m behind him
     step(0, false);
     return true;
 }
@@ -3875,6 +3949,16 @@ void Britannia3dView::handleInput(bool hovered) {
 }
 
 void Britannia3dView::draw(bool* open) {
+    // While something is dragged its preview floats without a frame (no tooltip background,
+    // no border); afterwards the style is as it was.
+    {
+        auto& style = ImGui::GetStyle();
+        static const ImVec4 popupBackground = style.Colors[ImGuiCol_PopupBg];
+        static const float popupBorder = style.PopupBorderSize;
+        const bool dragging = ImGui::IsDragDropActive();
+        style.Colors[ImGuiCol_PopupBg].w = dragging ? 0.f : popupBackground.w;
+        style.PopupBorderSize = dragging ? 0.f : popupBorder;
+    }
     ImGui::SetNextWindowSize(ImVec2(900, 650), ImGuiCond_FirstUseEver);
     if (!ImGui::Begin("Britannia3d", open)) { ImGui::End(); return; }
     ImGui::Checkbox("Waende, Tueren, Fenster (Ebene 1)", &layerVisible[1]);
@@ -3929,12 +4013,16 @@ void Britannia3dView::draw(bool* open) {
                 m_itemGrabbed = true;
                 m_dragGrab = groundUnder(ndc, m_items[size_t(item)].low.y);
             }
-        if (m_dragItem >= 0 && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
-            const glm::vec3 here = groundUnder(ndc, m_items[size_t(m_dragItem)].low.y);
-            const glm::vec2 delta(here.x - m_dragGrab.x, here.z - m_dragGrab.z);
-            if (glm::length(delta) > 1e-4f && glm::length(delta) < 20.f) moveItem(size_t(m_dragItem), delta);
-            m_dragGrab = here;
-        }
+    }
+    if (m_dragItem >= 0 && ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
+        // Wherever the mouse is (over the backpack too) the thing stays under it, on the ground.
+        const glm::vec2 mouse(std::clamp(io.MousePos.x, corner.x, corner.x + width), std::clamp(io.MousePos.y, corner.y, corner.y + height));
+        const glm::vec2 ndc(2.f * (mouse.x - corner.x) / width - 1.f, 1.f - 2.f * (mouse.y - corner.y) / height);
+        const glm::vec3 here = groundUnder(ndc, m_items[size_t(m_dragItem)].low.y);
+        const glm::vec2 delta(here.x - m_dragGrab.x, here.z - m_dragGrab.z);
+        if (glm::length(delta) > 1e-4f && glm::length(delta) < 20.f) moveItem(size_t(m_dragItem), delta);
+        m_dragGrab = here;
+        if (overBag && overBag(io.MousePos)) drawDragLabel(m_items[size_t(m_dragItem)].name);
     }
     if (m_dragItem >= 0 && !ImGui::IsMouseDown(ImGuiMouseButton_Left)) {
         if (dropOnCharacter && dropOnCharacter(size_t(m_dragItem), io.MousePos)) {
@@ -3946,6 +4034,12 @@ void Britannia3dView::draw(bool* open) {
             const auto& thing = m_items[size_t(m_dragItem)];
             if (bagWeight() + thing.kg <= BagCapacityKg) {
                 putInBag(size_t(m_dragItem));
+                if (bagPanel) {
+                    const auto [p, size] = bagPanel();
+                    if (size > 0)
+                        m_items[size_t(m_dragItem)].bagPos = glm::vec2(std::clamp((io.MousePos.x - p.x) / size, 0.2f, 0.8f),
+                                                                       std::clamp((io.MousePos.y - p.y) / size, 0.3f, 0.74f));
+                }
                 m_bagMessage = thing.name + " ist im Rucksack";
             } else {
                 char text[160];
@@ -3953,9 +4047,10 @@ void Britannia3dView::draw(bool* open) {
                               bagWeight(), BagCapacityKg);
                 for (char* c = text; *c; ++c) if (*c == '.') *c = ',';
                 m_bagMessage = text;
+                settleItem(size_t(m_dragItem));
             }
             m_bagMessageTime = 3.f;
-        }
+        } else settleItem(size_t(m_dragItem));                 // falls where it was let go
         m_dragItem = -1;
     }
     if (!ImGui::IsMouseDown(ImGuiMouseButton_Left) && !ImGui::IsMouseReleased(ImGuiMouseButton_Left)) m_itemGrabbed = false;
@@ -4013,12 +4108,28 @@ void Britannia3dView::draw(bool* open) {
     render(width, height);
     ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(m_color), corner,
                                          ImVec2(corner.x + width, corner.y + height), ImVec2(0, 1), ImVec2(1, 0));
+    // A thing dragged out of the backpack: in the world under the mouse, while it is over the
+    // view (not over the bag); back in the bag when the drag ends anywhere else.
+    {
+        const auto* payload = ImGui::GetDragDropPayload();
+        const int dragged = payload && payload->IsDataType("U73D_ITEM") && payload->DataSize == sizeof(int) ? *static_cast<const int*>(payload->Data) : -1;
+        const bool overView = io.MousePos.x >= corner.x && io.MousePos.y >= corner.y && io.MousePos.x < corner.x + width && io.MousePos.y < corner.y + height;
+        if (dragged >= 0 && size_t(dragged) < m_items.size() && m_items[size_t(dragged)].inBag && overView && !(overBag && overBag(io.MousePos))) {
+            const glm::vec2 ndc(2.f * (io.MousePos.x - corner.x) / width - 1.f, 1.f - 2.f * (io.MousePos.y - corner.y) / height);
+            showCarried(size_t(dragged), groundUnder(ndc, 0.f));
+        } else if (m_carried >= 0 && (dragged < 0 || (overBag && overBag(io.MousePos))))
+            hideCarried();
+    }
     // Things dragged out of the backpack land on the ground under the mouse.
     if (ImGui::BeginDragDropTargetCustom(ImRect(corner, ImVec2(corner.x + width, corner.y + height)), ImGui::GetID("U73D ground"))) {
-        if (const auto* payload = ImGui::AcceptDragDropPayload("U73D_ITEM")) {
+        if (const auto* payload = ImGui::AcceptDragDropPayload("U73D_ITEM", ImGuiDragDropFlags_AcceptNoDrawDefaultRect)) {
             const int item = *static_cast<const int*>(payload->Data);
             const glm::vec2 ndc(2.f * (io.MousePos.x - corner.x) / width - 1.f, 1.f - 2.f * (io.MousePos.y - corner.y) / height);
-            if (item >= 0 && size_t(item) < m_items.size() && m_items[size_t(item)].inBag) placeItem(size_t(item), groundUnder(ndc, 0.f));
+            if (item >= 0 && size_t(item) < m_items.size() && m_items[size_t(item)].inBag) {
+                hideCarried();
+                placeItem(size_t(item), groundUnder(ndc, 0.f));
+                settleItem(size_t(item));
+            }
         }
         ImGui::EndDragDropTarget();
     }
