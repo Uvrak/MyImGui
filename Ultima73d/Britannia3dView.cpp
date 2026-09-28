@@ -2102,7 +2102,9 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
             else if (prop.name == "artist's equipment") m = &model("palette", [] { return PropModels::palette(); });
             else if (prop.name == "great dagger") m = &model("great dagger", [] { return PropModels::blade(0.5f, true); });
             else if (prop.name == "body" || prop.name == "victim") { cover = 1; m = &model("body", [] { return PropModels::body(); }); }
-            else if (prop.name == "mountain" || prop.name == "cavern") {
+            else if (prop.name == "mountain") {
+                continue;                                    // part of the range's terrain (below)
+            } else if (prop.name == "cavern") {
                 turned = false;
                 // A massif: low at the foot of the range, rising towards its middle (cave walls stay
                 // storey-high walls).
@@ -2250,6 +2252,89 @@ void Britannia3dView::buildProps(const U7::Data& data, const std::vector<PropPla
                 batch.vertices.push_back({anchor.x + p.x / tm, anchor.y + p.y, anchor.z + p.z / tm, n.x, n.y, n.z, v.uv.x, v.uv.y,
                                           k == PropModels::Flame ? 1.8f : k == PropModels::Mirror ? 5.f : 1.f});   // flames glow; 5: mirror glass
             }
+        }
+    }
+    // Mountain ranges: one terrain over all mountain tiles, with single peaks. Each peak stands in
+    // a cell of 26 x 26 tiles (13 m) at its own place, 6 to 22 m high, its flanks 8 to 16 tiles
+    // wide; the ground between them forms saddles and gullies, and the slopes run out over the
+    // outer 10 tiles of the range.
+    {
+        std::set<std::pair<int, int>> range;
+        for (const auto& prop : props)
+            if (prop.name == "mountain") {
+                const auto size = data.shapeSize(prop.object.shape);
+                for (int y = prop.object.y - size.y + 1; y <= prop.object.y; ++y)
+                    for (int x = prop.object.x - size.x + 1; x <= prop.object.x; ++x) range.insert({x, y});
+            }
+        if (!range.empty()) {
+            auto hash = [](int x, int y, unsigned salt) {
+                std::uint32_t h = std::uint32_t(x) * 374761393u + std::uint32_t(y) * 668265263u + salt * 2246822519u;
+                h = (h ^ (h >> 13)) * 1274126177u;
+                return float((h ^ (h >> 16)) & 0xffff) / 65535.f;
+            };
+            // Distance (tiles) from a point to the foot of the range, up to 10.
+            auto foot = [&](float x, float y) {
+                float best = 10.f;
+                const int cx = int(std::floor(x)), cy = int(std::floor(y));
+                for (int dy = -10; dy <= 10; ++dy)
+                    for (int dx = -10; dx <= 10; ++dx) {
+                        if (range.count({cx + dx, cy + dy})) continue;
+                        const float nx = std::clamp(x, float(cx + dx), float(cx + dx + 1)), ny = std::clamp(y, float(cy + dy), float(cy + dy + 1));
+                        best = std::min(best, std::hypot(x - nx, y - ny));
+                    }
+                return best;
+            };
+            constexpr int Cell = 26;
+            auto height = [&](float x, float y) {
+                // The highest of the peaks around, a ridge line between them, fine crags.
+                float peak = 0.f;
+                const int gx = int(std::floor(x / Cell)), gy = int(std::floor(y / Cell));
+                for (int j = gy - 1; j <= gy + 1; ++j)
+                    for (int i = gx - 1; i <= gx + 1; ++i) {
+                        const glm::vec2 c((i + 0.2f + 0.6f * hash(i, j, 1)) * Cell, (j + 0.2f + 0.6f * hash(i, j, 2)) * Cell);
+                        const float high = 6.f + 16.f * hash(i, j, 3), wide = 8.f + 8.f * hash(i, j, 4);
+                        const float d = glm::length(glm::vec2(x, y) - c) / wide;
+                        peak = std::max(peak, high / (1.f + d * d));
+                    }
+                // Crags: gentle ripples (metres), not spikes.
+                const float crag = 0.5f * std::sin(x * 0.45f + y * 0.21f) * std::sin(y * 0.37f - x * 0.13f) + 0.25f * std::sin(x * 1.1f - y * 0.9f);
+                const float rise = std::clamp(foot(x, y) / 10.f, 0.f, 1.f);
+                return (peak * rise * rise * (3 - 2 * rise) + crag * rise);
+            };
+            // A grid of half tiles over the range's tiles.
+            constexpr float S = 0.5f;
+            std::map<std::pair<int, int>, float> heights;
+            auto at = [&](int i, int j) {
+                auto [it, added] = heights.try_emplace({i, j}, 0.f);
+                if (added) it->second = height(i * S, j * S);
+                return it->second;
+            };
+            auto& stone = m_batches[batchFor(PropModels::Stone, 0, 1)];
+            for (const auto& [tx, ty] : range)
+                for (int sj = 0; sj < 2; ++sj)
+                    for (int si = 0; si < 2; ++si) {
+                        const int i = tx * 2 + si, j = ty * 2 + sj;
+                        glm::vec3 p[4] = {{i * S, at(i, j), j * S}, {(i + 1) * S, at(i + 1, j), j * S},
+                                          {(i + 1) * S, at(i + 1, j + 1), (j + 1) * S}, {i * S, at(i, j + 1), (j + 1) * S}};
+                        for (int k : {0, 1, 2, 0, 2, 3}) {
+                            const int ii = int(std::round(p[k].x / S)), jj = int(std::round(p[k].z / S));
+                            // Normal from the heights around (metres over metres).
+                            const float dx = (at(ii + 1, jj) - at(ii - 1, jj)) / (2 * S * tm), dz = (at(ii, jj + 1) - at(ii, jj - 1)) / (2 * S * tm);
+                            const glm::vec3 n = glm::normalize(glm::vec3(-dx, 1.f, -dz));
+                            // Steep rock darker, the tops lighter.
+                            const float shade = (0.72f + 0.35f * n.y) * (0.9f + 0.2f * std::min(p[k].y / 20.f, 1.f));
+                            stone.vertices.push_back({p[k].x, p[k].y, p[k].z, n.x, n.y, n.z, p[k].x * 0.25f, p[k].z * 0.25f + p[k].y * 0.3f, shade});
+                        }
+                    }
+            // Sir Canegm cannot climb them: walls along the foot of the range.
+            for (const auto& [tx, ty] : range)
+                for (const auto [dx, dy] : {std::pair{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                    if (range.count({tx + dx, ty + dy})) continue;
+                    const float ex = dx > 0 ? tx + 1.f : dx < 0 ? float(tx) : tx, ey = dy > 0 ? ty + 1.f : dy < 0 ? float(ty) : ty;
+                    const glm::vec3 a(ex, 0, ey), b = dx != 0 ? glm::vec3(ex, 0, ey + 1) : glm::vec3(ex + 1, 0, ey), up(0, 4.f, 0);
+                    auto& cell = m_walls[{tx / 8, ty / 8}];
+                    for (const auto& q : {a, b, b + up, a, b + up, a + up}) cell.push_back(q);
+                }
         }
     }
     // Sir Canegm's equipment: one hidden thing per piece (the boots are one pair), shown in
